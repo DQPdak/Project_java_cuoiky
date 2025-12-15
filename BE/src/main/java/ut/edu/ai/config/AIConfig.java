@@ -27,7 +27,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory; /
 public class AIConfig {
     // @value: nạp giá trị từ application.properties
     
-    @Value("${ai.openai.apiKey}")
+    @Value("${ai.openai.api-key}")
     private String openAiApiKey; // lưu trữ API key của OpenAI
 
     @Value("${ai.openai.model:gpt-4}")
@@ -62,7 +62,7 @@ public class AIConfig {
 
     @Bean
     public AIProperties aiProperties(){
-        AIProperties props = new AIProperties(); // tạo đối tượng AiProperties
+        AIProperties props = new AIProperties(); // tạo đối tượng AiProperties 
         props.setApiKey(openAiApiKey); // set API key
         props.setModel(model); // set model AI
         props.setCvAnalysisTimeout(cvAnalysisTimeout); // set timeout CV analysis
@@ -85,6 +85,7 @@ public class AIConfig {
         private String model;
         private int cvAnalysisTimeout;
         private int chatBotTimeout;
+        // Mặc định contructor không khai báo là rỗng
 
         // các hàm getter
         public String getApiKey() {
