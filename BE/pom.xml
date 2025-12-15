@@ -19,6 +19,20 @@
     <dependencies>
 
         <dependency>
+            <groupId>hu.blackbelt.bundles.poi</groupId>
+            <artifactId>org.apache.poi</artifactId>
+            <version>5.4.1_1</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.6</version>
+        </dependency>
+
+
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.5.14</version>
