@@ -25,6 +25,4 @@ public class ContactInfo {
             return "ContactInfo [email=" + email + '\'' + ", phoneNumber=" + phoneNumber +'\'' + "]";
         }
 
-       
-        
     }

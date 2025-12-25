@@ -1,0 +1,56 @@
+skill-config:
+  special-cases:
+    # Ngôn ngữ
+    javascript: "JavaScript"
+    typescript: "TypeScript"
+    php: "PHP"
+    # Frameworks
+    reactjs: "React"
+    react.js: "React"
+    nodejs: "Node.js"
+    vuejs: "Vue.js"
+    # Database
+    mongodb: "MongoDB"
+    postgresql: "PostgreSQL"
+    mysql: "MySQL"
+    # Khác
+    github: "GitHub"
+    aws: "AWS"
+    # Lập trình Mobile & Cross-platform
+    ios: "iOS"
+    android: "Android"
+    reactnative: "React Native"
+    flutter: "Flutter"
+    
+    # Cloud & DevOps (Rất nhiều từ viết hoa)
+    aws: "AWS"
+    azure: "Azure"
+    gcp: "GCP"
+    docker: "Docker"
+    kubernetes: "Kubernetes"
+    jenkins: "Jenkins"
+    terraform: "Terraform"
+    ansible: "Ansible"
+    cicd: "CI/CD"
+    
+    # Công cụ & Môi trường
+    vscode: "VS Code"
+    intellij: "IntelliJ IDEA"
+    linux: "Linux"
+    ubuntu: "Ubuntu"
+    
+    # Big Data & AI
+    pytorch: "PyTorch"
+    tensorflow: "TensorFlow"
+    scikitlearn: "scikit-learn"
+    hadoop: "Hadoop"
+    spark: "Apache Spark"
+    
+    # Kiến trúc & Quy trình
+    restful: "RESTful API"
+    graphql: "GraphQL"
+    microservices: "Microservices"
+    agile: "Agile"
+    scrum: "Scrum"
+    oop: "OOP"
+    dry: "DRY"
