@@ -1,0 +1,19 @@
+/* Thay thế 3 dòng @tailwind cũ bằng @import này */
+@import "tailwindcss";
+
+/* Định nghĩa theme trực tiếp trong CSS (Tính năng mới của v4) */
+@theme {
+  --background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
+  --background-image-gradient-conic: conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops));
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: #f8fafc;
+}
