@@ -1,8 +1,8 @@
 package app.admin.service;
 
 import org.springframework.stereotype.Service;
-import ut.edu.admin.dto.ApplicationsByDayResponse;
-import ut.edu.admin.dto.DashboardSummaryResponse;
+import app.admin.dto.ApplicationsByDayResponse; 
+import app.admin.dto.DashboardSummaryResponse;
 
 import java.time.LocalDate;
 import java.util.ArrayList;

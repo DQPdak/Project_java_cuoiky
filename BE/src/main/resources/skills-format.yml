@@ -23,7 +23,6 @@ skill-config:
     flutter: "Flutter"
     
     # Cloud & DevOps (Rất nhiều từ viết hoa)
-    aws: "AWS"
     azure: "Azure"
     gcp: "GCP"
     docker: "Docker"

@@ -26,7 +26,7 @@ import java.time.LocalDateTime;   // Ngày-giờ theo hệ thống (có thể ph
  */
 @Entity
 @Table(name = "refresh_tokens", indexes = {
-    @Index(name = "idx_token", columnList = "token") // Tạo index trên cột token để tìm nhanh
+    @Index(name = "idx_token_careermate", columnList = "token") // Tạo index trên cột token để tìm nhanh
 })
 @EntityListeners(AuditingEntityListener.class)
 @Data

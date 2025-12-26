@@ -33,8 +33,8 @@ public class CVAnalysisService {
 @Autowired
 private CVTextExtractor cvTextExtractor; 
 
-@Autowired
-private CVAnalysisService cvAnalysisService;
+// @Autowired
+// private CVAnalysisService cvAnalysisService;
 
 @Autowired
 private ContactInfoExtractor contactInfoExtractor;
