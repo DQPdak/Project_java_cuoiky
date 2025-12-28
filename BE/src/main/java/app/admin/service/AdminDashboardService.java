@@ -5,7 +5,6 @@ import app.content.repository.ArticleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import app.admin.dto.response.ApplicationsByDayResponse;
-import app.admin.dto.response.DashboardSummaryResponse;
 
 import java.time.LocalDate;
 import java.util.ArrayList;

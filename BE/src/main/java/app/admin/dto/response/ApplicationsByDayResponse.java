@@ -23,3 +23,6 @@ public class ApplicationsByDayResponse {
         private long count;
     }
 }
+public class ApplicationsByDayResponse {
+
+}
