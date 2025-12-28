@@ -2,47 +2,47 @@ package app.content.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import app.auth.entity.User;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "articles")
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Article {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(unique = true)
-    private String slug;
-
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Lob
+    @Column(nullable = false)
     private String content;
 
-    private String thumbnailUrl;
+    @Column(nullable = false, length = 50)
+    private String category;
 
-    @ManyToOne
-    @JoinColumn(name = "author_id")
-    private User author;
+    @Column(nullable = false, length = 20)
+    private String status; // DRAFT / PUBLISHED
 
-    private Boolean isPublished = false;
+    @Column(name = "created_by")
+    private Long createdBy;
 
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
+    void onCreate() {
+        createdAt = updatedAt = LocalDateTime.now();
+        if (status == null) status = "DRAFT";
     }
 
     @PreUpdate
-    protected void onUpdate() {
+    void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 }
