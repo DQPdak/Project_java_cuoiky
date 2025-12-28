@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import app.auth.dto.response.MessageResponse;
-import app.admin.dto.LeaderboardResponse;
+import app.admin.dto.response.LeaderboardResponse;
 import app.admin.service.LeaderboardService;
 
 @RestController

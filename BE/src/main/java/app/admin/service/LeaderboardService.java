@@ -1,7 +1,7 @@
 package app.admin.service;
 
 import org.springframework.stereotype.Service;
-import app.admin.dto.LeaderboardResponse;
+import app.admin.dto.response.LeaderboardResponse;
 
 import java.util.ArrayList;
 import java.util.List;

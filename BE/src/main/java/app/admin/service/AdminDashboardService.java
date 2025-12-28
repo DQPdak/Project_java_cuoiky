@@ -1,43 +1,25 @@
 package app.admin.service;
 
+import app.admin.dto.response.DashboardSummaryResponse;
+import app.content.repository.ArticleRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import app.admin.dto.ApplicationsByDayResponse; 
-import app.admin.dto.DashboardSummaryResponse;
+import app.admin.dto.response.ApplicationsByDayResponse;
+import app.admin.dto.response.DashboardSummaryResponse;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AdminDashboardService {
 
-    public DashboardSummaryResponse getSummary() {
-        // TODO: thay bằng query DB thật
+    private final ArticleRepository articleRepo;
+
+    public DashboardSummaryResponse summary() {
         return DashboardSummaryResponse.builder()
-                .totalUsers(0)
-                .totalJobs(0)
-                .totalApplications(0)
-                .totalArticles(0)
-                .build();
-    }
-
-    public ApplicationsByDayResponse getApplicationsByDay(int days) {
-        if (days <= 0 || days > 90) days = 7;
-
-        // TODO: thay bằng query DB thật
-        List<ApplicationsByDayResponse.DailyCount> series = new ArrayList<>();
-        LocalDate today = LocalDate.now();
-        for (int i = days - 1; i >= 0; i--) {
-            LocalDate d = today.minusDays(i);
-            series.add(ApplicationsByDayResponse.DailyCount.builder()
-                    .date(d.toString())
-                    .count(0)
-                    .build());
-        }
-
-        return ApplicationsByDayResponse.builder()
-                .days(days)
-                .series(series)
+                .totalArticles(articleRepo.count())
                 .build();
     }
 }
