@@ -13,12 +13,13 @@ import org.springframework.web.multipart.MultipartFile; // Đại diện cho fil
 
 import app.ai.Service.cv.ExtractorText.Component.DOCXTextExtractor;
 import app.ai.Service.cv.ExtractorText.Component.PDFTextExtractor;
+import app.ai.Service.cv.Interfaces.IFileTextExtractor;
 
 
 @Service
 public class CVTextExtractor {
-    private PDFTextExtractor pdf= new PDFTextExtractor();
-    private DOCXTextExtractor docx= new DOCXTextExtractor();
+    private IFileTextExtractor pdf= new PDFTextExtractor();
+    private IFileTextExtractor docx= new DOCXTextExtractor();
     /**
      * Trích xuất văn bản từ file CV (PDF hoặc DOCX)
      * 

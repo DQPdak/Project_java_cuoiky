@@ -7,14 +7,15 @@ package app.ai.Service.cv.ExtractorContact;
 // import từ Spring Framework
 import org.springframework.stereotype.Service; // Annotation đánh dấu lớp Service trong Spring
 
+import app.ai.Service.cv.Interfaces.IContactDetailExtractor;
 import app.ai.Service.cv.ExtractorContact.Component.EmailExtractor;
 import app.ai.Service.cv.ExtractorContact.Component.PhoneExtractor;
 import app.ai.dto.ContactInfo;
 
 @Service
 public class ContactInfoExtractor {
-    private final EmailExtractor emailExtractor;
-    private final PhoneExtractor phoneExtractor;
+    private  IContactDetailExtractor emailExtractor = new EmailExtractor();
+    private  IContactDetailExtractor phoneExtractor = new PhoneExtractor();
 
     public ContactInfoExtractor(EmailExtractor emailExtractor, PhoneExtractor phoneExtractor) {
         this.emailExtractor = emailExtractor;

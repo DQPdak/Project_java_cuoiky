@@ -23,8 +23,6 @@ import app.ai.Service.cv.skill.Component.SkillFormatter;
 
 // import từ java Core
 import java.util.*;
-import java.util.stream.Collectors; // Stream API để xử lý collections
-
 /**
  * CHỨC NĂNG:
  * - Sử dụng SkillDatabase để lấy danh sách kỹ năng mẫu
