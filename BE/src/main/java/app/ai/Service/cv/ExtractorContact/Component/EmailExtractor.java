@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
-import app.ai.Service.cv.Interfaces.IContactDetailExtractor;
+import app.ai.Service.cv.ExtractorContact.Interface.IContactDetailExtractor;
 
 /**
  * CHỨC NĂNG: Trích xuất email từ văn bản CV

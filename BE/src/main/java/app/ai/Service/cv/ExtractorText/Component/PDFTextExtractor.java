@@ -6,7 +6,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import app.ai.Service.cv.Interfaces.IFileTextExtractor;
+import app.ai.Service.cv.ExtractorText.Interface.IFileTextExtractor;
 
 @Component
 public class PDFTextExtractor implements IFileTextExtractor {

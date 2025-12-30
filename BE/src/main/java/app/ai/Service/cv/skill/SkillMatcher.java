@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import app.ai.Service.cv.skill.Component.SkillFormatter;
-import app.ai.dto.SkillMatchResult;
+import app.ai.Service.cv.skill.dto.SkillMatchResult;
 
 /**
  * CHỨC NĂNG: So sánh Kỹ năng trích xuất từ CV với Yêu cầu công việc

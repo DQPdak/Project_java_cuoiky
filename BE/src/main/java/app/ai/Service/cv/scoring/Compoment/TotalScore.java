@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-import app.ai.dto.SkillScore;
+import app.ai.Service.cv.scoring.dto.SkillScore;
 
 @Component
 public class TotalScore  {

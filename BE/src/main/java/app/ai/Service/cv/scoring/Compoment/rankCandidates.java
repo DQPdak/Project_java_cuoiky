@@ -1,7 +1,7 @@
 package app.ai.Service.cv.scoring.Compoment;
 
-import app.ai.dto.CandidateScore;
-import app.ai.dto.SkillScore;
+import app.ai.Service.cv.scoring.dto.CandidateScore;
+import app.ai.Service.cv.scoring.dto.SkillScore;
 
 import java.util.ArrayList;
 import java.util.List;

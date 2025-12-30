@@ -3,9 +3,9 @@ package app.ai.Service.cv.scoring.Compoment;
 import org.springframework.stereotype.Component;
 import java.util.List;
 
-import app.ai.Service.cv.Interfaces.ISkillScorer;
+import app.ai.Service.cv.scoring.Interface.ISkillScorer;
 import app.ai.Service.cv.skill.SkillMatcher;
-import app.ai.dto.SkillMatchResult;
+import app.ai.Service.cv.skill.dto.SkillMatchResult;
 
 // điểm cộng thêm cho số kỹ năng thừa mà ứng viên sở hữu so với yêu cầu công việc
 @Component

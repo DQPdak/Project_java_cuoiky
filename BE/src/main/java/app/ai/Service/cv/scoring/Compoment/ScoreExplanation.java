@@ -1,6 +1,6 @@
 package app.ai.Service.cv.scoring.Compoment;
 
-import app.ai.dto.SkillScore;
+import app.ai.Service.cv.scoring.dto.SkillScore;
 
 public class ScoreExplanation {
      public String generateScoreExplanation(SkillScore score) {

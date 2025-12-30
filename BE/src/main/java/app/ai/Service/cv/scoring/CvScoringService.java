@@ -1,7 +1,8 @@
 package app.ai.Service.cv.scoring;
 
 import app.ai.Service.cv.scoring.Compoment.*;
-import app.ai.dto.CandidateScore;
+import app.ai.Service.cv.scoring.dto.CandidateScore;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;

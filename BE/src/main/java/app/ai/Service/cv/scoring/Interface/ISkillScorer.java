@@ -1,4 +1,4 @@
-package app.ai.Service.cv.Interfaces;
+package app.ai.Service.cv.scoring.Interface;
 
 import java.util.List;
 

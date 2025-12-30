@@ -4,9 +4,9 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-import app.ai.Service.cv.Interfaces.ISkillScorer;
-import app.ai.dto.SkillMatchResult;
+import app.ai.Service.cv.scoring.Interface.ISkillScorer;
 import app.ai.Service.cv.skill.SkillMatcher;
+import app.ai.Service.cv.skill.dto.SkillMatchResult;
 
 /**
  * Class có trách nhiệm chấm điểm tỷ lệ tuơng đồng giữa kỹ năng của ứng viên và kỹ năng yêu cầu.

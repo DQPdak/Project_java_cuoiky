@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile; // Đại diện cho fil
 
 import app.ai.Service.cv.ExtractorText.Component.DOCXTextExtractor;
 import app.ai.Service.cv.ExtractorText.Component.PDFTextExtractor;
-import app.ai.Service.cv.Interfaces.IFileTextExtractor;
+import app.ai.Service.cv.ExtractorText.Interface.IFileTextExtractor;
 
 
 @Service
