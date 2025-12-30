@@ -19,5 +19,5 @@ public class ArticleUpdateRequest {
     @Size(max = 50)
     private String category;
 
-    private String status; // DRAFT/PUBLISHED
+    private String status; // optional
 }
