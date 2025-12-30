@@ -19,6 +19,5 @@ public class ArticleCreateRequest {
     @Size(max = 50)
     private String category;
 
-    // optional: DRAFT/PUBLISHED, nếu null thì DRAFT
-    private String status;
+    private String status; // optional: DRAFT/PUBLISHED
 }
