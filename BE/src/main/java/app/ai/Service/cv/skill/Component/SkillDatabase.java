@@ -8,137 +8,72 @@ package app.ai.Service.cv.skill.Component;
  */
 
 import org. springframework.stereotype.Component;
+
+import app.ai.Service.cv.skill.Model.Skill;
+import app.ai.Service.cv.skill.Model.SkillCategory;
+import app.ai.Service.cv.skill.Repository.ISkillCategoryRepository;
+import app.ai.Service.cv.skill.Repository.ISkillRepository;
+
 import java.util.*;
 
 @Component
 public class SkillDatabase {
-    // Map lưu trữ danh mục kỹ năng và các kỹ năng tương ứng
-    private final Map<String, Set<String>> skillCategories;
+    private ISkillRepository skillRepository;
+    private ISkillCategoryRepository categoryRepository;
 
-    // Khởi tạo database kỹ năng mẫu
-    public SkillDatabase() {
-        this.skillCategories = new HashMap<>(); // Tạo 1 HashMap rỗng để lưu trữ kỹ năng
-        initializeSkillDatabase();
+    // Constructor để inject repository
+    public SkillDatabase(ISkillRepository skillRepository, ISkillCategoryRepository categoryRepository) {
+        this.skillRepository = skillRepository;
+        this.categoryRepository = categoryRepository;
     }
 
-    // Phương thức khởi tạo dữ liệu mẫu với các kỹ năng phổ biến
-    /**
-     * Ý TƯỞNG:
-     *  - thêm vào skillCategories các Category 
-     *  - thêm vào Category các skill tương ứng
-     */
-    private void initializeSkillDatabase() {
-       // Kỹ năng lập trình
-        skillCategories.put("PROGRAMMING", new HashSet<>(Arrays.asList(
-                "Java", "Python", "C++", "JavaScript", "Ruby", "Go", "Swift", "Kotlin"
-        )));
-
-        // Frameworks và thư viện phổ biến
-        skillCategories.put("FRAMEWORK", new HashSet<>(Arrays.asList(
-                "spring boot", "spring", "django", "flask", "fastapi",
-            "react", "reactjs", "react.js", "angular", "vue", "vue.js",
-            "node.js", "nodejs", "express", "nestjs", 
-            ".net", "asp.net", "laravel", "rails", "hibernate",
-            "flutter", "react native"
-        )));
-
-        // Kỹ năng sử dụng cơ sở dữ liệu
-        skillCategories.put("DATABASE", new HashSet<>(Arrays.asList(
-                "mysql", "postgresql", "postgres", "mongodb", "redis",
-            "oracle","sql server", "mssql", "sqlite","elasticsearch",
-            "cassandra", "dynamodb", "firebase","mariadb", "couchdb"
-        )));
-
-        // Kỹ năng thiết kế đồ họa
-        skillCategories.put("DESIGN", new HashSet<>(Arrays.asList(
-                "Adobe Photoshop", "Adobe Illustrator", "Figma", "Sketch", "InDesign"
-        )));
-
-        // Kỹ năng Sử dụng công cụ và phần mềm hỗ trợ
-        skillCategories.put("TOOLS", new HashSet<>(Arrays.asList(
-                "git", "github", "gitlab", "jira", "confluence",
-            "postman", "swagger", "maven", "gradle", "npm", "webpack"
-        )));
-
-        // Kỹ năng mềm
-        skillCategories.put("SOFT_SKILLS", new HashSet<>(Arrays.asList(
-                "teamwork", "leadership", "communication", "problem solving",
-            "agile", "scrum", "kanban", "project management",
-            "critical thinking", "time management"
-        )));     
-}
-    // Phương thức lấy toàn bộ kỹ năng trong 1 danh mục
-    /**
-     * Ý TƯỞNG:
-     * Lấy các giá trị HashSet từ Map dựa trên khóa danh mục
-     * Nếu danh mục không tồn tại, trả về một HashSet rỗng
-     * 
-     */
-    public Set<String> getSkillsByCategory(String category) {
-        return skillCategories.getOrDefault(category, new HashSet<>());
+    // Lấy danh sách kỹ năng theo nhóm
+    public List<String> getSkillsByCategory(String categoryName) {
+        return skillRepository.findByCategoryNameIgnoreCase(categoryName)
+                .stream().map(Skill::getName).toList();
     }
 
-    // Phương thức lấy toàn bộ danh mục kỹ năng
-    public Set<String> getAllCategories() {
-        return skillCategories.keySet();
+    // Lấy toàn bộ tên nhóm kỹ năng
+    public List<String> getAllCategories() {
+        return categoryRepository.findAll().stream()
+                .map(SkillCategory::getName).toList();
     }
 
-    // Phương thức lấy toàn bộ kỹ năng trong database
-    public Map<String, Set<String>> getAllSkills() {
-        return new HashMap<>(skillCategories);
+    // Kiểm tra kỹ năng có tồn tại không
+    public boolean containsSkill(String skillName) {
+        return skillRepository.findByNameIgnoreCase(skillName).isPresent();
     }
 
-    // Kiểm tra skill có tồn tại trong database không
-    public boolean containsSkill(String skill) {
-        String lowerSkill = skill.toLowerCase();
-        // vòng lập này sẽ xét qua từng tập hợp Set<String> trong skillCategories
-        for (Set<String> skills : skillCategories.values()){
-            if (skills.contains(lowerSkill)) // contains dùng để kiểm tra xem lowerSkill có trong tập hợp Set<String> không
-                {
-                return true;
-            }
-        }
-        return false;
+    // Tìm nhóm kỹ năng của một kỹ năng cụ thể
+    public String getCategoryOfSkill(String skillName) {
+        return skillRepository.findByNameIgnoreCase(skillName)
+                .map(skill -> skill.getCategory().getName())
+                .orElse(null);
     }
 
-    // Tìm category của 1 skill
-    public String getCategoryOfSkill(String skill){
-        String lowerSkill = skill.toLowerCase();
-// entrySet() là lấy từng cập <Key, Values> trong biến Map ra
-// Map.Entry<String, Set<String>> là 1 biến map gồm 1 cặp <Key, Values>
-        for (Map.Entry<String, Set<String>> entry : skillCategories.entrySet()){
-            if (entry.getValue().contains(lowerSkill)){
-                return entry.getKey();
-            }
-        }
-        return null;
+    // Thêm kỹ năng mới vào nhóm (tự tạo nhóm nếu chưa có)
+    public void addSkill(String categoryName, String skillName) {
+        SkillCategory category = categoryRepository.findByNameIgnoreCase(categoryName)
+                .orElseGet(() -> {
+                    SkillCategory newCat = new SkillCategory();
+                    newCat.setName(categoryName);
+                    return categoryRepository.save(newCat);
+                });
+
+        Skill skill = new Skill();
+        skill.setName(skillName.toLowerCase());
+        skill.setCategory(category);
+        skillRepository.save(skill);
     }
 
-    // thêm 1 skill mới vào Category có sẵn
-    // computeIfAbsent(Category, k -> new HashSet<>()) kiểm tra xem key có tồn tại nếu không thì tạo 1 values mới thuộc key đó
-    // add thêm giá trị vào values mới đó 
-    public void addSkill(String Category, String skill){
-        skillCategories.computeIfAbsent(Category, k -> new HashSet<>()).add(skill.toLowerCase());
+    // Xóa kỹ năng khỏi database
+    public boolean removeSkill(String skillName) {
+        return skillRepository.findByNameIgnoreCase(skillName)
+                .map(skill -> {
+                    skillRepository.delete(skill);
+                    return true;
+                }).orElse(false);
     }
 
-     // Thêm nhiều skills cùng lúc
-     public void addSkills(String category, Set<String> skills){
-        // Tạo thêm chiểu cho skillCategories.computeIfAbsent(category, k -> new HashSet<>()) để khi cập nhật value cho categorySkills thì skillCategories với key category cũng được cập nhật 
-        Set<String> categorySkills = skillCategories.computeIfAbsent(category, k -> new HashSet<>());
-        // xét từng skill trong skills rồi thêm các skill được xét đó ở dạng chữ viết thường vào categorySkills
-        skills.forEach(skill -> categorySkills.add(skill.toLowerCase()));
-     }
-
-// Xóa skill khỏi database
-public boolean removeSkill(String skill){
-    String lowerSkill = skill.toLowerCase();
-
-    for(Set<String> Skills : skillCategories.values()){
-        if (Skills.remove(lowerSkill)){
-            return true;
-        }
-    }
-    return false;
 }
 
-}

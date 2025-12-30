@@ -12,9 +12,13 @@ import app.ai.Service.cv.skill.Component.SkillDatabase;
 
 @Component
 public class CategoryScore {
+    private final ISkillScorer matchScore;
+    private final SkillDatabase skillDatabase;
 
-    private ISkillScorer matchScore = new MatchScore();
-    private SkillDatabase skillDatabase = new SkillDatabase();
+    public CategoryScore(ISkillScorer matchScore, SkillDatabase skillDatabase) {
+        this.matchScore = matchScore;
+        this.skillDatabase = skillDatabase;
+    }
 
     public Map<String, Double> calculate(List<String> candidateFlatSkills,
                                          Map<String, List<String>> requiredSkills) {
