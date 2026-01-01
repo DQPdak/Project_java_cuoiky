@@ -9,15 +9,23 @@ import lombok.Setter;
 public class ArticleCreateRequest {
 
     @NotBlank
-    @Size(max = 200)
+    @Size(max = 255)
     private String title;
 
     @NotBlank
     private String content;
 
-    @NotBlank
-    @Size(max = 50)
-    private String category;
+    // optional
+    @Size(max = 255)
+    private String slug;
 
-    private String status; // optional: DRAFT/PUBLISHED
+    // optional
+    @Size(max = 255)
+    private String thumbnailUrl;
+
+    // optional (mặc định false)
+    private Boolean isPublished;
+
+    // optional (khi chưa có auth, tạm truyền authorId)
+    private Long authorId;
 }

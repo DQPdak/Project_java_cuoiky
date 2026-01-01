@@ -9,8 +9,10 @@ public class ArticleResponse {
     private Long id;
     private String title;
     private String content;
-    private String category;
-    private String status;
+    private String slug;
+    private String thumbnailUrl;
+    private Boolean isPublished;
+    private Long authorId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
