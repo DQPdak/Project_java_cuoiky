@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 import app.ai.Service.cv.scoring.dto.SkillScore;
+// CHỨC NĂNG: Tính điểm kỹ năng tổng hợp cho ứng viên
 
 @Component
 public class TotalScore  {

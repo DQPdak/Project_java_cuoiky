@@ -6,9 +6,10 @@ import app.ai.Service.cv.scoring.dto.SkillScore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 //  CHỨC NĂNG: Xếp hạng các ứng viên dựa trên điểm kỹ năng tổng hợp
-
+@Component
 public class rankCandidates {
     public List<CandidateScore> rank(
             Map<String, List<String>> candidates,

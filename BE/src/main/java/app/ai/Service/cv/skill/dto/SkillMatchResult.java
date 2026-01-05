@@ -3,7 +3,7 @@ package app.ai.Service.cv.skill.dto;
  * CHỨC NĂNG: Trả về kết quả khi so sánh 2 danh sách Skill
  */
 
-import java.util.*;
+import java.util.Set;
 
 public class SkillMatchResult {
     private Set<String> matchedSkills; // Danh sách kỹ năng khớp

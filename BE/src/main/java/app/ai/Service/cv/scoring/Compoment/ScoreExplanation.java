@@ -1,7 +1,11 @@
 package app.ai.Service.cv.scoring.Compoment;
 
+import org.springframework.stereotype.Component;
+
 import app.ai.Service.cv.scoring.dto.SkillScore;
 
+// CHỨC NĂNG: Tạo giải thích chi tiết về điểm số kỹ năng của ứng viên
+@Component
 public class ScoreExplanation {
      public String generateScoreExplanation(SkillScore score) {
         StringBuilder explanation = new StringBuilder();

@@ -14,7 +14,7 @@ import app.ai.Service.cv.skill.Model.SkillCategory;
 import app.ai.Service.cv.skill.Repository.ISkillCategoryRepository;
 import app.ai.Service.cv.skill.Repository.ISkillRepository;
 
-import java.util.*;
+import java.util.List;
 
 @Component
 public class SkillDatabase {

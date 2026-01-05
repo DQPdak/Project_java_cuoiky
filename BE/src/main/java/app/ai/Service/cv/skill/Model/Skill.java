@@ -21,7 +21,7 @@ public class Skill {
     private Long id;
 
     // Tên kỹ năng, bắt buộc có
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
     // Nhóm kỹ năng mà kỹ năng này thuộc về
