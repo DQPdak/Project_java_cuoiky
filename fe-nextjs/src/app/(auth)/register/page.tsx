@@ -13,7 +13,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: UserRole.CANDIDATE // Mặc định là ứng viên
+    role: UserRole.CANDIDATE 
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,30 +22,53 @@ export default function RegisterPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Thêm hàm validate password khớp với Backend
+  const validatePassword = (pwd: string) => {
+    // Ít nhất 1 thường, 1 hoa, 1 số, min 6 ký tự
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/;
+    return regex.test(pwd) && pwd.length >= 6;
+  };
+
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
 
+    // Logic Validate Client
     if (formData.password !== formData.confirmPassword) {
       setError('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+
+    if (!validatePassword(formData.password)) {
+      setError('Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số (min 6 ký tự).');
       return;
     }
 
     setLoading(true);
 
     try {
+      // Gọi Service với đúng tên trường Backend yêu cầu
       await register({
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
-        role: formData.role
+        userRole: formData.role // QUAN TRỌNG: Map 'role' -> 'userRole'
       });
       
       alert('Đăng ký thành công! Vui lòng đăng nhập.');
       router.push('/login');
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      // Lấy message lỗi chi tiết
+      const msg = err.response?.data?.message || 'Đăng ký thất bại.';
+      
+      // Xử lý nếu BE trả về lỗi validation chi tiết
+      if (err.response?.data?.data && typeof err.response.data.data === 'object') {
+         const firstError = Object.values(err.response.data.data)[0];
+         setError(`${msg}: ${firstError}`);
+      } else {
+         setError(msg);
+      }
     } finally {
       setLoading(false);
     }
