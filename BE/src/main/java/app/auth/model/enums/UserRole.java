@@ -1,5 +1,5 @@
 
-package app.auth.entity.enums;
+package app.auth.model.enums;
 
 /**
  * Enum UserRole: Xác định vai trò của người dùng trong hệ thống.

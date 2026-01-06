@@ -13,9 +13,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException; 
 // Spring: @Service đánh dấu class là bean tầng service
 import org.springframework.stereotype.Service;
 
-// Entity và enum của ứng dụng
-import app.auth.entity.User;
-import app.auth.entity.enums.UserStatus;
+import app.auth.model.User;
+import app.auth.model.enums.UserStatus;
 import app.auth.repository.UserRepository;
 
 import java.util.Collections;

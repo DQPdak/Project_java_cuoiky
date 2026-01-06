@@ -1,5 +1,5 @@
 
-package app.auth.entity.enums;
+package app.auth.model.enums;
 
 /**
  * Enum UserStatus: Xác định trạng thái tài khoản người dùng trong hệ thống.

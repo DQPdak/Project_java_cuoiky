@@ -1,15 +1,13 @@
 
 package app.auth.dto.response;
 
+import app.auth.model.enums.UserRole;
+import app.auth.model.enums.UserStatus;
 // Lombok: cung cấp các annotation để tự động sinh code
 import lombok.AllArgsConstructor;  // Tạo constructor với tất cả các tham số
 import lombok.Builder;             // Cho phép sử dụng Builder pattern để khởi tạo đối tượng
 import lombok.Data;                // Tự động sinh getter, setter, toString, equals, hashCode
 import lombok.NoArgsConstructor;   // Tạo constructor không tham số
-
-// Import enum UserRole và UserStatus (có thể dùng trong UserResponse)
-import app.auth.entity.enums.UserRole;
-import app.auth.entity.enums.UserStatus;
 
 /**
  * DTO (Data Transfer Object) dùng để trả về thông tin xác thực (authentication) cho client.

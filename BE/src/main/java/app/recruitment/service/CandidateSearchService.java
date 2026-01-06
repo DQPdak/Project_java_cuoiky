@@ -1,8 +1,8 @@
 package app.recruitment.service;
 
-import app.auth.entity.User;
-
 import java.util.List;
+
+import app.auth.model.User;
 
 public interface CandidateSearchService {
 /**

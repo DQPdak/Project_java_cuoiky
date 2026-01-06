@@ -2,8 +2,10 @@ package app.content.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import app.auth.entity.User;
+
 import java.time.LocalDateTime;
+
+import app.auth.model.User;
 
 @Entity
 @Table(name = "applications")

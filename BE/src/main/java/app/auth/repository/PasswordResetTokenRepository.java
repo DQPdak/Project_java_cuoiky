@@ -6,9 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository; // Interface cho C
 import org.springframework.data.jpa.repository.Modifying;      // Đánh dấu query là thao tác thay đổi dữ liệu (DELETE/UPDATE)
 import org.springframework.stereotype.Repository;             // Đánh dấu interface là Repository (thành phần DAO)
 
-// Import entity liên quan
-import app.auth.entity.PasswordResetToken;
-import app.auth.entity.User;
+import app.auth.model.PasswordResetToken;
+import app.auth.model.User;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
