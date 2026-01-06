@@ -1,4 +1,4 @@
-package app.ai.Service.cv.Interfaces;
+package app.ai.service.cv.extractorcontact.Interface;
 
 /**
  * Trích xuất thông tin liên hệ từ văn bản CV

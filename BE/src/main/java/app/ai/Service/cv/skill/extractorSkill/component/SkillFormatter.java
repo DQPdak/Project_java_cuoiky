@@ -1,6 +1,5 @@
-package app.ai.Service.cv.skill.Component;
+package app.ai.service.cv.skill.extractorskill.component;
 
-import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

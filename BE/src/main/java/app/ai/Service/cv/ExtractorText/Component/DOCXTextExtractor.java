@@ -1,11 +1,11 @@
-package app.ai.Service.cv.ExtractorText.Component;
+package app.ai.service.cv.extractortext.component;
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import app.ai.Service.cv.Interfaces.IFileTextExtractor;
+import app.ai.service.cv.extractortext.Interface.IFileTextExtractor;
 
 import java.util.List;
 

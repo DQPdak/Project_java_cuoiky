@@ -1,11 +1,11 @@
-package app.ai.Service.cv.ExtractorContact.Component;
+package app.ai.service.cv.extractorcontact.component;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
-import app.ai.Service.cv.Interfaces.IContactDetailExtractor;
+import app.ai.service.cv.extractorcontact.Interface.IContactDetailExtractor;
 
 /**
  * CHỨC NĂNG: Trích xuất email từ văn bản CV

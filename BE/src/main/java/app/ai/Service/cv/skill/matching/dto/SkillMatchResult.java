@@ -1,9 +1,9 @@
-package app.ai.dto;
+package app.ai.service.cv.skill.matching.dto;
 /**
  * CHỨC NĂNG: Trả về kết quả khi so sánh 2 danh sách Skill
  */
 
-import java.util.*;
+import java.util.Set;
 
 public class SkillMatchResult {
     private Set<String> matchedSkills; // Danh sách kỹ năng khớp
@@ -11,13 +11,15 @@ public class SkillMatchResult {
     private Set<String> extraSkills;   // Danh sách kỹ năng thừa
     private int matchCount;          // Số kỹ năng khớp
     private int totalRequired;      // Tổng số kỹ năng yêu cầu
+    private double matchPercentage; // Tỷ lệ phần trăm khớp
 
     // Tính toán tỷ lệ phần trăm khớp (Logic đơn giản bổ trợ cho dữ liệu)
     public double getMatchPercentage() {
-        if (totalRequired <= 0) {
-            return 0.0;
-        }
-        return (double) matchCount / totalRequired * 100;
+        return matchPercentage;
+    }
+    
+    public void setMatchPercentage(double matchPercentage) {
+        this.matchPercentage = matchPercentage;
     }
 
     public Set<String> getMatchedSkills() {

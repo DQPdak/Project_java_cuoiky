@@ -1,4 +1,4 @@
-package app.ai.Service.cv;
+package app.ai.service.cv;
 
 import org.apache.commons.math3.analysis.function.Exp;
 import org.checkerframework.checker.units.qual.A;
@@ -19,9 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired; // Annotation đ�
 import org.springframework.stereotype.Service; // Annotation đánh dấu lớp Service trong Spring
 import org.springframework.web.multipart.MultipartFile; // Lớp đại diện cho tệp tải lên trong HTTP request
 
-import app.ai.Service.cv.*;
-import app.ai.Service.cv.ExtractorContact.ContactInfoExtractor;
-import app.ai.Service.cv.ExtractorText.CVTextExtractor;
+import app.ai.service.cv.*;
+import app.ai.service.cv.extractorcontact.ContactInfoExtractor;
+import app.ai.service.cv.extractortext.CVTextExtractor;
 
 // import từ java Core
 import java.util.*;

@@ -1,4 +1,4 @@
-package app.ai.Service.cv.skill;
+package app.ai.service.cv.skill.extractorskill;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -18,13 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 // import từ Spring Framework
 import org.springframework.stereotype.Service; // Đánh dấu lớp này là một service trong Spring Boot
 
-import app.ai.Service.cv.skill.Component.SkillDatabase;
-import app.ai.Service.cv.skill.Component.SkillFormatter;
+import app.ai.service.cv.skill.extractorskill.component.SkillDatabase;
+import app.ai.service.cv.skill.extractorskill.component.SkillFormatter;
 
 // import từ java Core
 import java.util.*;
-import java.util.stream.Collectors; // Stream API để xử lý collections
-
 /**
  * CHỨC NĂNG:
  * - Sử dụng SkillDatabase để lấy danh sách kỹ năng mẫu

@@ -1,4 +1,4 @@
-package app.ai.dto;
+package app.ai.service.cv.extractorcontact.dto;
 
 public class ContactInfo {
         private String email;
