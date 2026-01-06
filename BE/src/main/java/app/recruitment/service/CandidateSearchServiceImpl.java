@@ -3,9 +3,11 @@ package app.recruitment.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import app.auth.model.User;
+import app.auth.model.enums.UserRole;
 import app.auth.repository.UserRepository;
-import app.auth.entity.User;
-import app.auth.entity.enums.UserRole;
+
 import java.util.List;
 import java.util.stream.Collectors;
 

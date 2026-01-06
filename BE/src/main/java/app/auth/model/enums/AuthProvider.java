@@ -1,5 +1,5 @@
 
-package app.auth.entity.enums;
+package app.auth.model.enums;
 
 /**
  * Enum AuthProvider: Xác định nguồn (provider) dùng để xác thực người dùng.

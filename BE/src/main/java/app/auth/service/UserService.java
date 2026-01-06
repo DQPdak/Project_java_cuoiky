@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;                         // Spring
 import org.springframework.transaction.annotation.Transactional;       // Spring: đảm bảo transactional (atomicity, rollback nếu lỗi) cho các thao tác DB
 import app.auth.dto.request.ChangePasswordRequest;                  // DTO: dữ liệu request đổi mật khẩu (oldPassword, newPassword, v.v.)
 import app.auth.dto.response.UserResponse;                          // DTO: dữ liệu trả về cho client (ẩn thông tin nhạy cảm, định dạng trả về)
-import app.auth.entity.User;                                        // Entity User: biểu diễn người dùng trong hệ thống (bảng DB)
 import app.auth.exception.InvalidCredentialsException;              // Exception tuỳ chỉnh: ném khi thông tin xác thực không hợp lệ (mật khẩu cũ sai)
 import app.auth.exception.UserNotFoundException;                    // Exception tuỳ chỉnh: ném khi không tìm thấy người dùng
+import app.auth.model.User;
 import app.auth.repository.UserRepository;                          // Repository: thao tác với DB cho User (findByEmail, save, delete, ...)
 
 // @Service: Đăng ký bean tầng service trong Spring Container

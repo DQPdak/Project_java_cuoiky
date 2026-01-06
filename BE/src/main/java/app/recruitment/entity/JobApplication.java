@@ -2,8 +2,9 @@ package app.recruitment.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import app.auth.model.User;
 import app.recruitment.entity.enums.ApplicationStatus;
-import app.auth.entity.User;
+
 import java.time.LocalDateTime;
 
 @Entity

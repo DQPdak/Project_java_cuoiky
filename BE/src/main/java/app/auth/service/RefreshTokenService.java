@@ -14,15 +14,10 @@ import org.springframework.stereotype.Service;
 // Spring Framework: đảm bảo tính toàn vẹn giao dịch cho các thao tác DB; nếu có lỗi sẽ rollback
 import org.springframework.transaction.annotation.Transactional;
 
-// Entity của domain: đại diện RefreshToken trong hệ thống (có trường user, token, expiryDate,...)
-import app.auth.entity.RefreshToken;
-
-// Entity User: đại diện người dùng sở hữu refresh token
-import app.auth.entity.User;
-
 // Exception tuỳ chỉnh: quăng lỗi khi token không hợp lệ hoặc hết hạn
 import app.auth.exception.InvalidTokenException;
-
+import app.auth.model.RefreshToken;
+import app.auth.model.User;
 // Repository tương tác với DB (CRUD) cho RefreshToken (ví dụ save, findByToken, deleteByUser, deleteByExpiryDateBefore)
 import app.auth.repository.RefreshTokenRepository;
 

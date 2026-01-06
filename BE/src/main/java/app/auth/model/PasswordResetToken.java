@@ -1,5 +1,5 @@
 
-package app.auth.entity;
+package app.auth.model;
 
 // Jakarta Persistence (JPA): cung cấp các annotation để ánh xạ entity với bảng trong DB
 import jakarta.persistence.*; // @Entity, @Table, @Index, @Id, @GeneratedValue, @Column, @ManyToOne, @JoinColumn, @EntityListeners, FetchType, GenerationType

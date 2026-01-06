@@ -7,9 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import app.recruitment.repository.JobPostingRepository;
 import app.recruitment.entity.JobPosting;
 import app.recruitment.dto.request.JobPostingRequest;
+import app.auth.model.User;
+import app.auth.model.enums.UserRole;
 import app.auth.repository.UserRepository;
-import app.auth.entity.User;
-import app.auth.entity.enums.UserRole;
 
 import java.util.List;
 import java.util.Optional;

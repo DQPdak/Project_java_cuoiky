@@ -1,5 +1,5 @@
 
-package app.auth.entity;
+package app.auth.model;
 
 // Jakarta Persistence (JPA): các annotation để ánh xạ entity với bảng trong DB
 import jakarta.persistence.*; // @Entity, @Table, @Index, @Id, @GeneratedValue, @Column, @Enumerated, @EntityListeners, EnumType
@@ -15,10 +15,9 @@ import org.springframework.data.annotation.CreatedDate;        // Đánh dấu t
 import org.springframework.data.annotation.LastModifiedDate;   // Đánh dấu trường sẽ tự động set thời điểm cập nhật
 import org.springframework.data.jpa.domain.support.AuditingEntityListener; // Listener phục vụ auditing
 
-// Các enum mô tả nhà cung cấp xác thực, vai trò, trạng thái người dùng
-import app.auth.entity.enums.AuthProvider;
-import app.auth.entity.enums.UserRole;
-import app.auth.entity.enums.UserStatus;
+import app.auth.model.enums.AuthProvider;
+import app.auth.model.enums.UserRole;
+import app.auth.model.enums.UserStatus;
 
 import java.time.LocalDateTime;
 

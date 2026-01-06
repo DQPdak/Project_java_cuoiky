@@ -9,9 +9,9 @@ import app.recruitment.repository.JobPostingRepository;
 import app.recruitment.entity.JobApplication;
 import app.recruitment.entity.JobPosting;
 import app.recruitment.dto.request.JobApplicationRequest;
+import app.auth.model.User;
+import app.auth.model.enums.UserRole;
 import app.auth.repository.UserRepository;
-import app.auth.entity.User;
-import app.auth.entity.enums.UserRole;
 import app.recruitment.entity.enums.ApplicationStatus;
 
 import java.util.List;
