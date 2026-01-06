@@ -1,17 +1,12 @@
-package app.ai.Service.cv.skill.Component;
-
-/**
- * CHỨC NĂNG: sử lý các logic liên quan đến mối quan hệ giữa các skill
- * Tìm các kỹ năng liên quan đến kỹ năng cụ thể được khai báo
- * Thiết lập mối quan hệ giữa kĩ năng được gợi ý với kỹ năng cụ thể
- */
-
-import app.ai.Service.cv.skill.Model.Skill;
-import app.ai.Service.cv.skill.Model.SkillRelationship;
-import app.ai.Service.cv.skill.Repository.ISkillRelationshipRepository;
-import app.ai.Service.cv.skill.Repository.ISkillRepository;
+package app.ai.service.cv.skill.skillrelation.component;
 
 import org.springframework.stereotype.Component;
+
+import app.ai.service.cv.skill.extractorSkill.model.Skill;
+import app.ai.service.cv.skill.extractorSkill.repository.ISkillRepository;
+import app.ai.service.cv.skill.skillrelation.model.SkillRelationship;
+import app.ai.service.cv.skill.skillrelation.repository.ISkillRelationshipRepository;
+
 import java.util.List;
 import java.util.Comparator;
 
@@ -28,7 +23,7 @@ public class SkillRelationshipComponent {
         this.relationshipRepo = relationshipRepo;
     }
     /**
-     * Tìm kỹ năng theo tện
+     * Tìm kỹ năng theo tên
      * Lấy các kĩ năng liên quan đến kỹ năng đó đồng thời xuất danh sách
      */
     public List<Skill> getRelatedSkills(String skillName) {

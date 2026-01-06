@@ -1,4 +1,4 @@
-package app.ai.Service.cv.ExtractorText;
+package app.ai.service.cv.extractorText;
 
 /**
  * CHỨC NĂNG: 
@@ -11,9 +11,9 @@ package app.ai.Service.cv.ExtractorText;
 import org.springframework.stereotype.Service; // Annotation đánh dấu lớp Service trong Spring
 import org.springframework.web.multipart.MultipartFile; // Đại diện cho file được upload, dùng để nhận file upload từ client
 
-import app.ai.Service.cv.ExtractorText.Component.DOCXTextExtractor;
-import app.ai.Service.cv.ExtractorText.Component.PDFTextExtractor;
-import app.ai.Service.cv.ExtractorText.Interface.IFileTextExtractor;
+import app.ai.service.cv.extractorText.component.DOCXTextExtractor;
+import app.ai.service.cv.extractorText.component.PDFTextExtractor;
+import app.ai.service.cv.extractorText.Interface.IFileTextExtractor;
 
 
 @Service

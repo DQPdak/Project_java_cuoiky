@@ -1,4 +1,4 @@
-package app.ai.Service.cv.scoring.dto;
+package app.ai.service.cv.scoring.dto;
 
 public class CandidateScore {
     private String candidateId;  // ID của candidate

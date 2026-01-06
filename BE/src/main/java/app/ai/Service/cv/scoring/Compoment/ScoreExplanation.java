@@ -1,8 +1,8 @@
-package app.ai.Service.cv.scoring.Compoment;
+package app.ai.service.cv.scoring.compoment;
 
 import org.springframework.stereotype.Component;
 
-import app.ai.Service.cv.scoring.dto.SkillScore;
+import app.ai.service.cv.scoring.dto.SkillScore;
 
 // CHỨC NĂNG: Tạo giải thích chi tiết về điểm số kỹ năng của ứng viên
 @Component

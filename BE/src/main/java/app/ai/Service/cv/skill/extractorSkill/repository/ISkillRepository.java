@@ -1,8 +1,9 @@
-package app.ai.Service.cv.skill.Repository;
-
-import app.ai.Service.cv.skill.Model.Skill;
+package app.ai.service.cv.skill.extractorSkill.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import app.ai.service.cv.skill.extractorSkill.model.Skill;
+
 import java.util.Optional;
 import java.util.List;
 /**

@@ -1,13 +1,14 @@
-package app.ai.Service.cv.skill;
+package app.ai.service.cv.skill.matching;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import app.ai.Service.cv.skill.Component.SkillFormatter;
-import app.ai.Service.cv.skill.dto.SkillMatchResult;
+import app.ai.service.cv.skill.extractorSkill.component.SkillFormatter;
+import app.ai.service.cv.skill.matching.dto.SkillMatchResult;
+
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * CHỨC NĂNG: So sánh Kỹ năng trích xuất từ CV với Yêu cầu công việc

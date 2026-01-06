@@ -1,4 +1,4 @@
-package app.ai.Service.cv.scoring.dto;
+package app.ai.service.cv.scoring.dto;
 
 /**
  * CHỨC NĂNG: Chứa điểm số kỹ năng của ứng viên

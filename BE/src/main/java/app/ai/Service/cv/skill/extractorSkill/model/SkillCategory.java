@@ -1,4 +1,4 @@
-package app.ai.Service.cv.skill.Model;
+package app.ai.service.cv.skill.extractorSkill.model;
 
 import jakarta.persistence.*;
 import lombok.Data;

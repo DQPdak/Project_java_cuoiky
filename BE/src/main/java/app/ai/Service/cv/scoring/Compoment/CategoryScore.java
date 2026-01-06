@@ -1,4 +1,4 @@
-package app.ai.Service.cv.scoring.Compoment;
+package app.ai.service.cv.scoring.compoment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,9 +7,8 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import app.ai.Service.cv.scoring.Interface.ISkillScorer;
-import app.ai.Service.cv.skill.Component.SkillDatabase;
-// CHỨC NĂNG: Tính điểm kỹ năng theo từng danh mục cho ứng viên
+import app.ai.service.cv.scoring.Interface.ISkillScorer;
+import app.ai.service.cv.skill.extractorSkill.Component.SkillDatabase;
 
 @Component
 public class CategoryScore {

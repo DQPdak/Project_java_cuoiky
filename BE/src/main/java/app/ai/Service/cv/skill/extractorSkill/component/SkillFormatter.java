@@ -1,4 +1,4 @@
-package app.ai.Service.cv.skill.Component;
+package app.ai.service.cv.skill.extractorSkill.component;
 
 
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package app.ai.Service.cv.skill;
+package app.ai.service.cv.skill.extractorSkill;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -18,8 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 // import từ Spring Framework
 import org.springframework.stereotype.Service; // Đánh dấu lớp này là một service trong Spring Boot
 
-import app.ai.Service.cv.skill.Component.SkillDatabase;
-import app.ai.Service.cv.skill.Component.SkillFormatter;
+import app.ai.service.cv.skill.extractorSkill.component.SkillDatabase;
+import app.ai.service.cv.skill.extractorSkill.component.SkillFormatter;
 
 // import từ java Core
 import java.util.*;

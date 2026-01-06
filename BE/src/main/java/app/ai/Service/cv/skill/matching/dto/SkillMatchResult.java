@@ -1,4 +1,4 @@
-package app.ai.Service.cv.skill.dto;
+package app.ai.service.cv.skill.matching.dto;
 /**
  * CHỨC NĂNG: Trả về kết quả khi so sánh 2 danh sách Skill
  */

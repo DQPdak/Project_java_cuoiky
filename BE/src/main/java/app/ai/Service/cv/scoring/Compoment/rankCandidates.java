@@ -1,12 +1,12 @@
-package app.ai.Service.cv.scoring.Compoment;
-
-import app.ai.Service.cv.scoring.dto.CandidateScore;
-import app.ai.Service.cv.scoring.dto.SkillScore;
+package app.ai.service.cv.scoring.compoment;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Component;
+
+import app.ai.service.cv.scoring.dto.CandidateScore;
+import app.ai.service.cv.scoring.dto.SkillScore;
 
 //  CHỨC NĂNG: Xếp hạng các ứng viên dựa trên điểm kỹ năng tổng hợp
 @Component

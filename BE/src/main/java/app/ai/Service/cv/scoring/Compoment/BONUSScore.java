@@ -1,11 +1,12 @@
-package app.ai.Service.cv.scoring.Compoment;
+package app.ai.service.cv.scoring.compoment;
 
 import org.springframework.stereotype.Component;
-import java.util.List;
 
-import app.ai.Service.cv.scoring.Interface.ISkillScorer;
-import app.ai.Service.cv.skill.SkillMatcher;
-import app.ai.Service.cv.skill.dto.SkillMatchResult;
+import app.ai.service.cv.scoring.Interface.ISkillScorer;
+import app.ai.service.cv.skill.matching.SkillMatcher;
+import app.ai.service.cv.skill.matching.dto.SkillMatchResult;
+
+import java.util.List;
 
 // điểm cộng thêm cho số kỹ năng thừa mà ứng viên sở hữu so với yêu cầu công việc
 @Component

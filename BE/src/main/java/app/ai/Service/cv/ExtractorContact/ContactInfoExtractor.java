@@ -1,4 +1,4 @@
-package app.ai.Service.cv.ExtractorContact;
+package app.ai.service.cv.extractorContact;
 
 /**
  * CHỨC NĂNG: Trích xuất thông tin liên hệ từ văn bản CV(Email, SĐT)
@@ -7,10 +7,10 @@ package app.ai.Service.cv.ExtractorContact;
 // import từ Spring Framework
 import org.springframework.stereotype.Service; // Annotation đánh dấu lớp Service trong Spring
 
-import app.ai.Service.cv.ExtractorContact.Component.EmailExtractor;
-import app.ai.Service.cv.ExtractorContact.Component.PhoneExtractor;
-import app.ai.Service.cv.ExtractorContact.Interface.IContactDetailExtractor;
-import app.ai.Service.cv.ExtractorContact.dto.ContactInfo;
+import app.ai.service.cv.extractorContact.component.EmailExtractor;
+import app.ai.service.cv.extractorContact.component.PhoneExtractor;
+import app.ai.service.cv.extractorContact.Interface.IContactDetailExtractor;
+import app.ai.service.cv.extractorContact.dto.ContactInfo;
 
 @Service
 public class ContactInfoExtractor {
