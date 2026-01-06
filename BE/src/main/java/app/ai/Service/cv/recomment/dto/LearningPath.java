@@ -1,4 +1,4 @@
-package app.ai.service.cv.RECOMMENDER.dto;
+package app.ai.service.cv.recomment.dto;
 
 import java.util.List;
 

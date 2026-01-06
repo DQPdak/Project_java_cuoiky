@@ -1,6 +1,6 @@
 package app.ai.service.cv.skill.skillrelation.model;
 
-import app.ai.service.cv.skill.extractorSkill.model.Skill;
+import app.ai.service.cv.skill.extractorskill.model.Skill;
 import jakarta.persistence.*;
 import lombok.Data;
 /**

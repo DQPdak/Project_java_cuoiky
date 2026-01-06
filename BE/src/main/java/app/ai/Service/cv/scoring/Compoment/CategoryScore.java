@@ -8,7 +8,7 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 import app.ai.service.cv.scoring.Interface.ISkillScorer;
-import app.ai.service.cv.skill.extractorSkill.Component.SkillDatabase;
+import app.ai.service.cv.skill.extractorskill.component.SkillDatabase;
 
 @Component
 public class CategoryScore {

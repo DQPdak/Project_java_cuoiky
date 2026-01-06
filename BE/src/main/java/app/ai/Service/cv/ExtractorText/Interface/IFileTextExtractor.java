@@ -1,4 +1,4 @@
-package app.ai.service.cv.extractorText.Interface;
+package app.ai.service.cv.extractortext.Interface;
 
 import org.springframework.web.multipart.MultipartFile;
 

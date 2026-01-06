@@ -2,8 +2,8 @@ package app.ai.service.cv.skill.skillrelation.component;
 
 import org.springframework.stereotype.Component;
 
-import app.ai.service.cv.skill.extractorSkill.model.Skill;
-import app.ai.service.cv.skill.extractorSkill.repository.ISkillRepository;
+import app.ai.service.cv.skill.extractorskill.model.Skill;
+import app.ai.service.cv.skill.extractorskill.repository.ISkillRepository;
 import app.ai.service.cv.skill.skillrelation.model.SkillRelationship;
 import app.ai.service.cv.skill.skillrelation.repository.ISkillRelationshipRepository;
 

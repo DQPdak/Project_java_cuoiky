@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import app.ai.service.cv.skill.extractorSkill.component.SkillFormatter;
+import app.ai.service.cv.skill.extractorskill.component.SkillFormatter;
 import app.ai.service.cv.skill.matching.dto.SkillMatchResult;
 
 import org.springframework.beans.factory.annotation.Autowired;

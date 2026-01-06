@@ -1,4 +1,4 @@
-package app.ai.service.cv.skill.extractorSkill.component;
+package app.ai.service.cv.skill.extractorskill.component;
 
 /**
  * CHỨC NĂNG:
@@ -9,10 +9,10 @@ package app.ai.service.cv.skill.extractorSkill.component;
 
 import org. springframework.stereotype.Component;
 
-import app.ai.service.cv.skill.extractorSkill.model.Skill;
-import app.ai.service.cv.skill.extractorSkill.model.SkillCategory;
-import app.ai.service.cv.skill.extractorSkill.repository.ISkillCategoryRepository;
-import app.ai.service.cv.skill.extractorSkill.repository.ISkillRepository;
+import app.ai.service.cv.skill.extractorskill.model.Skill;
+import app.ai.service.cv.skill.extractorskill.model.SkillCategory;
+import app.ai.service.cv.skill.extractorskill.repository.ISkillCategoryRepository;
+import app.ai.service.cv.skill.extractorskill.repository.ISkillRepository;
 
 import java.util.List;
 

@@ -20,8 +20,8 @@ import org.springframework.stereotype.Service; // Annotation đánh dấu lớp 
 import org.springframework.web.multipart.MultipartFile; // Lớp đại diện cho tệp tải lên trong HTTP request
 
 import app.ai.service.cv.*;
-import app.ai.service.cv.extractorContact.ContactInfoExtractor;
-import app.ai.service.cv.extractorText.CVTextExtractor;
+import app.ai.service.cv.extractorcontact.ContactInfoExtractor;
+import app.ai.service.cv.extractortext.CVTextExtractor;
 
 // import từ java Core
 import java.util.*;

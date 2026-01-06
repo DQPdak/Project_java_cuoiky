@@ -3,7 +3,7 @@ package app.ai.service.cv.skill.recommendation.component;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import app.ai.service.cv.skill.extractorSkill.model.Skill;
+import app.ai.service.cv.skill.extractorskill.model.Skill;
 import app.ai.service.cv.skill.recommendation.util.SkillFrequency;
 import app.ai.service.cv.skill.skillrelation.component.SkillRelationshipComponent;
 

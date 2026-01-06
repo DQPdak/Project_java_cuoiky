@@ -1,4 +1,4 @@
-package app.ai.service.cv.extractorText.component;
+package app.ai.service.cv.extractortext.component;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -6,7 +6,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import app.ai.service.cv.extractorText.Interface.IFileTextExtractor;
+import app.ai.service.cv.extractortext.Interface.IFileTextExtractor;
 
 @Component
 public class PDFTextExtractor implements IFileTextExtractor {
