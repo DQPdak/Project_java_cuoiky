@@ -9,15 +9,21 @@ import lombok.Setter;
 public class ArticleUpdateRequest {
 
     @NotBlank
-    @Size(max = 200)
+    @Size(max = 255)
     private String title;
 
     @NotBlank
     private String content;
 
-    @NotBlank
-    @Size(max = 50)
-    private String category;
+    @Size(max = 255)
+    private String slug;
 
-    private String status; // DRAFT/PUBLISHED
+    @Size(max = 255)
+    private String thumbnailUrl;
+
+    // optional
+    private Boolean isPublished;
+
+    // optional
+    private Long authorId;
 }

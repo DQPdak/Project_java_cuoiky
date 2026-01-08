@@ -13,21 +13,24 @@ public class Article {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 255)
     private String title;
 
     @Lob
     @Column(nullable = false)
     private String content;
 
-    @Column(nullable = false, length = 50)
-    private String category;
+    @Column(length = 255)
+    private String slug;
 
-    @Column(nullable = false, length = 20)
-    private String status; // DRAFT / PUBLISHED
+    @Column(name = "thumbnail_url", length = 255)
+    private String thumbnailUrl;
 
-    @Column(name = "created_by")
-    private Long createdBy;
+    @Column(name = "is_published", nullable = false)
+    private Boolean isPublished;
+
+    @Column(name = "author_id")
+    private Long authorId;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -38,7 +41,7 @@ public class Article {
     @PrePersist
     void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
-        if (status == null) status = "DRAFT";
+        if (isPublished == null) isPublished = false;
     }
 
     @PreUpdate
