@@ -1,59 +1,41 @@
 package app.ai.service.cv.skill.recommendation.dto;
 
+
 import java.util.List;
 
-//DTO chứa KẾT QUẢ phân tích gap
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * DTO: GapAnalysis
+ * CHỨC NĂNG: Trả về kết quả phân tích sự chênh lệch giữa kỹ năng hiện có và yêu cầu.
+ */
+@Data
+@NoArgsConstructor  
+@AllArgsConstructor 
+@Builder            
 public class GapAnalysis {
-     private int totalRequired;              // Tổng số skills required
-    private int matchingCount;              // Số skills matching
-    private int missingCount;               // Số skills missing
-    private int extraCount;                 // Số extra skills
-    private double coveragePercentage;      // % coverage
     
-    private List<String> matchingSkills;    // Skills match
-    private List<String> missingSkills;     // Skills thiếu
-    private List<String> extraSkills;       // Extra skills
-    
-    // Getters & Setters
-    public int getTotalRequired() { return totalRequired; }
-    public void setTotalRequired(int total) { this.totalRequired = total; }
-    
-    public int getMatchingCount() { return matchingCount; }
-    public void setMatchingCount(int count) { this.matchingCount = count; }
-    
-    public int getMissingCount() { return missingCount; }
-    public void setMissingCount(int count) { this.missingCount = count; }
-    
-    public int getExtraCount() { return extraCount; }
-    public void setExtraCount(int count) { this.extraCount = count; }
-    
-    public double getCoveragePercentage() { return coveragePercentage; }
-    public void setCoveragePercentage(double percentage) { 
-        this.coveragePercentage = percentage; 
-    }
-    
-    public List<String> getMatchingSkills() { return matchingSkills; }
-    public void setMatchingSkills(List<String> skills) { 
-        this.matchingSkills = skills; 
-    }
-    
-    public List<String> getMissingSkills() { return missingSkills; }
-    public void setMissingSkills(List<String> skills) { 
-        this.missingSkills = skills; 
-    }
-    
-    public List<String> getExtraSkills() { return extraSkills; }
-    public void setExtraSkills(List<String> skills) { 
-        this.extraSkills = skills; 
-    }
-    
+    private int totalRequired;      // Tổng số kỹ năng yêu cầu
+    private int matchingCount;       // Số kỹ năng khớp
+    private int missingCount;        // Số kỹ năng thiếu
+    private int extraCount;          // Số kỹ năng thừa (User có nhưng Job không yêu cầu)
+    private double coveragePercentage; // Tỷ lệ bao phủ (%)
+
+    private List<String> matchingSkills; 
+    private List<String> missingSkills;  
+    private List<String> extraSkills;    
+
+    /**
+     * Tùy chỉnh toString để log dữ liệu đẹp mắt và dễ đọc hơn khi debug.
+     */
     @Override
     public String toString() {
-        return "GapAnalysis{" +
-               "coverage=" + String.format("%.1f%%", coveragePercentage) +
-               ", matching=" + matchingCount + "/" + totalRequired +
-               ", missing=" + missingCount +
-               ", extra=" + extraCount +
-               '}';
-}
+        return String.format(
+            "GapAnalysis [Coverage: %.1f%% | Matching: %d/%d | Missing: %d | Extra: %d]", 
+            coveragePercentage, matchingCount, totalRequired, missingCount, extraCount
+        );
+    }
 }

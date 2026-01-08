@@ -5,6 +5,20 @@ package app.ai.service.cv.skill.matching.dto;
 
 import java.util.Set;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * DTO: SkillMatchResult
+ * Chức năng: Là "Hợp đồng dữ liệu" trả về cho Frontend.
+ * Giúp người dùng biết rõ họ mạnh chỗ nào, yếu chỗ nào để cải thiện CV.
+ */
+@Data // Tự động tạo Getter, Setter, toString, equals, hashCode
+@AllArgsConstructor // Tạo constructor đầy đủ tham số để khởi tạo nhanh trong Service
+@NoArgsConstructor  // Tạo constructor trống (cần thiết cho một số thư viện JSON)
+@Builder            // Giúp khởi tạo đối tượng theo phong cách thiết kế hiện đại
 public class SkillMatchResult {
     private Set<String> matchedSkills; // Danh sách kỹ năng khớp
     private Set<String> missingSkills; // Danh sách kỹ năng thiếu
@@ -12,57 +26,16 @@ public class SkillMatchResult {
     private int matchCount;          // Số kỹ năng khớp
     private int totalRequired;      // Tổng số kỹ năng yêu cầu
     private double matchPercentage; // Tỷ lệ phần trăm khớp
-
-    // Tính toán tỷ lệ phần trăm khớp (Logic đơn giản bổ trợ cho dữ liệu)
-    public double getMatchPercentage() {
-        return matchPercentage;
-    }
-    
-    public void setMatchPercentage(double matchPercentage) {
-        this.matchPercentage = matchPercentage;
-    }
-
-    public Set<String> getMatchedSkills() {
-        return matchedSkills;
-    }
-
-    public void setMatchedSkills(Set<String> matchedSkills) {
-        this.matchedSkills = matchedSkills;
-        this.matchCount = (matchedSkills != null) ? matchedSkills.size() : 0;
-    }
-    public Set<String> getMissingSkills() {
-        return missingSkills;
-    }
-    public void setMissingSkills(Set<String> missingSkills) {
-        this.missingSkills = missingSkills;
-    }
-    public Set<String> getExtraSkills() {
-        return extraSkills;
-    }
-    public void setExtraSkills(Set<String> extraSkills) {
-        this.extraSkills = extraSkills;
-    }
-    public int getMatchCount() {
-        return matchCount;
-    }
-    public void setMatchCount(int matchCount) {
-        this.matchCount = matchCount;
-    }
-    public int getTotalRequired() {
-        return totalRequired;
-    }
-    public void setTotalRequired(int totalRequired) {
-        this.totalRequired = totalRequired;
-    }
-    
     @Override
     public String toString() {
-        return "Kết Quả So Khớp Kỹ Năng{" +
-                "tỷ Lệ Khớp=" + String.format("%.2f", getMatchPercentage()) + "%" +
-                ", số Lượng Khớp=" + matchCount +
-                ", tổng Số Yêu Cầu=" + totalRequired +
-                ", kỹ Năng Thiếu=" + missingSkills +
-                '}';
+        return String.format(
+            "--- BÁO CÁO KỸ NĂNG ---\n" +
+            "Tỷ lệ khớp: %.2f%%\n" +
+            "Số lượng: %d/%d kỹ năng\n" +
+            "Thiếu: %s\n" +
+            "----------------------",
+            matchPercentage, matchCount, totalRequired, missingSkills
+        ); 
     }
-    }
+}
 

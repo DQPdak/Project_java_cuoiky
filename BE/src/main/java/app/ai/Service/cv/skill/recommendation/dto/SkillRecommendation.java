@@ -2,66 +2,29 @@ package app.ai.service.cv.skill.recommendation.dto;
 
 import java.util.List;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 /**
- * DTO cho skill recommendation
- * 
- * FIELDS:
- * - skillName: tên skill được recommend
- * - priority: mức độ ưu tiên (1-10)
- * - reason: lý do gợi ý
- * - relatedTo: danh sách skills hiện tại mà skill này liên quan đến
+ * DTO: SkillRecommendation
+ * Chứa kết quả gợi ý kỹ năng cụ thể sau khi đã qua Processor xử lý.
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class SkillRecommendation {
-    private String skillName;           // Skill được recommend
-    private int priority;               // Priority (1-10)
-    private String reason;              // Lý do gợi ý
-    private List<String> relatedTo;     // Liên quan đến skills nào
 
-    // Getter & Setter cho skillName
-    public String getSkillName() {
-        return skillName;
-    }
+    private String skillName;    // Skill được recommend
+    private int priority;        // Mức độ ưu tiên (1-10)
+    private String reason;       // Giải thích lý do (từ ReasonGenerator)
+    private List<String> relatedTo; // Danh sách kỹ năng gốc dẫn đến gợi ý này
 
-    public void setSkillName(String skillName) {
-        this.skillName = skillName;
-    }
-
-    // Getter & Setter cho priority
-    public int getPriority() {
-        return priority;
-    }
-
-    public void setPriority(int priority) {
-        this.priority = priority;
-    }
-
-    // Getter & Setter cho reason
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
-
-    // Getter & Setter cho relatedTo
-    public List<String> getRelatedTo() {
-        return relatedTo;
-    }
-
-    public void setRelatedTo(List<String> relatedTo) {
-        this.relatedTo = relatedTo;
-    }
-
-    // toString() để in ra thông tin recommendation
     @Override
     public String toString() {
-        return "SkillRecommendation{" +
-                "skillName='" + skillName + '\'' +
-                ", priority=" + priority +
-                ", reason='" + reason + '\'' +
-                ", relatedTo=" + relatedTo +
-                '}';
+        return String.format("[%d/10] %s: %s (Dựa trên: %s)", 
+            priority, skillName, reason, String.join(", ", relatedTo));
     }
 }
-

@@ -1,9 +1,12 @@
 package app.ai.service.cv.skill.extractorskill.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import app.ai.service.cv.skill.extractorskill.model.SkillCategory;
+import app.ai.service.cv.skill.learningpath.model.Role;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -17,4 +20,11 @@ public interface ISkillCategoryRepository extends JpaRepository<SkillCategory, L
 
     // Tìm nhóm kỹ năng theo tên (không phân biệt hoa thường)
     Optional<SkillCategory> findByNameIgnoreCase(String name);
+
+     /**
+     * Sử dụng JOIN FETCH để giải quyết vấn đề N+1 query 
+     * khi cần lấy tất cả Category kèm theo các Skill của chúng.
+     */
+    @Query("SELECT DISTINCT r FROM Role r LEFT JOIN FETCH r.steps")
+    List<Role> findAllWithSteps();
 }

@@ -19,6 +19,7 @@ public interface ISkillRepository extends JpaRepository<Skill, Long> {
     Optional<Skill> findByNameIgnoreCase(String name);
 
     // Tìm danh sách kỹ năng theo tên nhóm kỹ năng
+    
     List<Skill> findByCategoryNameIgnoreCase(String categoryName);
 }
 

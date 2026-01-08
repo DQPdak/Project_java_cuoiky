@@ -24,7 +24,7 @@ public class Skill {
     @Column(nullable = false, unique = true)
     private String name;
 
-    // Nhóm kỹ năng mà kỹ năng này thuộc về
+    // Nhóm kỹ năng mà kỹ năng này thuộc về category
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private SkillCategory category;

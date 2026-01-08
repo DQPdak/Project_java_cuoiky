@@ -27,6 +27,7 @@ public class SkillCategory {
     private String name;
 
     // Danh sách các kỹ năng thuộc nhóm này
+    // Mối quan hện 1-n với Skill
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Skill> skills = new HashSet<>();
 }

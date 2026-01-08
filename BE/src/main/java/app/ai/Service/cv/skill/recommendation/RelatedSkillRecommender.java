@@ -8,11 +8,11 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import app.ai.service.cv.skill.recommendation.component.SkillFrequency;
 import app.ai.service.cv.skill.recommendation.component.SkillFrequencyTracker;
 import app.ai.service.cv.skill.recommendation.component.SkillRecommendationSorter;
 import app.ai.service.cv.skill.recommendation.component.buildRecommendation;
 import app.ai.service.cv.skill.recommendation.dto.SkillRecommendation;
-import app.ai.service.cv.skill.recommendation.util.SkillFrequency;
 
 public class RelatedSkillRecommender {
    @Autowired private SkillFrequencyTracker frequencyTracker;

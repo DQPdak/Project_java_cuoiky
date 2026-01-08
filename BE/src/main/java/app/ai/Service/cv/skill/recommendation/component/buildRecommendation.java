@@ -1,9 +1,6 @@
 package app.ai.service.cv.skill.recommendation.component;
 
 import app.ai.service.cv.skill.recommendation.dto.SkillRecommendation;
-import app.ai.service.cv.skill.recommendation.util.PriorityCalculator;
-import app.ai.service.cv.skill.recommendation.util.SkillFrequency;
-import app.ai.service.cv.skill.recommendation.util.generateReason;
 
 public class buildRecommendation {
     private final PriorityCalculator pri = new PriorityCalculator();

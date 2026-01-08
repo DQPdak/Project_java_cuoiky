@@ -1,8 +1,17 @@
 package app.ai.service.cv.scoring.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 /**
  * CHỨC NĂNG: Chứa điểm số kỹ năng của ứng viên
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class SkillScore {
     private double baseScore;        // Điểm cơ bản (exact matches)
     private double bonusScore;       // Điểm bonus (extra skills)
@@ -11,30 +20,4 @@ public class SkillScore {
     private int totalRequired;       // Tổng số skills required
     private int extraSkillCount;     // Số extra skills
     private String level;           // Mức độ đánh giá (EXCELLENT, GOOD, FAIR, POOR)
-    
-    // Getters & Setters
-    public double getBaseScore() { return baseScore; }
-    public void setBaseScore(double score) { this.baseScore = score; }
-    
-    public double getBonusScore() { return bonusScore; }
-    public void setBonusScore(double score) { this.bonusScore = score; }
-    
-    public double getTotalScore() { return totalScore; }
-    public void setTotalScore(double score) { this.totalScore = score; }
-    
-    public int getExactMatches() { return exactMatches; }
-    public void setExactMatches(int matches) { this.exactMatches = matches; }
-    
-    public int getTotalRequired() { return totalRequired; }
-    public void setTotalRequired(int total) { this.totalRequired = total; }
-    
-    public int getExtraSkillCount() { return extraSkillCount; }
-    public void setExtraSkillCount(int count) { this.extraSkillCount = count; }
-    public String getLevel() {
-        return level;
-    }
-    public void setLevel(String level) {
-        this.level = level;
-    }
-    
 }
