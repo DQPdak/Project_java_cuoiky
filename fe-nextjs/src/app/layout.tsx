@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
+import { AuthProvider } from "@/context/AuthContext"; // Import AuthProvider
 import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "CareerMate - Job Marketplace",
-  description: "AI-Powered Job Platform",
-};
 
 export default function RootLayout({
   children,
@@ -12,8 +8,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
-      <body>{children}</body>
+    <html lang="en">
+      <body>
+        <AuthProvider> 
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }

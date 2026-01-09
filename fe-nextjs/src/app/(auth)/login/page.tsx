@@ -3,11 +3,14 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { login, fetchCurrentUser } from '@/services/authService';
-import { UserRole } from '@/types/auth';
+import { login } from '@/services/authService'; // Bỏ fetchCurrentUser
+import { useAuth } from '@/context/AuthContext'; // Import Context để update state
+// import { UserRole } from '@/types/auth'; // Có thể bỏ nếu không dùng enum trực tiếp ở đây
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login: setAuthUser } = useAuth(); // Lấy hàm login từ Context
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,28 +22,30 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // 1. Login lấy token
-      await login(email, password);
+      // 1. Gọi API Login (Service đã xử lý lưu token)
+      const data = await login(email, password);
 
-      // 2. Lấy role user
-      const user = await fetchCurrentUser();
-
-      // 3. Điều hướng
-      switch (user.role) {
-        case UserRole.ADMIN:
-          router.push('/admin/dashboard');
-          break;
-        case UserRole.RECRUITER:
-          router.push('/recruiter/dashboard');
-          break;
-        case UserRole.CANDIDATE:
-        default:
-          router.push('/dashboard');
-          break;
+      // 2. Cập nhật User vào Context (để app biết đã login)
+      if (data.user) {
+        setAuthUser(data.user, data.accessToken, data.refreshToken);
+        
+        // 3. Logic điều hướng (Đã có trong AuthContext nhưng thêm ở đây cho chắc chắn hoặc tùy biến)
+        // Lưu ý: Context thường sẽ tự redirect, nhưng nếu muốn xử lý tay:
+        /*
+        switch (data.user.userRole) {
+          case 'ADMIN': router.push('/dashboard-admin'); break;
+          case 'RECRUITER': router.push('/dashboard-recruiter'); break;
+          default: router.push('/dashboard-candidate'); break;
+        }
+        */
+      } else {
+        setError('Không lấy được thông tin người dùng.');
       }
+
     } catch (err: any) {
       console.error(err);
-      setError('Email hoặc mật khẩu không chính xác.');
+      // Hiển thị message lỗi từ Backend trả về
+      setError(err.response?.data?.message || 'Email hoặc mật khẩu không chính xác.');
     } finally {
       setLoading(false);
     }
