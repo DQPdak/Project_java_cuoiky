@@ -2,7 +2,7 @@ package app.gamification.controller;
 
 import app.auth.dto.response.MessageResponse;
 import app.gamification.model.UserPoints;
-import app.gamification.service.GamificationService;
+import app.gamification.Service.GamificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

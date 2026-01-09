@@ -5,7 +5,7 @@ import app.content.dto.request.ArticlePublishRequest;
 import app.content.dto.request.ArticleUpdateRequest;
 import app.content.dto.response.ArticleResponse;
 import app.content.model.Article;
-import app.content.repository.ArticleRepository;
+import app.content.repository.ContentArticleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +17,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class ArticleService {
 
-    private final ArticleRepository repo;
+    private final ContentArticleRepository repo;
 
     private ArticleResponse toResponse(Article a) {
         return ArticleResponse.builder()

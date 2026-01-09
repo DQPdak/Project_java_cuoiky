@@ -1,7 +1,10 @@
 package app.ai.service.cv.skill.component.recomment.recommendation.component;
 
+import org.springframework.stereotype.Component;
+
 import app.ai.service.cv.skill.component.recomment.recommendation.dto.SkillRecommendation;
 
+@Component
 public class buildRecommendation {
     private final PriorityCalculator pri = new PriorityCalculator();
     private final generateReason rea = new generateReason();
