@@ -1,4 +1,4 @@
-package app.gamification.service;
+package app.gamification.Service;
 
 import app.gamification.model.UserPoints;
 import app.gamification.repository.UserPointsRepository;

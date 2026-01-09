@@ -1,150 +1,194 @@
-'use client';
+"use client";
 
-import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { register } from '@/services/authService';
-import { UserRole } from '@/types/auth';
+import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { register } from "@/services/authService";
+import { UserRole } from "@/types/auth";
+// 1. Import thư viện thông báo
+import toast, { Toaster } from "react-hot-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: UserRole.CANDIDATE 
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    role: UserRole.CANDIDATE,
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  // Không cần state error nữa vì sẽ dùng toast để báo lỗi
+  // const [error, setError] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // Thêm hàm validate password khớp với Backend
-  const validatePassword = (pwd: string) => {
-    // Ít nhất 1 thường, 1 hoa, 1 số, min 6 ký tự
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/;
-    return regex.test(pwd) && pwd.length >= 6;
   };
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
 
-    // Logic Validate Client
+    // 1. Validate Client
     if (formData.password !== formData.confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
-      return;
-    }
-
-    if (!validatePassword(formData.password)) {
-      setError('Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số (min 6 ký tự).');
+      toast.error("Mật khẩu xác nhận không khớp!");
       return;
     }
 
     setLoading(true);
+    // Hiển thị hiệu ứng đang tải
+    const loadingToast = toast.loading("Đang tạo tài khoản...");
 
     try {
-      // Gọi Service với đúng tên trường Backend yêu cầu
-      await register({
+      // 2. Gọi API
+      // Backend AuthController.java trả về MessageResponse (message, data)
+      const response = await register({
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
-        userRole: formData.role // QUAN TRỌNG: Map 'role' -> 'userRole'
+        userRole: formData.role,
       });
-      
-      alert('Đăng ký thành công! Vui lòng đăng nhập.');
-      router.push('/login');
+
+      // Tắt loading toast
+      toast.dismiss(loadingToast);
+
+      // 3. Thông báo Success đẹp mắt
+      toast.success(response.message || "Đăng ký thành công!", {
+        duration: 3000,
+        icon: "🎉", // Icon ăn mừng
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
+
+      // 4. Đợi 1.5 giây cho người dùng xem thông báo rồi mới chuyển trang
+      setTimeout(() => {
+        router.push("/login");
+      }, 1500);
     } catch (err: any) {
+      toast.dismiss(loadingToast); // Tắt loading nếu lỗi
       console.error(err);
-      // Lấy message lỗi chi tiết
-      const msg = err.response?.data?.message || 'Đăng ký thất bại.';
-      
-      // Xử lý nếu BE trả về lỗi validation chi tiết
-      if (err.response?.data?.data && typeof err.response.data.data === 'object') {
-         const firstError = Object.values(err.response.data.data)[0];
-         setError(`${msg}: ${firstError}`);
-      } else {
-         setError(msg);
-      }
+
+      const msg = err.response?.data?.message || "Đăng ký thất bại.";
+
+      // Hiển thị lỗi đẹp mắt
+      toast.error(msg, {
+        duration: 4000,
+        style: {
+          borderRadius: "10px",
+          background: "#fee2e2", // Nền đỏ nhạt
+          color: "#b91c1c", // Chữ đỏ đậm
+          border: "1px solid #fca5a5",
+        },
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div>
+    <div className="w-full max-w-md mx-auto p-6">
+      {/* 5. Đặt Toaster ở đây để hiển thị thông báo */}
+      <Toaster position="top-center" reverseOrder={false} />
+
       <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">
         Tạo tài khoản mới
       </h2>
 
       <form className="space-y-4" onSubmit={handleRegister}>
-        {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
-            {error}
-          </div>
-        )}
-
         <div>
-          <label className="block text-sm font-medium text-gray-700">Họ và tên</label>
+          <label
+            htmlFor="fullName"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Họ và tên
+          </label>
           <input
+            id="fullName"
             name="fullName"
             type="text"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             value={formData.fullName}
             onChange={handleChange}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Email
+          </label>
           <input
+            id="email"
             name="email"
             type="email"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             value={formData.email}
             onChange={handleChange}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Mật khẩu
+          </label>
           <input
+            id="password"
             name="password"
             type="password"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             value={formData.password}
             onChange={handleChange}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Xác nhận mật khẩu</label>
+          <label
+            htmlFor="confirmPassword"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Xác nhận mật khẩu
+          </label>
           <input
+            id="confirmPassword"
             name="confirmPassword"
             type="password"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             value={formData.confirmPassword}
             onChange={handleChange}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Bạn là?</label>
+          <label
+            htmlFor="role"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Bạn là?
+          </label>
           <select
+            id="role"
             name="role"
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white focus:ring-blue-500 focus:border-blue-500"
             value={formData.role}
             onChange={handleChange}
           >
             <option value={UserRole.CANDIDATE}>Ứng viên (Tìm việc)</option>
-            <option value={UserRole.RECRUITER}>Nhà tuyển dụng (Đăng tin)</option>
+            <option value={UserRole.RECRUITER}>
+              Nhà tuyển dụng (Đăng tin)
+            </option>
           </select>
         </div>
 
@@ -152,16 +196,19 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
+            {loading ? "Đang xử lý..." : "Đăng ký"}
           </button>
         </div>
       </form>
 
       <p className="mt-6 text-center text-sm text-gray-600">
-        Đã có tài khoản?{' '}
-        <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+        Đã có tài khoản?{" "}
+        <Link
+          href="/login"
+          className="font-medium text-blue-600 hover:text-blue-500"
+        >
           Đăng nhập ngay
         </Link>
       </p>

@@ -1,7 +1,7 @@
 package app.admin.service;
 
 import app.admin.dto.response.DashboardSummaryResponse;
-import app.content.repository.ArticleRepository;
+import app.content.repository.ContentArticleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import app.admin.dto.response.ApplicationsByDayResponse;
@@ -14,7 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminDashboardService {
 
-    private final ArticleRepository articleRepo;
+    private final ContentArticleRepository articleRepo;
 
     public DashboardSummaryResponse summary() {
         return DashboardSummaryResponse.builder()

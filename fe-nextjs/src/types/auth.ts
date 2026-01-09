@@ -1,37 +1,42 @@
 export enum UserRole {
-  ADMIN = 'ADMIN',
+  CANDIDATE = 'CANDIDATE',
   RECRUITER = 'RECRUITER',
-  CANDIDATE = 'CANDIDATE'
 }
 
-// 1. Khớp với UserResponse.java của BE
+// Khớp với Java RegisterRequest
+export interface RegisterRequest {
+  fullName: string;
+  email: string;
+  password: string;
+  userRole: UserRole; // Enum
+}
+
+// Khớp với Java LoginRequest
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+// Khớp với Java User Entity (trả về trong AuthResponse)
 export interface User {
   id: number;
-  email: string;
   fullName: string;
-  userRole: UserRole; // SỬA: BE trả về 'userRole', không phải 'role'
-  avatarUrl?: string; // BE: profileImageUrl (cần map lại nếu muốn dùng)
-  phone?: string;
-  status?: string;
+  email: string;
+  userRole: UserRole;
+  profileImageUrl?: string;
 }
 
-// 2. Khớp với AuthResponse.java của BE
+// Khớp với Java AuthResponse
 export interface AuthResponseData {
   accessToken: string;
   refreshToken: string;
   tokenType: string;
   expiresIn: number;
-  user: User; // BE đã trả về object User ở đây
+  user: User;
 }
 
-// 3. Khớp với MessageResponse.java (Wrapper của BE)
-export interface ApiResponse<T> {
-  success?: boolean; // Tùy vào implementation của MessageResponse
+// Khớp với Java MessageResponse (Wrapper)
+export interface BackendResponse<T> {
   message: string;
-  data: T;           // Dữ liệu thực nằm ở đây
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
+  data: T; // Java: MessageResponse.success(..., data)
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AuthProvider } from "@/context/AuthContext"; // Import AuthProvider
+import { AuthProvider } from "@/context/Authcontext"; // Import AuthProvider
 import "./globals.css";
 
 export default function RootLayout({
