@@ -10,7 +10,7 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import app.ai.service.cv.skill.component.recomment.SkillRecommendationService;
+import app.ai.service.cv.skill.component.recomment.ComprehensiveAdvisor;
 import app.ai.service.cv.skill.component.recomment.dto.ComprehensiveRecommendation;
 import app.ai.service.cv.skill.component.recomment.dto.SkillAdviceRequest;
 
@@ -22,7 +22,8 @@ import app.ai.service.cv.skill.component.recomment.dto.SkillAdviceRequest;
      */
     @Component
 public class SkillAdviceGenerator {
-    @Autowired private SkillRecommendationService recommendationService;
+    @Autowired 
+    private ComprehensiveAdvisor advisor;
 
     public ComprehensiveRecommendation generate(List<String> cvSkills, Map<String, Set<String>> jobSkillsMap, String targetRole) {
         
@@ -34,6 +35,6 @@ public class SkillAdviceGenerator {
                                     .flatMap(Collection::stream).toList());
 
         //  Gửi cho tổng quản lý xử lý
-        return recommendationService.suggestComprehensive(request);
+        return advisor.advise(request);
     }
 }

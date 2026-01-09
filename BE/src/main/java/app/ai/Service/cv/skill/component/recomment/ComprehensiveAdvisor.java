@@ -1,10 +1,10 @@
-package app.ai.service.cv.skill.component.recomment.component;
+package app.ai.service.cv.skill.component.recomment;
 
 import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import app.ai.service.cv.skill.component.recomment.dto.ComprehensiveRecommendation;
 import app.ai.service.cv.skill.component.recomment.dto.SkillAdviceRequest;
@@ -14,7 +14,7 @@ import app.ai.service.cv.skill.component.recomment.recommendation.GapSkillOrches
 import app.ai.service.cv.skill.component.recomment.recommendation.RelatedSkillRecommender;
 import app.ai.service.cv.skill.component.recomment.recommendation.dto.SkillRecommendation;
 
-@Component
+@Service
 public class ComprehensiveAdvisor {
     @Autowired 
     private RelatedSkillRecommender relatedRecommender;
