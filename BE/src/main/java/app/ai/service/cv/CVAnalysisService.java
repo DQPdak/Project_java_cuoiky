@@ -1,15 +1,5 @@
 package app.ai.service.cv;
 
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import app.ai.service.cv.dto.CVAnalysisResult;
 import app.ai.service.cv.extractorcontact.ContactInfoExtractor;
 import app.ai.service.cv.extractorcontact.dto.ContactInfo;
@@ -17,7 +7,19 @@ import app.ai.service.cv.extractorexperience.ExperienceService;
 import app.ai.service.cv.extractorexperience.dto.ExperienceDTO;
 import app.ai.service.cv.extractortext.CVTextExtractor;
 import app.ai.service.cv.skill.SkillExtractionService;
+import app.ai.service.cv.skill.component.scoring.dto.SkillScore;
 import app.ai.service.cv.skill.component.recomment.dto.ComprehensiveRecommendation;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class CVAnalysisService {
@@ -28,6 +30,33 @@ public class CVAnalysisService {
 
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
+    public CVAnalysisResult analyzeCV(MultipartFile file) throws Exception {
+        long startTime = System.currentTimeMillis();
+
+        // extractText giờ đây nhận MultipartFile -> KHÔNG CÒN LỖI TYPE
+        String cvText = textExtractor.extractText(file);
+
+        CompletableFuture<ExperienceDTO> expFuture = CompletableFuture
+                .supplyAsync(() -> experienceService.analyzeExperience(cvText), executor);
+
+        CompletableFuture<ContactInfo> contactFuture = CompletableFuture
+                .supplyAsync(() -> contactExtractor.extract(cvText), executor);
+
+        // Gọi hàm extractSkills mới vừa thêm
+        CompletableFuture<List<SkillScore>> skillFuture = CompletableFuture
+                .supplyAsync(() -> skillService.extractSkills(cvText), executor);
+
+        CompletableFuture.allOf(expFuture, contactFuture, skillFuture).join();
+
+        CVAnalysisResult finalResult = new CVAnalysisResult();
+        finalResult.setContactInfo(contactFuture.get());
+        finalResult.setExperience(expFuture.get());
+        finalResult.setSkills(skillFuture.get());
+        finalResult.setRawText(cvText);
+        finalResult.setProcessingTimeMs(System.currentTimeMillis() - startTime);
+
+        return finalResult;
+    }
     /**
      * Phương thức điều phối toàn bộ hoạt động phân tích thông minh
      */

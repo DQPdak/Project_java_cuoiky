@@ -68,6 +68,35 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     }
 
     @Override
+    public JobApplicationResponse applyJob(JobApplicationRequest request) {
+        // 1. Lấy User hiện tại (Candidate)
+        User currentUser = SecurityUtils.getCurrentUser(); // Hoặc lấy từ SecurityContextHolder
+
+        // 2. Kiểm tra xem đã ứng tuyển job này chưa
+        if (jobApplicationRepository.existsByJobIdAndCandidateId(request.getJobId(), currentUser.getId())) {
+            throw new RuntimeException("Bạn đã ứng tuyển công việc này rồi!");
+        }
+
+        // 3. Lấy Job
+        Job job = jobPostingRepository.findById(request.getJobId())
+                .orElseThrow(() -> new RuntimeException("Công việc không tồn tại"));
+
+        // 4. Tạo đơn ứng tuyển
+        JobApplication application = new JobApplication();
+        application.setJob(job);
+        application.setCandidate(currentUser); // Map User entity vào đây
+        application.setStatus(ApplicationStatus.PENDING); // Trạng thái chờ duyệt
+        application.setAppliedAt(LocalDateTime.now());
+
+        // Lưu CV Snapshot (Lấy CV hiện tại trong Profile lưu sang)
+        // Code giả định: application.setCvUrl(candidateProfile.getCvUrl());
+
+        JobApplication savedApp = jobApplicationRepository.save(application);
+
+        return recruitmentMapper.toJobApplicationResponse(savedApp);
+    }
+
+    @Override
     public List<JobApplication> listByJob(Long jobId) {
         return appRepo.findByJobId(jobId);
     }

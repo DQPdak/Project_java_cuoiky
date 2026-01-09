@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class SkillScore {
+    private String skillName;
     private double baseScore;        // Điểm cơ bản (exact matches)
     private double bonusScore;       // Điểm bonus (extra skills)
     private double totalScore;       // Tổng điểm

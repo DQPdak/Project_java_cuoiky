@@ -1,14 +1,15 @@
+// fe-nextjs/src/context/Authcontext.tsx
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getToken, removeToken } from "@/utils/authStorage";
+import { getToken, removeToken, getUserRole } from "@/utils/authStorage";
 import { useRouter } from "next/navigation";
-import { User } from "@/types/auth"; // Import từ types chung
+import { User, UserRole } from "@/types/auth";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (userData: User) => void; // Đơn giản hóa params vì Token đã lưu ở Service
+  login: (userData: User) => void;
   logout: () => void;
 }
 
@@ -20,30 +21,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
+    // Logic khôi phục user khi F5 trang
     const initAuth = async () => {
       const token = getToken();
-      if (token) {
-        // Có thể thêm logic gọi fetchCurrentUser() ở đây để xác thực token còn sống không
-        // Tạm thời lấy từ localStorage nếu bạn lưu user info (để tránh F5 mất data)
-        const storedUser = localStorage.getItem('currentUser');
-        if (storedUser) {
-           setUser(JSON.parse(storedUser));
-        }
+      const storedUser = localStorage.getItem('currentUser');
+      
+      if (token && storedUser) {
+        setUser(JSON.parse(storedUser));
+      } else {
+        // Nếu không có token nhưng có user rác -> xóa đi
+        if (!token) localStorage.removeItem('currentUser');
       }
       setIsLoading(false);
     };
     initAuth();
   }, []);
 
-  // Hàm login chỉ cập nhật State và Redirect (Token đã lưu ở Service)
   const login = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('currentUser', JSON.stringify(userData)); // Lưu tạm info
+    localStorage.setItem('currentUser', JSON.stringify(userData));
 
-    // Check quyền dựa trên field 'userRole' (khớp với BE)
-    if (userData.userRole === 'RECRUITER') router.push('/dashboard-recruiter');
-    else if (userData.userRole === 'ADMIN') router.push('/dashboard-admin');
-    else router.push('/dashboard-candidate');
+    // ĐIỀU HƯỚNG DỰA TRÊN ROLE
+    // Căn cứ vào cấu trúc thư mục bạn đã upload
+    switch (userData.userRole) {
+      case UserRole.ADMIN:
+        router.push('/admin/dashboard'); 
+        break;
+      case UserRole.RECRUITER:
+        router.push('/dashboard-recruiter');
+        break;
+      case UserRole.CANDIDATE:
+      default:
+        router.push('/dashboard-candidate');
+        break;
+    }
   };
 
   const logout = () => {

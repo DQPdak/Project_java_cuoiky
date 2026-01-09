@@ -5,7 +5,7 @@ import {
   AuthResponseData, 
   BackendResponse 
 } from '@/types/auth';
-import { setToken, setRefreshToken, removeToken } from '@/utils/authStorage';
+import { setToken, setRefreshToken, removeToken, setUserRole } from '@/utils/authStorage';
 
 // Đăng ký
 export const register = async (data: RegisterRequest): Promise<BackendResponse<AuthResponseData>> => {
@@ -16,15 +16,13 @@ export const register = async (data: RegisterRequest): Promise<BackendResponse<A
 
 // Đăng nhập
 export const login = async (data: LoginRequest): Promise<AuthResponseData> => {
-  // Gọi vào: http://localhost:8080/api/auth/login
   const response = await api.post<BackendResponse<AuthResponseData>>('/auth/login', data);
-  
-  // Backend trả về: { message: "...", data: { accessToken, ... } }
   const authData = response.data.data;
 
   if (authData?.accessToken) {
     setToken(authData.accessToken);
     setRefreshToken(authData.refreshToken);
+    setUserRole(authData.user.userRole);
   }
 
   return authData;

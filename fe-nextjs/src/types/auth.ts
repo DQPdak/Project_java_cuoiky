@@ -1,6 +1,7 @@
 export enum UserRole {
   CANDIDATE = 'CANDIDATE',
   RECRUITER = 'RECRUITER',
+  ADMIN = 'ADMIN',
 }
 
 // Khớp với Java RegisterRequest
