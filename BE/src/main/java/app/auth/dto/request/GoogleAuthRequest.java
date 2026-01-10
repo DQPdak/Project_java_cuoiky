@@ -1,14 +1,12 @@
 
 package app.auth.dto.request;
 
+import app.auth.model.enums.UserRole;
 // Jakarta Validation: cung cấp các annotation để kiểm tra dữ liệu đầu vào
 import jakarta.validation.constraints.NotBlank;  // @NotBlank: chuỗi không được null và không chỉ chứa khoảng trắng
 
 // Lombok: @Data tự động sinh getter, setter, toString, equals, hashCode
 import lombok.Data;
-
-// Import enum UserRole: định nghĩa vai trò người dùng (ví dụ: ADMIN, USER)
-import app.auth.entity.enums.UserRole;
 
 /**
  * DTO (Data Transfer Object) dùng để nhận dữ liệu từ request đăng nhập bằng Google.

@@ -1,20 +1,20 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { getToken } from '@/utils/authStorage'; 
+import axios from 'axios';
+import { getToken } from '@/utils/authStorage'; // Hàm lấy token từ localStorage/cookie
 
-const api: AxiosInstance = axios.create({
-  // Đảm bảo bạn đã tạo file .env.local chứa NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1', 
+const api = axios.create({
+  // Backend chạy port 8080, prefix chung là /api
+  baseURL: 'http://localhost:8080/api', 
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Interceptor: Tự động gắn Token vào mỗi request
+// Tự động gắn Token vào header nếu đã đăng nhập
 api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  (config) => {
     const token = getToken();
-    if (token && config.headers) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },

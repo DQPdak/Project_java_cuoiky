@@ -6,9 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository; // Interface cho C
 import org.springframework.data.jpa.repository.Query;          // Cho phép viết JPQL hoặc native query tùy chỉnh
 import org.springframework.stereotype.Repository;             // Đánh dấu interface là Repository (thành phần DAO)
 
-// Import entity và enum liên quan
-import app.auth.entity.User;
-import app.auth.entity.enums.UserStatus;
+import app.auth.model.User;
+import app.auth.model.enums.UserStatus;
 
 import java.util.List;
 import java.util.Optional;

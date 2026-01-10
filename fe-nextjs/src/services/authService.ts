@@ -1,50 +1,41 @@
 import api from './api';
-import { AuthResponse, User, LoginRequest } from '@/types/auth';
-import { setToken, setRefreshToken, removeToken } from '@/utils/authStorage';
+import { 
+  RegisterRequest, 
+  LoginRequest, 
+  AuthResponseData, 
+  BackendResponse 
+} from '@/types/auth';
+import { setToken, setRefreshToken, removeToken, setUserRole } from '@/utils/authStorage';
 
-// Thêm interface cho Register data (nếu chưa có trong types/auth.ts thì khai báo tạm ở đây hoặc bổ sung vào file types)
-interface RegisterRequest {
-  fullName: string;
-  email: string;
-  password: string;
-  role: string; // 'CANDIDATE' | 'RECRUITER'
-}
+// Đăng ký
+export const register = async (data: RegisterRequest): Promise<BackendResponse<AuthResponseData>> => {
+  // Gọi vào: http://localhost:8080/api/auth/register
+  const response = await api.post<BackendResponse<AuthResponseData>>('/auth/register', data);
+  return response.data;
+};
 
-// Gọi API Login
-export const login = async (email: string, password: string): Promise<AuthResponse> => {
-  const loginData: LoginRequest = { email, password };
-  
-  // Endpoint này phải khớp với AuthController.java (@PostMapping("/auth/login"))
-  const response = await api.post<AuthResponse>('/auth/login', loginData);
-  
-  // Lưu token sau khi login thành công
-  if (response.data.accessToken) {
-    setToken(response.data.accessToken);
-    if (response.data.refreshToken) {
-        setRefreshToken(response.data.refreshToken);
-    }
+// Đăng nhập
+export const login = async (data: LoginRequest): Promise<AuthResponseData> => {
+  const response = await api.post<BackendResponse<AuthResponseData>>('/auth/login', data);
+  const authData = response.data.data;
+
+  if (authData?.accessToken) {
+    setToken(authData.accessToken);
+    setRefreshToken(authData.refreshToken);
+    setUserRole(authData.user.userRole);
   }
-  
-  return response.data;
+
+  return authData;
 };
 
-// --- THÊM MỚI TỪ ĐÂY ---
-// Gọi API Register
-export const register = async (data: RegisterRequest): Promise<any> => {
-  // Endpoint khớp với AuthController.java
-  const response = await api.post('/auth/register', data);
-  return response.data;
-};
-// --- KẾT THÚC THÊM MỚI ---
-
-// Gọi API lấy thông tin User hiện tại
-export const fetchCurrentUser = async (): Promise<User> => {
-  // Endpoint này phải khớp với UserController.java (@GetMapping("/users/me"))
-  const response = await api.get<User>('/users/me');
-  return response.data;
-};
-
-export const logout = () => {
-  removeToken();
-  // Có thể gọi thêm API logout nếu backend yêu cầu
+// Logout
+export const logout = async () => {
+  try {
+    await api.post('/auth/logout');
+  } catch (error) {
+    console.error(error);
+  } finally {
+    removeToken();
+    window.location.href = '/login';
+  }
 };

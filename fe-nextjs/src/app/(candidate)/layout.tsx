@@ -25,12 +25,12 @@ export default function CandidateLayout({ children }: { children: React.ReactNod
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
-              <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => router.push('/dashboard')}>
+              <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => router.push('/dashboard-candidate')}>
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">C</div>
                 <span className="font-bold text-xl text-gray-800">CareerMate</span>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link href="/dashboard" className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${isActive('/dashboard')}`}>
+                <Link href="/dashboard-candidate" className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${isActive('/dashboard-candidate')}`}>
                   <LayoutDashboard className="w-4 h-4 mr-2" /> Tổng quan
                 </Link>
                 <Link href="/jobs" className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${isActive('/jobs')}`}>

@@ -7,12 +7,11 @@ import lombok.Builder;             // Cho phép sử dụng Builder pattern đ�
 import lombok.Data;                // Tự động sinh getter, setter, toString, equals, hashCode
 import lombok.NoArgsConstructor;   // Tạo constructor không tham số
 
-// Import enum UserRole và UserStatus: định nghĩa vai trò và trạng thái người dùng
-import app.auth.entity.enums.UserRole;
-import app.auth.entity.enums.UserStatus;
-
 // Import LocalDateTime: kiểu dữ liệu thời gian trong Java (ngày + giờ)
 import java.time.LocalDateTime;
+
+import app.auth.model.enums.UserRole;
+import app.auth.model.enums.UserStatus;
 
 /**
  * DTO (Data Transfer Object) dùng để trả về thông tin người dùng cho client.

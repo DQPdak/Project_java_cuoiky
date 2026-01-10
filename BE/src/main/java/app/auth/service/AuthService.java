@@ -19,17 +19,13 @@ import org.springframework.transaction.annotation.Transactional; // Quản lý g
 import app.auth.dto.request.*;
 import app.auth.dto.response.AuthResponse;
 import app.auth.dto.response.UserResponse;
-
-// Entity và enum của miền nghiệp vụ
-import app.auth.entity.PasswordResetToken;
-import app.auth.entity.RefreshToken;
-import app.auth.entity.User;
-import app.auth.entity.enums.AuthProvider;
-import app.auth.entity.enums.UserStatus;
-
 // Exception tuỳ chỉnh của ứng dụng
 import app.auth.exception.*;
-
+import app.auth.model.PasswordResetToken;
+import app.auth.model.RefreshToken;
+import app.auth.model.User;
+import app.auth.model.enums.AuthProvider;
+import app.auth.model.enums.UserStatus;
 // Repository và provider JWT
 import app.auth.repository.PasswordResetTokenRepository;
 import app.auth.repository.UserRepository;

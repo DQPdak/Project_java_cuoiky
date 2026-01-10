@@ -1,0 +1,83 @@
+package app.recruitment.controller;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+
+import java.net.URI;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import app.recruitment.service.JobPostingService;
+import app.recruitment.dto.request.JobPostingRequest;
+import app.recruitment.dto.response.JobPostingResponse;
+import app.recruitment.mapper.RecruitmentMapper;
+import app.recruitment.entity.JobPosting;
+
+@RestController
+@RequestMapping("/api/recruiter/jobs")
+@RequiredArgsConstructor
+@Slf4j
+public class JobPostingController {
+
+    private final JobPostingService jobPostingService;
+    private final RecruitmentMapper mapper;
+
+    @PostMapping
+    public ResponseEntity<JobPostingResponse> create(
+            @Valid @RequestBody JobPostingRequest request
+    ) {
+        Long recruiterId = getCurrentUserId();
+        JobPosting created = jobPostingService.create(recruiterId, request);
+        JobPostingResponse resp = mapper.toJobPostingResponse(created);
+        return ResponseEntity.created(URI.create("/api/recruiter/jobs/" + resp.getId())).body(resp);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<JobPostingResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody JobPostingRequest request
+    ) {
+        Long recruiterId = getCurrentUserId();
+        JobPosting updated = jobPostingService.update(recruiterId, id, request);
+        return ResponseEntity.ok(mapper.toJobPostingResponse(updated));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id
+    ) {
+        Long recruiterId = getCurrentUserId();
+        jobPostingService.delete(recruiterId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<JobPostingResponse> getById(@PathVariable Long id) {
+        JobPosting job = jobPostingService.getById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found: " + id));
+        return ResponseEntity.ok(mapper.toJobPostingResponse(job));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<List<JobPostingResponse>> listByRecruiter() {
+        Long recruiterId = getCurrentUserId();
+        List<JobPostingResponse> list = jobPostingService.listByRecruiter(recruiterId)
+                .stream().map(mapper::toJobPostingResponse).collect(Collectors.toList());
+        return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<JobPostingResponse>> search(@RequestParam String q) {
+        List<JobPostingResponse> list = jobPostingService.searchByTitle(q)
+                .stream().map(mapper::toJobPostingResponse).collect(Collectors.toList());
+        return ResponseEntity.ok(list);
+    }
+
+    // Mock current user id (temporary). Replace with SecurityContext lookup.
+    private Long getCurrentUserId() {
+        return 1L;
+    }
+}
