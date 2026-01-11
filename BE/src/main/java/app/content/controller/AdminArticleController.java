@@ -1,6 +1,6 @@
 package app.content.controller;
 
-import app.auth.dto.response.MessageResponse; // nếu đỏ -> sửa đúng package của MessageResponse
+import app.auth.dto.response.MessageResponse;
 import app.content.dto.request.ArticleCreateRequest;
 import app.content.dto.request.ArticlePublishRequest;
 import app.content.dto.request.ArticleUpdateRequest;
@@ -36,7 +36,7 @@ public class AdminArticleController {
     }
 
     // ✅ POST /api/admin/articles
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<MessageResponse> create(@Valid @RequestBody ArticleCreateRequest req) {
         ArticleResponse data = service.create(req);
         return ResponseEntity.status(HttpStatus.CREATED)
