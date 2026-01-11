@@ -7,10 +7,18 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import app.ai.service.cv.extractortext.Interface.IFileTextExtractor;
+import app.ai.util.TextCleaningUtil;
 
 @Component
 public class PDFTextExtractor implements IFileTextExtractor {
+    
     private static final int Max_Page_Limit = 5; // Giới hạn số trang tối đa để trích xuất từ file PDF
+    private final TextCleaningUtil textCleaner;
+
+    // Inject Utility làm sạch text
+    public PDFTextExtractor(TextCleaningUtil textCleaner) {
+        this.textCleaner = textCleaner;
+    }
 
     // Kiểm tra file có phải định dạng PDF không
     @Override
@@ -27,13 +35,12 @@ public class PDFTextExtractor implements IFileTextExtractor {
 
     /**
      * Đọc văn bản từ file PDF
-     * 
-     * Ý tưởng:
+     * * Ý tưởng:
      * 1. Chuyển tài liệu MultipartFile thành byte[]
      * 2. Mở tài liệu PDF sử dụng Loader từ byte[]
      * 3. Sử dụng PDFTextStripper để trích xuất văn bản
      * 4. Giới hạn số trang tối đa để trích xuất là 5 trang
-     * 5. Trả về văn bản thuần túy đã làm sạch
+     * 5. Trả về văn bản thuần túy đã làm sạch (sử dụng TextCleaningUtil)
      */
     @Override
     public String extractText(MultipartFile inputText) throws Exception {
@@ -50,35 +57,12 @@ public class PDFTextExtractor implements IFileTextExtractor {
             // Trích xuất văn bản
             String rawText = stripper.getText(document);
 
-            // làm sạch và trả về văn bản thuần túy
-            return cleanText(rawText);
+            // làm sạch và trả về văn bản thuần túy thông qua Utility
+            return textCleaner.clean(rawText);
         }
         } catch (Exception e){
             throw new RuntimeException("Lỗi trích xuất văn bản từ PDF: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Làm sạch văn bản thuần túy
-     * + Loại bỏ nhiều space liên tiếp thành một space
-     * + Xóa các ký tự đặc biệt không cần thiết
-     * + Chuẩn hóa ký tự xuống dòng
-     * + Xóa bỏ khoảng trắng thừa ở đầu cuối
-     */
-    private String cleanText(String text) {
-         if (text == null) {
-            return "";
-        }
-
-        return text
-            //Xóa nhiều space thành 1 space
-            .replaceAll("\\s+", " ")
-            // Xóa ký tự đặc biệt 
-            .replaceAll("[^\\p{L}\\p{N}\\s@.+\\-():/,]", "")
-            // Chuẩn hóa ký tự xuống dòng
-            .replaceAll("\n{3,}", "\n\n")
-            // Xóa khoảng trắng thừa ở đầu cuối
-            .trim();
     }
 
 }
