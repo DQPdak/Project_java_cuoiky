@@ -4,23 +4,35 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LevelDeterminer {
-    private final String[] SENIOR_KW = {"senior", "lead", "principal", "architect", "trưởng nhóm"};
-    private final String[] JUNIOR_KW = {"junior", "intern", "fresher", "trainee", "thực tập"};
+    // Bổ sung thêm các chức danh quản lý
+    private final String[] SENIOR_KW = {
+        "senior", "lead", "principal", "architect", "manager", "head of", "trưởng nhóm", "quản lý"
+    };
+    
+    private final String[] JUNIOR_KW = {
+        "junior", "intern", "fresher", "trainee", "apprentice", "thực tập", "nhân viên mới"
+    };
 
     public String determine(int years, String text) {
+        if (text == null) text = "";
         String lowerText = text.toLowerCase();
         
-        // Quy tắc Senior: Có keyword Senior HOẶC >= 5 năm kinh nghiệm
-        if (containsAny(lowerText, SENIOR_KW) || years >= 5) return "SENIOR";
+        // Ưu tiên 1: Check số năm kinh nghiệm (Chính xác hơn keywords)
+        if (years >= 5) return "SENIOR";
+        if (years <= 2) return "JUNIOR";
+
+        // Ưu tiên 2: Check keywords nếu số năm lửng lơ (3-4 năm) hoặc parser năm bị lỗi
+        if (containsAny(lowerText, SENIOR_KW)) return "SENIOR";
+        if (containsAny(lowerText, JUNIOR_KW)) return "JUNIOR";
         
-        // Quy tắc Junior: Có keyword Junior HOẶC <= 2 năm kinh nghiệm
-        if (containsAny(lowerText, JUNIOR_KW) || years <= 2) return "JUNIOR";
-        
+        // Mặc định là Middle
         return "MIDDLE";
     }
 
     private boolean containsAny(String text, String[] keywords) {
-        for (String kw : keywords) { if (text.contains(kw)) return true; }
+        for (String kw : keywords) {
+            if (text.contains(kw)) return true;
+        }
         return false;
     }
 }
