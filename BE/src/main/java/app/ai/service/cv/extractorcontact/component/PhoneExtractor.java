@@ -8,56 +8,46 @@ import org.springframework.stereotype.Component;
 import app.ai.service.cv.extractorcontact.Interface.IContactDetailExtractor;
 
 @Component
-public class PhoneExtractor implements IContactDetailExtractor{
-    // Biểu diễn chính quy để tìm số điện thoại
+public class PhoneExtractor implements IContactDetailExtractor {
 
-    /**
-     * Cấu trúc thường thấy của số điện thoại:
-     * - Có thể bắt đầu với mã quốc gia (+84 hoặc 0) -> (?:\\+84|0)
-     * - Tiếp đến là 1 cập số phải là 3x, 5x, 7x, 8x, hoặc 9x -> (?:3\\d|5\\d|7\\d|8\\d|9\\d)
-     * - Có thể có dấu cách hoặc dấu gạch ngang giữa các nhóm số -> [\\s-]?
-     * 
-     */
+    // Regex hỗ trợ: +84 hoặc 0, theo sau là các đầu số nhà mạng phổ biến
+    // Chấp nhận các ký tự ngăn cách như dấu chấm, gạch ngang, khoảng trắng
     private static final Pattern PHONE_PATTERN = Pattern.compile(
-        "^(?:\\+84|0)(?:3\\d|5\\d|7\\d|8\\d|9\\d)[\\s-]?\\d{3}[\\s-]?\\d{3,4}$"  
+        "(\\+84|0)(3|5|7|8|9|1[2|6|8|9])([0-9\\s.\\-]{7,13})"
     );
 
     @Override
     public String extract(String text) {
-        if (text == null || text.isEmpty()){
+        if (text == null || text.isEmpty()) {
             return null;
         }
 
-        // Tạo đối tượng Matcher từ regex PHONE_PATTERN và chuỗi text
-        Matcher matcher = PHONE_PATTERN.matcher(text);
+        // Chiến thuật: Chia nhỏ văn bản thành từng dòng để xử lý chính xác hơn
+        String[] lines = text.split("\n");
+        
+        for (String line : lines) {
+            // Bỏ qua các dòng quá ngắn hoặc không chứa số (tối ưu hiệu năng)
+            if (line.length() < 8 || !line.matches(".*\\d.*")) continue;
 
-        // Tìm đoạn đầu tiên trong text khớp với regex
-        if (matcher.find()){
-            String phoneNumber = matcher.group(); // Lấy chuỗi con khớp với regex (ví dụ số điện thoại tìm được)
-
-            // Chuẩn hóa định dạng số điện thoại
-            phoneNumber = phoneNumber.replaceAll("[\\s-]", ""); // Xóa dấu cách, gạch ngang
-
-            // kiểm tra tính hợp lệ của số điện thoại
-            if (isValidPhoneNumber(phoneNumber)){
-                return phoneNumber;
+            // BƯỚC 1: Fix lỗi OCR điển hình (Chữ 'O' hoặc 'o' bị đọc nhầm từ số '0')
+            // Logic: Thay thế O/o thành 0 nếu nó nằm cạnh một con số
+            String normalizedLine = line.replaceAll("(?<=\\d)[Oo](?=\\d)|(?<=\\d)[Oo]|(?<![a-zA-Z])[Oo](?=\\d)", "0");
+            
+            // BƯỚC 2: Matching
+            Matcher matcher = PHONE_PATTERN.matcher(normalizedLine);
+            if (matcher.find()) {
+                // Lấy kết quả thô
+                String rawPhone = matcher.group();
+                
+                // BƯỚC 3: Làm sạch lần cuối (chỉ giữ lại số và dấu +)
+                return cleanPhoneNumber(rawPhone);
             }
         }
-        return null; // Trả về null nếu không tìm thấy số điện thoại
+        return null;
     }
 
-    // kiểm tra tính hợp lệ của số điện thoại
-    /**
-     * Nguyên tắc kiểm tra:
-     * - Số điện thoại phải có độ dài 10 chữ số
-     * - Có thể bắt đầu bằng mã quốc gia +84 hoặc 0
-     * - Các chữ số còn lại phải là số từ 0-9
-     */
-    private boolean isValidPhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.isEmpty()) {
-            return false;
-        }
-        // Kiểm tra độ dài và định dạng số điện thoại
-        return phoneNumber.matches("^(\\+84|0)(?:3\\d|5\\d|7\\d|8\\d|9\\d)\\d{7}$");
+    private String cleanPhoneNumber(String rawPhone) {
+        // Xóa tất cả ký tự không phải số, trừ dấu + ở đầu
+        return rawPhone.replaceAll("[^0-9+]", "");
     }
 }
