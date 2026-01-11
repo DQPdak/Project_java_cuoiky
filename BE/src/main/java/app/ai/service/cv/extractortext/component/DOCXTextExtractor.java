@@ -6,11 +6,19 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import app.ai.service.cv.extractortext.Interface.IFileTextExtractor;
+import app.ai.util.TextCleaningUtil;
 
 import java.util.List;
 
 @Component
 public class DOCXTextExtractor implements IFileTextExtractor {
+
+    private final TextCleaningUtil textCleaner;
+
+    // Inject Utility làm sạch text
+    public DOCXTextExtractor(TextCleaningUtil textCleaner) {
+        this.textCleaner = textCleaner;
+    }
 
     // Kiểm tra file có phải định dạng DOCX không
     @Override
@@ -24,12 +32,11 @@ public class DOCXTextExtractor implements IFileTextExtractor {
 
     /**
      * Đọc văn bản từ file DOCX
-     * 
-     * Ý tưởng:
+     * * Ý tưởng:
      * 1. Mở tài liệu DOCX sử dụng XWPFDocument
      * 2. Lấy tất cả các đoạn văn trong tài liệu cho vào mảng paragraphs
      * 3. Duyệt qua từng đoạn văn, lấy văn bản và thêm vào StringBuilder text
-     * 4. Trả về văn bản thuần túy đã làm sạch
+     * 4. Trả về văn bản thuần túy đã làm sạch (sử dụng TextCleaningUtil)
      */
     @Override
     public String extractText(MultipartFile file) throws Exception {
@@ -41,31 +48,8 @@ public class DOCXTextExtractor implements IFileTextExtractor {
                     text.append(para.getText()).append("\n");
                 }
             }
-            return cleanText(text.toString());
+            // Sử dụng Utility chung để làm sạch, thay vì viết hàm riêng
+            return textCleaner.clean(text.toString());
         }
     }
-
-    /**
-     * Làm sạch văn bản thuần túy
-     * + Loại bỏ nhiều space liên tiếp thành một space
-     * + Xóa các ký tự đặc biệt không cần thiết
-     * + Chuẩn hóa ký tự xuống dòng
-     * + Xóa bỏ khoảng trắng thừa ở đầu cuối
-     */
-    private String cleanText(String text) {
-          if (text == null) {
-            return "";
-        }
-
-        return text
-            //Xóa nhiều space thành 1 space
-            .replaceAll("\\s+", " ")
-            // Xóa ký tự đặc biệt 
-            .replaceAll("[^\\p{L}\\p{N}\\s@.+\\-():/,]", "")
-            // Chuẩn hóa ký tự xuống dòng
-            .replaceAll("\n{3,}", "\n\n")
-            // Xóa khoảng trắng thừa ở đầu cuối
-            .trim();
-    }
-
 }
