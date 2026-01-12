@@ -31,26 +31,42 @@ public class GeminiService {
         String cleanKey = (apiKey != null) ? apiKey.trim() : "";
         String url = API_URL + cleanKey;
         
-        // Prompt cho model đời cũ (gemini-pro) cần rõ ràng hơn
-        String prompt = """
-            Bạn là chuyên gia đọc CV. Hãy trích xuất thông tin từ văn bản dưới đây và trả về JSON.
-            
-            QUY TẮC BẮT BUỘC:
-            1. Chỉ trả về JSON thuần túy, không dùng Markdown (không dùng ```json).
-            2. Nếu không tìm thấy thông tin, để null hoặc rỗng.
-            
-            CẤU TRÚC JSON MONG MUỐN:
-            {
-              "contact": { "email": "string", "phoneNumber": "string" },
-              "experiences": [ 
-                { "company": "string", "role": "string", "startDate": "YYYY-MM", "endDate": "YYYY-MM" } 
-              ],
-              "skills": [ "string", "string" ]
-            }
-            
-            VĂN BẢN CV:
-            %s
-            """.formatted(rawText);
+        // Prompt cho model 
+       String prompt = """
+                Bạn là một chuyên gia tuyển dụng (AI Recruiter) và chuyên gia xử lý dữ liệu.
+                
+                NHIỆM VỤ:
+                Trích xuất thông tin từ văn bản CV thô bên dưới và trả về định dạng JSON chuẩn.
+                
+                 CẢNH BÁO VỀ DỮ LIỆU ĐẦU VÀO (RẤT QUAN TRỌNG):
+                1. Văn bản này được trích xuất tự động từ PDF/DOCX nên có thể chứa lỗi định dạng nghiêm trọng.
+                2. Lỗi dính chữ: Do mất dấu xuống dòng, tiêu đề có thể bị dính vào nội dung trước đó.
+                   - Ví dụ: "Hồ Chí MinhKỸ NĂNG" -> Hãy hiểu là địa chỉ "Hồ Chí Minh" và bắt đầu mục "KỸ NĂNG".
+                   - Ví dụ: "DeveloperKINH NGHIỆM" -> Hãy tách ra.
+                3. Lỗi chia cột: Nếu CV chia 2 cột, nội dung có thể bị trộn lẫn. Hãy dựa vào ngữ cảnh để sắp xếp lại đúng logic.
+                
+                YÊU CẦU ĐẦU RA (JSON FORMAT):
+                Chỉ trả về duy nhất chuỗi JSON (không Markdown, không giải thích thêm), theo cấu trúc sau:
+                {
+                  "contact": {
+                    "email": "Tìm email trong bài...",
+                    "phoneNumber": "Tìm số điện thoại..."
+                  },
+                  "skills": ["Liệt kê các kỹ năng chuyên môn..."],
+                  "experiences": [
+                    {
+                      "company": "Tên công ty",
+                      "role": "Chức vụ",
+                      "startDate": "Thời gian bắt đầu (ngắn gọn)",
+                      "endDate": "Thời gian kết thúc (hoặc Present)",
+                      "description": "Mô tả công việc (tóm tắt)"
+                    }
+                  ]
+                }
+                
+                VĂN BẢN CV THÔ CẦN XỬ LÝ:
+                -------------------------
+                """ + rawText;
 
         Map<String, Object> request = Map.of("contents", new Object[]{
             Map.of("parts", new Object[]{ Map.of("text", prompt) })
