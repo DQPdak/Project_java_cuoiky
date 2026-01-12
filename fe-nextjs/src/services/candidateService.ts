@@ -40,3 +40,8 @@ export const getMyApplications = async () => {
     const response = await api.get('/recruitment/applications/my-applications'); // Bạn cần tạo endpoint này ở BE nếu chưa có
     return response.data.data;
 }
+
+export const updateProfile = async (data: any) => {
+  const response = await api.put('/candidate/profile/me', data);
+  return response.data.data;
+};

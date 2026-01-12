@@ -5,6 +5,7 @@ export interface Experience {
 }
 
 export interface CandidateProfile {
+  websiteUrl: string;
   id: number;
   cvFilePath?: string;
   skills: string[];

@@ -16,6 +16,7 @@ public class JobApplicationResponse {
     private Long jobId;
     private String jobTitle;
     private Long studentId;
+    private String companyName;
     private String studentName;
     private String cvUrl;
     private String status; // APPLIED, SCREENING, INTERVIEW, OFFER, REJECTED

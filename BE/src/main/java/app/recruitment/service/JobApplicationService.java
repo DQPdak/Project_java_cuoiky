@@ -1,6 +1,7 @@
 package app.recruitment.service;
 
 import app.recruitment.dto.request.JobApplicationRequest;
+import app.recruitment.dto.response.JobApplicationResponse;
 import app.recruitment.entity.JobApplication;
 import app.recruitment.entity.enums.ApplicationStatus;
 
@@ -12,5 +13,6 @@ public interface JobApplicationService {
     JobApplication updateStatus(Long recruiterId, Long applicationId, ApplicationStatus newStatus, String recruiterNote);
     List<JobApplication> listByJob(Long jobId);
     List<JobApplication> listByStudent(Long studentId);
+    List<JobApplicationResponse> getApplicationsByCandidateId(Long studentId);
     Optional<JobApplication> getById(Long id);
 }

@@ -1,6 +1,7 @@
 package app.candidate.controller;
 
 import app.auth.dto.response.MessageResponse;
+import app.candidate.dto.request.CandidateProfileUpdateRequest;
 import app.candidate.model.CandidateProfile;
 import app.candidate.service.CandidateService;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,21 @@ public class CandidateProfileController {
             return ResponseEntity.ok(MessageResponse.success("Lấy thông tin thành công", profile));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(MessageResponse.error("Chưa có hồ sơ"));
+        }
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<?> updateMyProfile(@RequestBody CandidateProfileUpdateRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        try {
+            CandidateProfile updatedProfile = candidateService.updateProfile(user.getId(), request);
+            return ResponseEntity.ok(MessageResponse.success("Cập nhật hồ sơ thành công", updatedProfile));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(MessageResponse.error("Lỗi cập nhật: " + e.getMessage()));
         }
     }
 }

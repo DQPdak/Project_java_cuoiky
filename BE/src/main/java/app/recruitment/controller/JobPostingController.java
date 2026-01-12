@@ -1,5 +1,6 @@
 package app.recruitment.controller;
 
+import app.auth.dto.response.MessageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -70,10 +71,8 @@ public class JobPostingController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<JobPostingResponse>> search(@RequestParam String q) {
-        List<JobPostingResponse> list = jobPostingService.searchByTitle(q)
-                .stream().map(mapper::toJobPostingResponse).collect(Collectors.toList());
-        return ResponseEntity.ok(list);
+    public ResponseEntity<?> searchJobs(@RequestParam(value = "keyword", required = false) String keyword) {
+        return ResponseEntity.ok(MessageResponse.success("Tìm kiếm thành công", jobPostingService.searchJobs(keyword)));
     }
 
     // Mock current user id (temporary). Replace with SecurityContext lookup.

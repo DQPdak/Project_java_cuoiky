@@ -3,6 +3,7 @@ package app.recruitment.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import app.auth.model.User;
+import app.content.model.Company;
 import app.recruitment.entity.enums.JobStatus;
 
 import java.time.LocalDateTime;
@@ -41,6 +42,10 @@ public class JobPosting {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recruiter_id", nullable = false)
     private User recruiter;
+
+    @ManyToOne(fetch = FetchType.EAGER) // Để EAGER nếu muốn lấy luôn thông tin công ty khi query Job
+    @JoinColumn(name = "company_id")
+    private Company company;
     
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

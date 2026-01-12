@@ -52,4 +52,5 @@ public class CandidateProfile {
     private String phoneNumber;
     private String address;
     private String linkedInUrl;
+    private String websiteUrl;
 }

@@ -17,6 +17,7 @@ import app.recruitment.entity.enums.ApplicationStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +78,33 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     @Override
     public List<JobApplication> listByStudent(Long studentId) {
         return appRepo.findByStudentId(studentId);
+    }
+
+    @Override
+    @Transactional(readOnly = true) // Quan trọng để fetch dữ liệu từ bảng Job/Company
+    public List<JobApplicationResponse> getApplicationsByCandidateId(Long studentId) {
+        // 1. Lấy danh sách Entity từ DB
+        List<JobApplication> applications = appRepo.findByStudentId(studentId);
+
+        // 2. Convert sang DTO
+        return applications.stream().map(app -> {
+            JobPosting job = app.getJob();
+            // Lấy tên công ty an toàn (tránh null pointer nếu data cũ lỗi)
+            String companyName = (job.getCompany() != null) ? job.getCompany().getName() : "Unknown Company";
+
+            return JobApplicationResponse.builder()
+                    .id(app.getId())
+                    .jobId(job.getId())
+                    .jobTitle(job.getTitle())
+                    .companyName(companyName) // Set tên công ty
+                    .studentId(app.getStudent().getId())
+                    .studentName(app.getStudent().getFullName()) // Giả sử User có getFullName
+                    .cvUrl(app.getCvUrl())
+                    .status(app.getStatus().name()) // Convert Enum sang String
+                    .appliedAt(app.getAppliedAt())
+                    .recruiterNote(app.getRecruiterNote())
+                    .build();
+        }).collect(Collectors.toList());
     }
 
     @Override
