@@ -1,5 +1,7 @@
 package app.ai.controller;
 
+import app.ai.models.Candidate;
+import app.ai.service.CVProcessingService;
 import app.ai.service.cv.extractortext.CVTextExtractor;
 import app.ai.service.cv.gemini.GeminiService;
 import app.ai.service.cv.gemini.dto.GeminiResponse;
@@ -15,6 +17,7 @@ public class CVAnalysisController {
 
     private final CVTextExtractor cvTextExtractor;
     private final GeminiService geminiService;
+    private final CVProcessingService cvProcessingService;
 
     @PostMapping("/analyze")
     public ResponseEntity<?> analyzeCV(@RequestParam("file") MultipartFile file) {
@@ -33,6 +36,16 @@ public class CVAnalysisController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body("Lỗi xử lý: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/upload-cv") // Đổi tên endpoint cho đúng nghiệp vụ
+    public ResponseEntity<?> uploadCV(@RequestParam("file") MultipartFile file) {
+        try {
+            Candidate savedCandidate = cvProcessingService.processAndSaveCV(file);
+            return ResponseEntity.ok("Lưu thành công ứng viên ID: " + savedCandidate.getId());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
     }
 }

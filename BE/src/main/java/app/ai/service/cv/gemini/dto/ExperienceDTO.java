@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class ExperienceDTO {
     private String company;
     private String role;
+    private String description;
     private String startDate; // AI trả về định dạng YYYY-MM
     private String endDate;   // AI trả về định dạng YYYY-MM hoặc Present
 }
