@@ -1,42 +1,29 @@
 package app.ai.service.cv.extractortext;
 
-import lombok.extern.slf4j.Slf4j;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import app.ai.service.cv.extractortext.Interface.IFileTextExtractor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 
 @Service
-@Slf4j
+@RequiredArgsConstructor
 public class CVTextExtractor {
 
+    // Spring sẽ tự động tìm tất cả các Bean implement IFileTextExtractor (PDF, DOCX) và nhét vào List này
+    private final List<IFileTextExtractor> extractors;
+
     public String extractText(MultipartFile file) {
-        String fileName = file.getOriginalFilename();
-        if (fileName == null) return "";
-        
-        try {
-            if (fileName.toLowerCase().endsWith(".pdf")) {
-                // Đọc PDF
-                try (PDDocument document = Loader.loadPDF(file.getBytes())) {
-                    return new PDFTextStripper().getText(document);
-                }
-            } else if (fileName.toLowerCase().endsWith(".docx")) {
-                // Đọc Word
-                try (XWPFDocument document = new XWPFDocument(file.getInputStream())) {
-                    StringBuilder text = new StringBuilder();
-                    for (XWPFParagraph para : document.getParagraphs()) {
-                        text.append(para.getText()).append("\n");
-                    }
-                    return text.toString();
+        for (IFileTextExtractor extractor : extractors) {
+            if (extractor.supports(file)) {
+                try {
+                    // Gọi hàm tách chữ của component tương ứng
+                    return extractor.extractText(file);
+                } catch (Exception e) {
+                    throw new RuntimeException("Lỗi trích xuất nội dung file: " + e.getMessage(), e);
                 }
             }
-            return "";
-        } catch (Exception e) {
-            log.error("Lỗi đọc file: ", e);
-            return "";
         }
+        throw new IllegalArgumentException("Định dạng file không hỗ trợ: " + file.getOriginalFilename());
     }
 }
