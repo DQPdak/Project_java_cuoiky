@@ -86,6 +86,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN") // yêu cầu ROLE_ADMIN
                 .requestMatchers("/api/recruiter/**").hasRole("RECRUITER") // yêu cầu ROLE_RECRUITER
                 .requestMatchers("/api/candidate/**").hasRole("CANDIDATE") // hoặc .authenticated()
+                // --- THÊM DÒNG NÀY VÀO ĐÂY ---
+                .requestMatchers("/api/cv/**").permitAll()
+                .requestMatchers("/api/test/**").permitAll()
                 .anyRequest().authenticated() // còn lại cần xác thực
             )
             // Provider xác thực sử dụng UserDetailsService
