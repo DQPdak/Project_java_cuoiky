@@ -1,7 +1,7 @@
 package app.ai.service.cv.gemini;
 
 import app.ai.service.cv.gemini.dto.GeminiResponse;
-import com.fasterxml.jackson.databind.JsonNode;
+import app.ai.service.cv.gemini.dto.MatchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,9 +9,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -19,115 +22,134 @@ import java.util.Map;
 @Slf4j
 public class GeminiService {
 
-    @Value("${gemini.api.key}")
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper;
+
+    @Value("${gemini.api.key}") // Lấy key từ application.properties
     private String apiKey;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=";
 
-    private final String API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=";
+    /**
+     * CHỨC NĂNG 1: Phân tích CV (Raw Text -> JSON Profile)
+     */
     public GeminiResponse parseCV(String rawText) {
-        // Xử lý key: Xóa khoảng trắng thừa nếu có
-        String cleanKey = (apiKey != null) ? apiKey.trim() : "";
-        String url = API_URL + cleanKey;
-        
-        // Prompt cho model 
-       String prompt = """
-                Bạn là một chuyên gia tuyển dụng (AI Recruiter) và chuyên gia xử lý dữ liệu.
+        String prompt = """
+                Bạn là một trợ lý nhân sự chuyên nghiệp (HR Assistant).
+                Nhiệm vụ: Trích xuất thông tin từ văn bản CV dưới đây thành định dạng JSON chuẩn.
                 
-                NHIỆM VỤ:
-                Trích xuất thông tin từ văn bản CV thô bên dưới và trả về định dạng JSON chuẩn.
+                NỘI DUNG CV:
+                %s
                 
-                 CẢNH BÁO VỀ DỮ LIỆU ĐẦU VÀO (RẤT QUAN TRỌNG):
-                1. Văn bản này được trích xuất tự động từ PDF/DOCX nên có thể chứa lỗi định dạng nghiêm trọng.
-                2. Lỗi dính chữ: Do mất dấu xuống dòng, tiêu đề có thể bị dính vào nội dung trước đó.
-                   - Ví dụ: "Hồ Chí MinhKỸ NĂNG" -> Hãy hiểu là địa chỉ "Hồ Chí Minh" và bắt đầu mục "KỸ NĂNG".
-                   - Ví dụ: "DeveloperKINH NGHIỆM" -> Hãy tách ra.
-                3. Lỗi chia cột: Nếu CV chia 2 cột, nội dung có thể bị trộn lẫn. Hãy dựa vào ngữ cảnh để sắp xếp lại đúng logic.
-                
-                YÊU CẦU ĐẦU RA (JSON FORMAT):
-                Chỉ trả về duy nhất chuỗi JSON (không Markdown, không giải thích thêm), theo cấu trúc sau:
+                YÊU CẦU ĐẦU RA (JSON FORMAT ONLY):
                 {
                   "contact": {
-                    "name": "Họ và tên đầy đủ của ứng viên",  <-- THÊM DÒNG NÀY
-                    "email": "Email liên hệ",
+                    "name": "Họ tên đầy đủ",
+                    "email": "Email",
                     "phoneNumber": "Số điện thoại",
                     "address": "Địa chỉ (nếu có)",
                     "linkedIn": "Link LinkedIn (nếu có)"
-                },
-                  "skills": ["Liệt kê các kỹ năng chuyên môn..."],
+                  },
+                  "skills": ["Kỹ năng A", "Kỹ năng B", ...],
                   "experiences": [
                     {
                       "company": "Tên công ty",
-                      "role": "Chức vụ",
-                      "startDate": "Thời gian bắt đầu (ngắn gọn)",
-                      "endDate": "Thời gian kết thúc (hoặc Present)",
-                      "description": "Mô tả công việc (tóm tắt)"
+                      "role": "Vị trí",
+                      "startDate": "dd/MM/yyyy hoặc MM/yyyy",
+                      "endDate": "dd/MM/yyyy hoặc Present",
+                      "description": "Mô tả công việc"
                     }
                   ]
                 }
-                
-                VĂN BẢN CV THÔ CẦN XỬ LÝ:
-                -------------------------
-                """ + rawText;
+                Chỉ trả về JSON, không kèm lời dẫn.
+                """.formatted(rawText);
 
-        Map<String, Object> request = Map.of("contents", new Object[]{
-            Map.of("parts", new Object[]{ Map.of("text", prompt) })
-        });
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        try {
-            // Gọi API
-            JsonNode rootNode = restTemplate.postForObject(url, new HttpEntity<>(request, headers), JsonNode.class);
-            
-            // Log kết quả thô để debug nếu cần
-            // System.out.println("Gemini Raw Response: " + rootNode.toPrettyString());
-
-            String jsonText = extractTextFromJsonNode(rootNode);
-            return objectMapper.readValue(jsonText, GeminiResponse.class);
-            
-        } catch (Exception e) {
-            log.error("Lỗi Gemini API (Model: gemini-1.5-flash): {}", e.getMessage());
-            // Mẹo: In chi tiết lỗi ra console để bạn dễ nhìn thấy
-            e.printStackTrace(); 
-            return new GeminiResponse();
-        }
+        return callGemini(prompt, GeminiResponse.class);
     }
 
-    private String extractTextFromJsonNode(JsonNode rootNode) {
-        if (rootNode == null) return "{}";
+    /**
+     * CHỨC NĂNG 2: So khớp Job & CV (Matching -> MatchResult)
+     * [UPDATE] Đã thêm logic đếm kỹ năng (Matched/Missing/Extra)
+     */
+    public MatchResult matchJob(String candidateData, String jobData) {
         
-        // Kiểm tra lỗi từ Google trả về (nếu có)
-        if (rootNode.has("error")) {
-            String errorMsg = rootNode.path("error").path("message").asText();
-            log.error("Google API trả về lỗi: {}", errorMsg);
-            return "{}";
-        }
+        String prompt = """
+                Bạn là một chuyên gia tuyển dụng (AI Recruiter). 
+                Nhiệm vụ: So sánh năng lực Ứng viên với Yêu cầu Công việc và đưa ra các chỉ số thống kê chính xác.
 
-        JsonNode textNode = rootNode.path("candidates")
-                .get(0)
-                .path("content")
-                .path("parts")
-                .get(0)
-                .path("text");
+                DỮ LIỆU CÔNG VIỆC (JOB):
+                %s
 
-        if (textNode.isMissingNode()) {
-            return "{}";
-        }
+                DỮ LIỆU ỨNG VIÊN (CANDIDATE):
+                %s
 
-        // Làm sạch chuỗi JSON (xóa markdown ```json nếu AI lỡ thêm vào)
-        String raw = textNode.asText();
-        if (raw.startsWith("```json")) {
-            raw = raw.substring(7);
+                HÃY THỰC HIỆN CÁC BƯỚC TÍNH TOÁN SAU:
+                1. Xác định danh sách 'Required Skills' (Kỹ năng bắt buộc) từ Job. Đếm tổng số lượng -> 'totalRequiredSkills'.
+                2. Đối chiếu với kỹ năng của Ứng viên:
+                   - 'matchedSkillsCount': Số lượng kỹ năng ứng viên CÓ TRONG danh sách yêu cầu.
+                   - 'missingSkillsCount': Số lượng kỹ năng yêu cầu mà ứng viên KHÔNG CÓ.
+                   - 'extraSkillsCount': Số lượng kỹ năng ứng viên có nhưng Job KHÔNG yêu cầu.
+                3. 'matchPercentage': Tính điểm phần trăm độ phù hợp (0-100) dựa trên trọng số: Kỹ năng (60%%), Kinh nghiệm (30%%), Học vấn/Khác (10%%).
+
+                YÊU CẦU ĐẦU RA (JSON FORMAT ONLY):
+                {
+                    "matchPercentage": (int 0-100),
+                    "matchedSkillsCount": (int),
+                    "missingSkillsCount": (int),
+                    "extraSkillsCount": (int),
+                    "totalRequiredSkills": (int),
+                    "missingSkillsList": ["Skill A", "Skill B"],
+                    "evaluation": "Nhận xét ngắn gọn (tiếng Việt) khoảng 3 câu về điểm mạnh/yếu."
+                }
+                Chỉ trả về JSON thuần túy.
+                """.formatted(jobData, candidateData);
+
+        return callGemini(prompt, MatchResult.class);
+    }
+
+    // --- HÀM HELPER GỌI API (Private) ---
+    private <T> T callGemini(String prompt, Class<T> responseType) {
+        try {
+            // 1. Tạo Body request theo chuẩn Gemini API
+            Map<String, Object> contentPart = new HashMap<>();
+            contentPart.put("text", prompt);
+
+            Map<String, Object> parts = new HashMap<>();
+            parts.put("parts", List.of(contentPart));
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("contents", List.of(parts));
+
+            // 2. Tạo Header
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            // 3. Gửi Request POST
+            String url = GEMINI_API_URL + apiKey;
+            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+
+            // 4. Parse Response của Gemini để lấy phần text
+            // Cấu trúc trả về: candidates[0].content.parts[0].text
+            String rawJson = response.getBody();
+            var jsonNode = objectMapper.readTree(rawJson);
+            String aiTextResponse = jsonNode.path("candidates").get(0)
+                    .path("content").path("parts").get(0)
+                    .path("text").asText();
+
+            // 5. Làm sạch chuỗi JSON (xóa ```json và ``` nếu có)
+            String cleanJson = aiTextResponse.replaceAll("```json", "")
+                                             .replaceAll("```", "")
+                                             .trim();
+
+            // 6. Map JSON clean vào Object đích (GeminiResponse hoặc MatchResult)
+            return objectMapper.readValue(cleanJson, responseType);
+
+        } catch (Exception e) {
+            log.error("Lỗi khi gọi Gemini API: ", e);
+            // Trả về null hoặc object rỗng tùy logic business của bạn
+            throw new RuntimeException("AI processing failed: " + e.getMessage());
         }
-        if (raw.startsWith("```")) {
-            raw = raw.substring(3);
-        }
-        if (raw.endsWith("```")) {
-            raw = raw.substring(0, raw.length() - 3);
-        }
-        return raw.trim();
     }
 }

@@ -8,7 +8,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "job_applications") // Tên bảng chuẩn
+@Table(name = "job_applications")
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,46 +20,54 @@ public class JobApplication {
     private Long id;
 
     // --- QUAN HỆ ---
-    
-    // Nộp vào Job nào? (Dùng Entity JobPosting đã gộp ở bước trước)
+
+    // Job Posting (Lưu ý: name="job_id" để khớp với các câu SQL test trước đó)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "job_posting_id", nullable = false)
+    @JoinColumn(name = "job_id", nullable = false) 
     private JobPosting jobPosting;
 
-    // Ai là người nộp? (User có role CANDIDATE)
-    // Đổi tên biến student -> candidate cho chuyên nghiệp (vì người đi làm cũng nộp được)
+    // Ứng viên (User)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidate_id", nullable = false)
     private User candidate;
 
     // --- THÔNG TIN HỒ SƠ ---
-
     @Column(length = 1000)
-    private String cvUrl; // Link file CV (S3, Cloudinary hoặc Local)
-    
-    // --- KẾT QUẢ TỪ AI (QUAN TRỌNG ĐỂ LỌC > 70%) ---
-    
-    // Điểm số AI chấm (0 - 100)
+    private String cvUrl; // Link CV tại thời điểm nộp
+
+    @Column(columnDefinition = "TEXT")
+    private String coverLetter; // Thư giới thiệu (nếu có)
+
+    // --- KẾT QUẢ AI MATCHING (QUAN TRỌNG) ---
+    // Các trường này ban đầu sẽ là NULL hoặc 0.
+    // Sau khi Recruiter bấm "Sàng lọc", dữ liệu sẽ được điền vào đây.
+
     @Column(name = "match_score")
-    private Integer matchScore; 
+    private Integer matchScore; // Điểm % (0-100)
 
-    // Lý do tại sao điểm thấp/cao (AI giải thích)
     @Column(columnDefinition = "TEXT")
-    private String aiFeedback;
+    private String aiEvaluation; // Nhận xét của AI
 
-    // Các kỹ năng còn thiếu (Lưu dạng JSON String hoặc text liệt kê)
+    // Thống kê chi tiết để Recruiter liếc mắt là thấy ngay
+    private Integer matchedSkillsCount;  // Số skill trùng
+    private Integer missingSkillsCount;  // Số skill thiếu
+    private Integer extraSkillsCount;    // Số skill thừa
+    private Integer totalRequiredSkills; // Tổng yêu cầu của Job
+
+    // Lưu danh sách skill thiếu dạng text (JSON hoặc CSV) để hiển thị frontend
+    // Ví dụ: "Docker, Kubernetes, AWS"
     @Column(columnDefinition = "TEXT")
-    private String missingSkills;
+    private String missingSkillsList; 
 
-    // --- QUẢN LÝ TUYỂN DỤNG ---
+    // --- QUẢN LÝ TRẠNG THÁI ---
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
     @Builder.Default
-    private ApplicationStatus status = ApplicationStatus.APPLIED;
+    private ApplicationStatus status = ApplicationStatus.PENDING; // Mặc định là PENDING (Chờ duyệt)
 
     @Column(columnDefinition = "TEXT")
-    private String recruiterNote; // Ghi chú thủ công của HR (Vd: "Ứng viên này giao tiếp tốt")
+    private String recruiterNote; // Ghi chú của người tuyển dụng
 
     // --- AUDIT ---
     
@@ -69,9 +77,11 @@ public class JobApplication {
     @PrePersist
     protected void onCreate() {
         appliedAt = LocalDateTime.now();
-        if (status == null) status = ApplicationStatus.APPLIED;
+        if (status == null) status = ApplicationStatus.PENDING;
+        // Mặc định điểm số là 0 khi mới nộp
+        if (matchScore == null) matchScore = 0;
     }
-    
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
