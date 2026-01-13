@@ -2,11 +2,13 @@ package app.ai.controller;
 
 import app.ai.service.JobMatchingService;
 import app.ai.service.cv.gemini.dto.MatchResult;
+import app.ai.service.cv.gemini.dto.analysis.CareerAdviceResult;
 import app.auth.model.User;
 import app.auth.repository.UserRepository;
 import app.recruitment.dto.response.JobApplicationResponse;
 import app.recruitment.entity.JobApplication;
 import app.recruitment.mapper.RecruitmentMapper;
+import app.recruitment.repository.JobApplicationRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +32,7 @@ public class JobMatchingController {
     private final JobMatchingService matchingService;
     private final RecruitmentMapper mapper;
     private final UserRepository userRepository;
+    private final JobApplicationRepository applicationRepository;
 
     // ==================== DÀNH CHO ỨNG VIÊN (CANDIDATE) ====================
 
@@ -106,4 +110,31 @@ public class JobMatchingController {
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
         return user.getId();
     }
+
+    @GetMapping("/advice/{applicationId}")
+@PreAuthorize("hasAnyRole('CANDIDATE', 'RECRUITER')")
+public ResponseEntity<?> getCareerAdvice(@PathVariable Long applicationId, Authentication authentication) {
+    // 1. Lấy thông tin đơn ứng tuyển từ DB
+    JobApplication app = applicationRepository.findById(applicationId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn ứng tuyển"));
+
+    // 2. Lấy Email của người đang gọi API từ Token
+    String currentUserEmail = authentication.getName();
+
+    // 3. KIỂM TRA BẢO MẬT
+    boolean isCandidateOfThisApp = app.getCandidate().getEmail().equals(currentUserEmail);
+    
+    // Nếu là Recruiter thì phải là người đăng Job này mới được xem
+    boolean isRecruiterOfThisJob = app.getJobPosting().getRecruiter().getEmail().equals(currentUserEmail);
+
+    if (!isCandidateOfThisApp && !isRecruiterOfThisJob) {
+        // Nếu không phải ứng viên của đơn này, cũng không phải chủ Job -> Chặn đứng!
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("Bạn không có quyền xem gợi ý phát triển của đơn ứng tuyển này.");
+    }
+
+    // 4. Nếu vượt qua kiểm tra, mới gọi Service để lấy gợi ý (hoặc gọi AI)
+    CareerAdviceResult result = matchingService.getCareerAdvice(applicationId);
+    return ResponseEntity.ok(result);
+}
 }

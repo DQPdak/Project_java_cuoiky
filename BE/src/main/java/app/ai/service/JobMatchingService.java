@@ -2,6 +2,7 @@ package app.ai.service;
 
 import app.ai.service.cv.gemini.GeminiService;
 import app.ai.service.cv.gemini.dto.MatchResult;
+import app.ai.service.cv.gemini.dto.analysis.CareerAdviceResult;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
 import app.recruitment.entity.JobApplication;
@@ -161,5 +162,56 @@ public class JobMatchingService {
         String json = objectMapper.writeValueAsString(aiInputMap);
         // log.info("DATA GỬI AI (Sample): {}", json); // Uncomment nếu muốn debug
         return json;
+    }
+
+    /**
+     * LUỒNG MỚI: Gợi ý lộ trình (User bấm nút mới chạy)
+     * Lưu kết quả vào DB để lần sau user bấm không mất tiền gọi lại AI
+     */
+    @Transactional
+    public CareerAdviceResult getCareerAdvice(Long applicationId) {
+        // 1. Lấy thông tin đơn ứng tuyển
+        JobApplication app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found: " + applicationId));
+
+        // 2. Kiểm tra xem đã có lộ trình trong DB chưa (Tiết kiệm tiền!)
+        if (app.getLearningPath() != null && !app.getLearningPath().isEmpty()) {
+             try {
+                 // Nếu có rồi thì lấy từ DB ra trả về luôn
+                 return objectMapper.readValue(app.getLearningPath(), CareerAdviceResult.class);
+             } catch (Exception e) {
+                 log.warn("Dữ liệu lộ trình cũ bị lỗi format, hệ thống sẽ tạo lại mới...");
+             }
+        }
+
+        // 3. Nếu chưa có, chuẩn bị dữ liệu gọi AI
+        try {
+            // [FIX LỖI QUAN TRỌNG]
+            // Không gọi app.getCandidate().getProfile() vì User entity chưa map.
+            // Dùng Repository tìm Profile theo User ID.
+            Long candidateId = app.getCandidate().getId();
+            CandidateProfile profile = profileRepository.findByUserId(candidateId)
+                    .orElseThrow(() -> new RuntimeException("Ứng viên chưa cập nhật hồ sơ, không thể gợi ý lộ trình."));
+
+            JobPosting job = app.getJobPosting();
+
+            // Sử dụng hàm helper đã viết trước đó để tạo JSON sạch
+            String candidateData = buildCandidateDataForAI(profile);
+            String jobData = job.getDescription() + "\n" + job.getRequirements();
+
+            // 4. Gọi AI
+            CareerAdviceResult result = geminiService.suggestCareerPath(candidateData, jobData);
+
+            // 5. Lưu vào DB (Convert Object -> JSON String)
+            String jsonResult = objectMapper.writeValueAsString(result);
+            app.setLearningPath(jsonResult); // Lưu vào cột TEXT trong DB
+            applicationRepository.save(app);
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("Lỗi getCareerAdvice ID {}: ", applicationId, e);
+            throw new RuntimeException("Không thể tạo lộ trình lúc này: " + e.getMessage());
+        }
     }
 }

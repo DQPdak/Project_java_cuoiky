@@ -18,27 +18,35 @@ import app.recruitment.dto.response.JobApplicationResponse;
 import app.recruitment.mapper.RecruitmentMapper;
 import app.recruitment.entity.JobApplication;
 import app.recruitment.entity.enums.ApplicationStatus;
+import app.auth.repository.UserRepository;
 
 @RestController
-@RequestMapping("/api/recruiter/applications")
+@RequestMapping("/api/applications") // Để chung là applications
 @RequiredArgsConstructor
 @Slf4j
 public class JobApplicationController {
 
-    private final JobApplicationService jobApplicationService;
-    private final app.auth.repository.UserRepository userRepository;
     private final JobApplicationService applicationService;
+    private final UserRepository userRepository;
     private final RecruitmentMapper mapper;
 
+    /**
+     * ỨNG VIÊN NỘP ĐƠN
+     */
     @PostMapping("/apply")
-    public ResponseEntity<JobApplicationResponse> apply(
-            @Valid @RequestBody JobApplicationRequest request
-    ) {
-        Long studentId = getCurrentUserId();
-        JobApplication created = applicationService.apply(studentId, request);
-        return ResponseEntity.status(201).body(mapper.toJobApplicationResponse(created));
+    public ResponseEntity<?> apply(@Valid @RequestBody JobApplicationRequest request) {
+        Long candidateId = getCurrentUserId();
+        JobApplication created = applicationService.apply(candidateId, request);
+        
+        return ResponseEntity.status(201).body(MessageResponse.success(
+            "Ứng tuyển thành công!", 
+            mapper.toJobApplicationResponse(created)
+        ));
     }
 
+    /**
+     * RECRUITER CẬP NHẬT TRẠNG THÁI (DUYỆT/LOẠI)
+     */
     @PutMapping("/{id}/status")
     public ResponseEntity<JobApplicationResponse> updateStatus(
             @PathVariable Long id,
@@ -50,44 +58,37 @@ public class JobApplicationController {
         return ResponseEntity.ok(mapper.toJobApplicationResponse(updated));
     }
 
+    /**
+     * CƠ CHẾ LẤY ID TỪ TOKEN (ĐÃ FIX LỖI 1L)
+     */
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return user.getId();
+    }
+
+    /**
+     * LẤY DANH SÁCH ĐƠN ĐÃ NỘP CỦA TÔI (DÀNH CHO CANDIDATE)
+     * API này cực kỳ quan trọng để Frontend lấy được applicationId gọi sang AI
+     */
+    @GetMapping("/me")
+    public ResponseEntity<?> getMyApplications() {
+        Long candidateId = getCurrentUserId();
+        // Gọi hàm trả về DTO trực tiếp đã viết ở Service
+        List<JobApplicationResponse> list = applicationService.getApplicationsByCandidateId(candidateId);
+        
+        return ResponseEntity.ok(MessageResponse.success(
+            "Lấy danh sách ứng tuyển thành công", 
+            list
+        ));
+    }
+
     @GetMapping("/job/{jobId}")
     public ResponseEntity<List<JobApplicationResponse>> listByJob(@PathVariable Long jobId) {
         List<JobApplicationResponse> list = applicationService.listByJob(jobId)
                 .stream().map(mapper::toJobApplicationResponse).collect(Collectors.toList());
         return ResponseEntity.ok(list);
-    }
-
-    // Candidate's own applications
-    @GetMapping("/student/me")
-    public ResponseEntity<List<JobApplicationResponse>> listByCandidateId() {
-        Long studentId = getCurrentUserId();
-        List<JobApplicationResponse> list = applicationService.listByCandidateId(studentId)
-                .stream().map(mapper::toJobApplicationResponse).collect(Collectors.toList());
-        return ResponseEntity.ok(list);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<JobApplicationResponse> getById(@PathVariable Long id) {
-        JobApplication app = applicationService.getById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Application not found: " + id));
-        return ResponseEntity.ok(mapper.toJobApplicationResponse(app));
-    }
-
-    @GetMapping("/my-applications")
-    public ResponseEntity<?> getMyApplications() {
-        // Lấy User ID từ Security Context
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-        var user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return ResponseEntity.ok(MessageResponse.success(
-            "Lấy danh sách ứng tuyển thành công", 
-            jobApplicationService.getApplicationsByCandidateId(user.getId())
-        ));
-    }
-    // Mock current user id (temporary). Replace with SecurityContext lookup.
-    private Long getCurrentUserId() {
-        return 1L;
     }
 }

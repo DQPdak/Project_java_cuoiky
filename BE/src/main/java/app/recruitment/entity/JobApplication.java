@@ -74,6 +74,9 @@ public class JobApplication {
     private LocalDateTime appliedAt;
     private LocalDateTime updatedAt;
 
+    @Column(columnDefinition = "TEXT")
+    private String learningPath;
+
     @PrePersist
     protected void onCreate() {
         appliedAt = LocalDateTime.now();
