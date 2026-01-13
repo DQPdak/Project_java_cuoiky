@@ -9,10 +9,18 @@ import java.util.List;
 import java.util.Optional;
 
 public interface JobApplicationService {
-    JobApplication apply(Long studentId, JobApplicationRequest request);
+    // Đổi studentId -> candidateId
+    JobApplication apply(Long candidateId, JobApplicationRequest request);
+    
     JobApplication updateStatus(Long recruiterId, Long applicationId, ApplicationStatus newStatus, String recruiterNote);
+    
     List<JobApplication> listByJob(Long jobId);
-    List<JobApplication> listByStudent(Long studentId);
-    List<JobApplicationResponse> getApplicationsByCandidateId(Long studentId);
+    
+    // [QUAN TRỌNG] Đổi listByStudent -> listByCandidateId để khớp với Service Impl
+    List<JobApplication> listByCandidateId(Long candidateId);
+    
+    // Đổi tham số studentId -> candidateId
+    List<JobApplicationResponse> getApplicationsByCandidateId(Long candidateId);
+    
     Optional<JobApplication> getById(Long id);
 }

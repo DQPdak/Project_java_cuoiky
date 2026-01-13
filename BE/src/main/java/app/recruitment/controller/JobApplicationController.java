@@ -59,9 +59,9 @@ public class JobApplicationController {
 
     // Candidate's own applications
     @GetMapping("/student/me")
-    public ResponseEntity<List<JobApplicationResponse>> listByStudent() {
+    public ResponseEntity<List<JobApplicationResponse>> listByCandidateId() {
         Long studentId = getCurrentUserId();
-        List<JobApplicationResponse> list = applicationService.listByStudent(studentId)
+        List<JobApplicationResponse> list = applicationService.listByCandidateId(studentId)
                 .stream().map(mapper::toJobApplicationResponse).collect(Collectors.toList());
         return ResponseEntity.ok(list);
     }

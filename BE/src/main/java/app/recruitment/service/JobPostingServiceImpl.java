@@ -116,7 +116,7 @@ public class JobPostingServiceImpl implements JobPostingService {
     public List<JobPostingResponse> searchJobs(String keyword) {
         List<JobPosting> jobs;
         if (keyword == null || keyword.trim().isEmpty()) {
-            jobs = jobPostingRepository.findTop10ByStatusOrderByCreatedAtDesc(JobStatus.OPEN);
+            jobs = jobPostingRepository.findTop10ByStatusOrderByCreatedAtDesc(JobStatus.PUBLISHED);
         } else {
             jobs = jobPostingRepository.searchJobs(keyword.trim());
         }

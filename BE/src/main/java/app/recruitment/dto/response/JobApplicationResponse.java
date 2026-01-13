@@ -15,11 +15,19 @@ public class JobApplicationResponse {
     private Long id;
     private Long jobId;
     private String jobTitle;
-    private Long studentId;
+    
+    private Long studentId;     // Hoặc đổi thành candidateId tùy bạn
+    private String studentName; // Hoặc đổi thành candidateName
+    
     private String companyName;
-    private String studentName;
     private String cvUrl;
-    private String status; // APPLIED, SCREENING, INTERVIEW, OFFER, REJECTED
+    
+    private String status; // Kiểu String
+    
     private LocalDateTime appliedAt;
     private String recruiterNote;
+
+    // [FIX LỖI 3] Thêm 2 trường này để Builder không báo lỗi
+    private Integer matchScore;
+    private String aiEvaluation;
 }
