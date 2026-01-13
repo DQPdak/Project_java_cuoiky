@@ -6,7 +6,10 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import app.auth.model.User;
+import app.recruitment.entity.JobPosting;
 
 @Entity
 @Table(name = "companies")
@@ -35,7 +38,8 @@ public class Company {
     
     // Một công ty có nhiều Job
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL)
-    private List<Job> jobs;
+    @JsonIgnore
+    private List<JobPosting> jobs;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

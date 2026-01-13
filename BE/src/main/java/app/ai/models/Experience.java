@@ -1,31 +1,35 @@
 package app.ai.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import app.candidate.model.CandidateProfile; // Import mới
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 @Entity
+@Table(name = "experiences")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "experiences")
 public class Experience {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String company; // Tên công ty
-    private String role;    // Chức vụ (Vd: Java Developer)
+    private String company;
+    private String role;
+    private String startDate;
+    private String endDate;
     
-    private String startDate; // Ngày bắt đầu
-    private String endDate;   // Ngày kết thúc (hoặc "Present")
-    
-    @Column(columnDefinition = "TEXT") // Cho phép lưu mô tả dài
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    // Quan hệ N-1: Nhiều kinh nghiệm thuộc về 1 ứng viên
+    // --- SỬA Ở ĐÂY ---
+    // Đổi từ Candidate sang CandidateProfile
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "candidate_id") // Tên cột khóa ngoại trong DB
-    private Candidate candidate;
+    @JoinColumn(name = "profile_id") 
+    @JsonIgnore
+    private CandidateProfile candidateProfile;
 }

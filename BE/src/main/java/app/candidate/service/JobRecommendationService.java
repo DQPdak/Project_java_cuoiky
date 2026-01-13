@@ -1,9 +1,9 @@
 package app.candidate.service;
 
-import app.auth.repository.JobRepository;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
-import app.content.model.Job;
+import app.recruitment.entity.JobPosting;
+import app.recruitment.repository.JobPostingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class JobRecommendationService {
 
     private final CandidateProfileRepository profileRepository;
-    private final JobRepository jobRepository;
+    private final JobPostingRepository jobRepository;
 
     public List<Map<String, Object>> getRecommendedJobs(Long userId) {
         // 1. Tìm hồ sơ, nếu chưa có thì trả về danh sách rỗng (KHÔNG NÉM LỖI 500 NỮA)
@@ -37,10 +37,10 @@ public class JobRecommendationService {
         }
 
         // 2. Lấy tất cả công việc
-        List<Job> allJobs = jobRepository.findAll();
+        List<JobPosting> allJobs = jobRepository.findAll();
         List<Map<String, Object>> recommendedJobs = new ArrayList<>();
 
-        for (Job job : allJobs) {
+        for (JobPosting job : allJobs) {
             // Tính toán điểm số (thêm try-catch để an toàn tuyệt đối)
             try {
                 double score = calculateMatchScore(candidateSkills, job.getDescription());

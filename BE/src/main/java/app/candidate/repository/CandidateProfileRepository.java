@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface CandidateProfileRepository extends JpaRepository<CandidateProfile, Long> {
     // Tìm hồ sơ dựa trên userId
     Optional<CandidateProfile> findByUserId(Long userId);
+    boolean existsByUserId(Long userId);
+    Optional<CandidateProfile> findByUserEmail(String email);
 }
