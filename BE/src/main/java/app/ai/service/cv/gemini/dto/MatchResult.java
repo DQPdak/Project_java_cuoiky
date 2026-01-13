@@ -22,4 +22,6 @@ public class MatchResult {
     private int totalRequiredSkills;  // Tổng số kỹ năng Job yêu cầu
     private List<String> missingSkillsList; //  Danh sách chi tiết để hiển thị nếu cần
     private String evaluation;        // Nhận xét ngắn gọn
+
+    
 }

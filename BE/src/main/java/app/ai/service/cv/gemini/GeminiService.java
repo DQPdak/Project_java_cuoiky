@@ -2,6 +2,8 @@ package app.ai.service.cv.gemini;
 
 import app.ai.service.cv.gemini.dto.GeminiResponse;
 import app.ai.service.cv.gemini.dto.MatchResult;
+import app.ai.service.cv.gemini.dto.analysis.CareerAdviceResult;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -107,6 +109,28 @@ public class GeminiService {
         return callGemini(prompt, MatchResult.class);
     }
 
+    public CareerAdviceResult suggestCareerPath(String candidateData, String jobData) {
+
+        String prompt = """
+                Bạn là một Mentor Công nghệ tâm huyết. 
+                Dựa trên CV của ứng viên và Job Description, hãy xây dựng lộ trình phát triển bản thân cho họ.
+
+                JOB: %s
+                CANDIDATE: %s
+
+                YÊU CẦU ĐẦU RA (JSON FORMAT ONLY):
+                Hãy trả về JSON theo cấu trúc sau (không Markdown):
+                {
+                    "extraSkills": ["Skill A", "Skill B"],
+                    "recommendedSkills": ["Skill X", "Skill Y"],
+                    "estimatedDuration": "Khoảng thời gian (ví dụ: 1 tháng)",
+                    "learningPath": "Viết một lộ trình học tập chi tiết dạng Markdown. Chia theo tuần. Tập trung lấp đầy các kỹ năng còn thiếu (Missing Skills) và học thêm các kỹ năng gợi ý (Recommended Skills). Giọng văn khích lệ, tích cực.",
+                    "careerAdvice": "Lời khuyên ngắn gọn về định hướng sự nghiệp."
+                }
+                """.formatted(jobData, candidateData);
+
+        return callGemini(prompt, CareerAdviceResult.class);
+    }
     // --- HÀM HELPER GỌI API (Private) ---
     private <T> T callGemini(String prompt, Class<T> responseType) {
         try {
