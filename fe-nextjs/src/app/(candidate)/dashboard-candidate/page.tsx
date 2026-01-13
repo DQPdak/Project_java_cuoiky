@@ -1,19 +1,32 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { getRecommendedJobs , applyJob, getMyApplications, getMyProfile} from "@/services/candidateService"; // Đảm bảo bạn đã có hàm này
+import toast, { Toaster } from "react-hot-toast";
 import { 
   Search, MapPin, DollarSign, Briefcase, 
   TrendingUp, Star, ArrowRight, Building 
 } from "lucide-react";
-import { getRecommendedJobs , applyJob, getMyApplications, getMyProfile} from "@/services/candidateService"; // Đảm bảo bạn đã có hàm này
-import Link from "next/link";
-import toast, { Toaster } from "react-hot-toast";
 
 export default function CandidateDashboard() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [applyingId, setApplyingId] = useState<number | null>(null); // State để loading nút bấm
 
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleSearch = () => {
+      if (searchTerm.trim()) {
+          router.push(`/jobs?keyword=${encodeURIComponent(searchTerm)}`);
+      }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch();
+  };
   // Hàm xử lý ứng tuyển
   const handleApply = async (jobId: number) => {
     setApplyingId(jobId);
@@ -55,15 +68,20 @@ export default function CandidateDashboard() {
         </p>
         
         <div className="bg-white/10 backdrop-blur-md p-1.5 rounded-xl flex gap-2 max-w-2xl shadow-inner">
-            <div className="flex-1 flex items-center bg-white rounded-lg px-4 py-2.5 transition-all focus-within:ring-2 ring-blue-300">
+            <div className="flex-1 flex items-center bg-white rounded-lg px-4 py-2.5 ...">
                 <Search className="text-gray-400 mr-3" size={20} />
                 <input 
                     type="text" 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder="Tìm kiếm công việc, kỹ năng, công ty..." 
                     className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-500"
                 />
             </div>
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-2.5 rounded-lg font-semibold shadow-lg transition-transform active:scale-95">
+            <button 
+                onClick={handleSearch}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-2.5 rounded-lg font-semibold shadow-lg transition-transform active:scale-95">
                 Tìm kiếm
             </button>
         </div>

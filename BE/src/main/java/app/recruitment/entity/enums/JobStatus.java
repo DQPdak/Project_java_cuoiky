@@ -1,7 +1,8 @@
 package app.recruitment.entity.enums;
 
 public enum JobStatus {
-DRAFT,
-PUBLISHED,
-CLOSED
+    DRAFT,
+    PUBLISHED,
+    CLOSED,
+    OPEN
 }

@@ -1,6 +1,9 @@
 package app.recruitment.repository;
 
+import app.recruitment.entity.enums.JobStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import app.recruitment.entity.JobPosting;
 import app.recruitment.entity.enums.JobStatus;

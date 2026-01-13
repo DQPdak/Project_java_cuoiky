@@ -3,6 +3,8 @@ package app.recruitment.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -10,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import app.recruitment.service.JobApplicationService;
+import app.auth.dto.response.MessageResponse;
 import app.recruitment.dto.request.JobApplicationRequest;
 import app.recruitment.dto.response.JobApplicationResponse;
 import app.recruitment.mapper.RecruitmentMapper;
@@ -22,6 +25,8 @@ import app.recruitment.entity.enums.ApplicationStatus;
 @Slf4j
 public class JobApplicationController {
 
+    private final JobApplicationService jobApplicationService;
+    private final app.auth.repository.UserRepository userRepository;
     private final JobApplicationService applicationService;
     private final RecruitmentMapper mapper;
 
@@ -68,6 +73,19 @@ public class JobApplicationController {
         return ResponseEntity.ok(mapper.toJobApplicationResponse(app));
     }
 
+    @GetMapping("/my-applications")
+    public ResponseEntity<?> getMyApplications() {
+        // Lấy User ID từ Security Context
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(MessageResponse.success(
+            "Lấy danh sách ứng tuyển thành công", 
+            jobApplicationService.getApplicationsByCandidateId(user.getId())
+        ));
+    }
     // Mock current user id (temporary). Replace with SecurityContext lookup.
     private Long getCurrentUserId() {
         return 1L;

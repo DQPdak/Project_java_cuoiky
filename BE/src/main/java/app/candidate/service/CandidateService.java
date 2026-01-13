@@ -6,6 +6,7 @@ import app.auth.model.User;
 import app.auth.repository.UserRepository;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
+import app.candidate.dto.request.CandidateProfileUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -93,6 +94,28 @@ public class CandidateService {
         } catch (Exception e) {
             log.error("Lỗi khi map dữ liệu AI sang Profile: ", e);
         }
+    }
+
+    @Transactional
+    public CandidateProfile updateProfile(Long userId, CandidateProfileUpdateRequest request) {
+        CandidateProfile profile = candidateProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
+
+        // Cập nhật thông tin cơ bản
+        if (request.getAboutMe() != null) profile.setAboutMe(request.getAboutMe());
+        if (request.getPhoneNumber() != null) profile.setPhoneNumber(request.getPhoneNumber());
+        if (request.getAddress() != null) profile.setAddress(request.getAddress()); // Cập nhật địa chỉ
+
+        // --- CẬP NHẬT 2 LINK ---
+        if (request.getLinkedInUrl() != null) profile.setLinkedInUrl(request.getLinkedInUrl());
+        if (request.getWebsiteUrl() != null) profile.setWebsiteUrl(request.getWebsiteUrl());
+
+        // Cập nhật JSON fields
+        if (request.getSkills() != null) profile.setSkills(request.getSkills());
+        if (request.getExperiences() != null) profile.setExperiences(request.getExperiences());
+        // if (request.getEducations() != null) profile.setEducations(request.getEducations());
+
+        return candidateProfileRepository.save(profile);
     }
 
     public CandidateProfile getProfile(Long userId) {
