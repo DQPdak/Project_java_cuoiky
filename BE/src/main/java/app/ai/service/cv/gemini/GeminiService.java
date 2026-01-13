@@ -49,9 +49,12 @@ public class GeminiService {
                 Chỉ trả về duy nhất chuỗi JSON (không Markdown, không giải thích thêm), theo cấu trúc sau:
                 {
                   "contact": {
-                    "email": "Tìm email trong bài...",
-                    "phoneNumber": "Tìm số điện thoại..."
-                  },
+                    "name": "Họ và tên đầy đủ của ứng viên",  <-- THÊM DÒNG NÀY
+                    "email": "Email liên hệ",
+                    "phoneNumber": "Số điện thoại",
+                    "address": "Địa chỉ (nếu có)",
+                    "linkedIn": "Link LinkedIn (nếu có)"
+                },
                   "skills": ["Liệt kê các kỹ năng chuyên môn..."],
                   "experiences": [
                     {

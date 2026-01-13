@@ -9,7 +9,6 @@ import app.recruitment.repository.JobPostingRepository;
 import app.recruitment.entity.JobApplication;
 import app.recruitment.entity.JobPosting;
 import app.recruitment.dto.request.JobApplicationRequest;
-import app.recruitment.dto.response.JobApplicationResponse;
 import app.auth.model.User;
 import app.auth.model.enums.UserRole;
 import app.auth.repository.UserRepository;
@@ -40,13 +39,13 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + request.getJobId()));
 
         // Kiểm tra đã ứng tuyển chưa
-        if (appRepo.findByJobIdAndStudentId(job.getId(), studentId).isPresent()) {
+        if (appRepo.existsByCandidateIdAndJobPostingId(studentId,job.getId())) {
             throw new IllegalArgumentException("Already applied");
         }
 
         JobApplication a = JobApplication.builder()
-                .job(job)
-                .student(student)
+                .jobPosting(job)
+                .candidate(student)
                 .cvUrl(request.getCvUrl())
                 .status(ApplicationStatus.PENDING) // Nên set trạng thái mặc định
                 .build();
@@ -60,7 +59,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 .orElseThrow(() -> new IllegalArgumentException("Application not found: " + applicationId));
 
         // chỉ recruiter quản lý job mới được update
-        Long ownerId = application.getJob().getRecruiter().getId();
+        Long ownerId = application.getJobPosting().getRecruiter().getId();
         if (!ownerId.equals(recruiterId)) {
             throw new IllegalArgumentException("Unauthorized: cannot update application of other recruiter's job");
         }
@@ -72,12 +71,12 @@ public class JobApplicationServiceImpl implements JobApplicationService {
 
     @Override
     public List<JobApplication> listByJob(Long jobId) {
-        return appRepo.findByJobId(jobId);
+        return appRepo.findByJobPostingId(jobId);
     }
 
     @Override
     public List<JobApplication> listByStudent(Long studentId) {
-        return appRepo.findByStudentId(studentId);
+        return appRepo.findByCandidateId(studentId);
     }
 
     @Override

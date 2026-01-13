@@ -20,7 +20,7 @@ public class JobRecommendationService {
     private static final Logger log = LoggerFactory.getLogger(JobRecommendationService.class);
 
     private final CandidateProfileRepository profileRepository;
-    private final JobPostingRepository jobPostingRepository;
+    private final JobPostingRepository jobRepository;
 
     public List<Map<String, Object>> getRecommendedJobs(Long userId) {
         // Tìm hồ sơ ứng viên
@@ -39,16 +39,12 @@ public class JobRecommendationService {
             return Collections.emptyList();
         }
 
-        // Lấy tất cả công việc
-        List<JobPosting> allJobs = jobPostingRepository.findAll();
+        // 2. Lấy tất cả công việc
+        List<JobPosting> allJobs = jobRepository.findAll();
         List<Map<String, Object>> recommendedJobs = new ArrayList<>();
 
         for (JobPosting job : allJobs) {
-            // Chỉ gợi ý công việc đang mở (Check null an toàn)
-            if (job.getStatus() == null || job.getStatus() != app.recruitment.entity.enums.JobStatus.OPEN) {
-                continue;
-            }
-
+            // Tính toán điểm số (thêm try-catch để an toàn tuyệt đối)
             try {
                 // Kết hợp cả Mô tả và Yêu cầu để so khớp
                 String description = job.getDescription() != null ? job.getDescription() : "";

@@ -37,16 +37,16 @@ public class RecruitmentMapper {
         Long studentId = null;
         String studentName = null;
         String jobTitle = null;
-        if (entity.getStudent() != null) {
-            studentId = entity.getStudent().getId();
-            studentName = entity.getStudent().getFullName();
+        if (entity.getCandidate() != null) {
+            studentId = entity.getCandidate().getId();
+            studentName = entity.getCandidate().getFullName();
         }
-        if (entity.getJob() != null) {
-            jobTitle = entity.getJob().getTitle();
+        if (entity.getJobPosting() != null) {
+            jobTitle = entity.getJobPosting().getTitle();
         }
         return JobApplicationResponse.builder()
                 .id(entity.getId())
-                .jobId(entity.getJob() != null ? entity.getJob().getId() : null)
+                .jobId(entity.getJobPosting() != null ? entity.getJobPosting().getId() : null)
                 .jobTitle(jobTitle)
                 .studentId(studentId)
                 .studentName(studentName)

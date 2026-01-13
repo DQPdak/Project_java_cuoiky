@@ -13,6 +13,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ContactDTO {
+    private String name;
     private String email;
     private String phoneNumber;
+    private String address;
+    private String linkedIn;
 }

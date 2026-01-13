@@ -1,10 +1,10 @@
 package app.recruitment.entity;
 
+import app.auth.model.User;
+import app.content.model.Company; // Nhớ import Company từ module content
+import app.recruitment.entity.enums.JobStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import app.auth.model.User;
-import app.content.model.Company;
-import app.recruitment.entity.enums.JobStatus;
 
 import java.time.LocalDateTime;
 
@@ -15,46 +15,54 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class JobPosting {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    // --- THÔNG TIN HIỂN THỊ VÀ AI ---
     @Column(nullable = false)
-    private String title;
-    
+    private String title; // Vd: Senior Java Developer
+
     @Column(columnDefinition = "TEXT", nullable = false)
-    private String description;
-    
+    private String description; // AI sẽ đọc cái này để so sánh
+
     @Column(columnDefinition = "TEXT")
-    private String requirements;
-    
+    private String requirements; // AI sẽ đọc thêm cái này (nếu có)
+
     private String salaryRange;
     private String location;
-    
-    private LocalDateTime expiryDate;
-    
+
+    // --- QUẢN LÝ TRẠNG THÁI ---
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
     @Builder.Default
     private JobStatus status = JobStatus.DRAFT;
+
+    private LocalDateTime expiryDate; // Ngày hết hạn tin tuyển dụng
+
+    // --- QUAN HỆ ---
     
-    // Recruiter (User with role = RECRUITER)
+    // Người đăng tin (Recruiter) - Để quản lý quyền sửa/xóa
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recruiter_id", nullable = false)
     private User recruiter;
 
-    @ManyToOne(fetch = FetchType.EAGER) // Để EAGER nếu muốn lấy luôn thông tin công ty khi query Job
+    // Tin này thuộc công ty nào - Để hiển thị Logo, Tên cty
+    // (Lấy từ bảng Job cũ sang)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;
-    
+
+    // --- AUDIT ---
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
-    
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
