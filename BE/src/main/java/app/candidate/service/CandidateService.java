@@ -6,9 +6,10 @@ import app.ai.service.cv.gemini.dto.ExperienceDTO;
 import app.ai.service.cv.gemini.dto.GeminiResponse;
 import app.auth.model.User;
 import app.auth.repository.UserRepository;
+import app.candidate.dto.request.CandidateProfileUpdateRequest;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
-import app.service.CloudinaryService; // Import Service Cloudinary vừa tạo
+import app.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -126,6 +129,53 @@ public class CandidateService {
             log.error("Lỗi khi map dữ liệu AI sang Profile: ", e);
             // Không throw exception ở đây để đảm bảo các dữ liệu khác (như file path) vẫn được lưu
         }
+    }
+
+    @Transactional
+    public CandidateProfile updateProfile(Long userId, CandidateProfileUpdateRequest request) {
+        CandidateProfile profile = candidateProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
+
+        // Cập nhật thông tin cơ bản
+        if (request.getAboutMe() != null) profile.setAboutMe(request.getAboutMe());
+        if (request.getPhoneNumber() != null) profile.setPhoneNumber(request.getPhoneNumber());
+        if (request.getAddress() != null) profile.setAddress(request.getAddress()); // Cập nhật địa chỉ
+
+        // --- CẬP NHẬT 2 LINK ---
+        if (request.getLinkedInUrl() != null) profile.setLinkedInUrl(request.getLinkedInUrl());
+
+        // Cập nhật JSON fields
+        if (request.getSkills() != null) profile.setSkills(request.getSkills());
+        if (request.getExperiences() != null) {
+            // 1. Xóa list cũ (để thay thế hoàn toàn)
+            if (profile.getExperiences() != null) {
+                profile.getExperiences().clear();
+            } else {
+                profile.setExperiences(new ArrayList<>());
+            }
+
+            // 2. Convert từng Map trong Request thành Object Experience
+            List<Map<String, Object>> rawExps = request.getExperiences();
+            
+            for (Map<String, Object> expMap : rawExps) {
+                Experience exp = new Experience();
+                // Lấy dữ liệu từ Map và ép kiểu về String (kiểm tra null an toàn)
+                exp.setCompany((String) expMap.getOrDefault("companyName", ""));
+                exp.setRole((String) expMap.getOrDefault("role", ""));
+                exp.setDescription((String) expMap.getOrDefault("description", ""));
+                exp.setStartDate((String) expMap.getOrDefault("startDate", ""));
+                exp.setEndDate((String) expMap.getOrDefault("endDate", ""));
+                
+                // Quan trọng: Gán ngược lại profile cha để Hibernate hiểu quan hệ
+                exp.setCandidateProfile(profile);
+                
+                // Thêm vào list
+                profile.getExperiences().add(exp);
+            }
+        }
+        // if (request.getEducations() != null) profile.setEducations(request.getEducations());
+
+        return candidateProfileRepository.save(profile);
     }
 
     public CandidateProfile getProfile(Long userId) {
