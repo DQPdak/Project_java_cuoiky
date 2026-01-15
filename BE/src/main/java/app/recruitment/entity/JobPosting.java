@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "job_postings")
@@ -33,6 +35,10 @@ public class JobPosting {
     private String salaryRange;
     private String location;
 
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "job_posting_skills", joinColumns = @JoinColumn(name = "job_id"))
+    @Column(name = "skill_name")
+    private List<String> extractedSkills = new ArrayList<>();
     // --- QUẢN LÝ TRẠNG THÁI ---
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)

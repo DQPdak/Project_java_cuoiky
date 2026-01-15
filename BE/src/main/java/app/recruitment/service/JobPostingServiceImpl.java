@@ -1,5 +1,6 @@
 package app.recruitment.service;
 
+import app.ai.service.cv.gemini.GeminiService;
 import app.auth.model.User;
 import app.auth.model.enums.UserRole;
 import app.auth.repository.UserRepository;
@@ -29,6 +30,7 @@ public class JobPostingServiceImpl implements JobPostingService {
     private final JobPostingRepository jobPostingRepository;
     private final UserRepository userRepository;
     private final RecruitmentMapper recruitmentMapper;
+    private final GeminiService geminiService;
 
     @Override
     @Transactional
@@ -38,6 +40,7 @@ public class JobPostingServiceImpl implements JobPostingService {
         if (recruiter.getUserRole() != UserRole.RECRUITER) {
             throw new IllegalArgumentException("Only recruiter can create job postings");
         }
+        List<String> skills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
 
         JobPosting j = JobPosting.builder()
                 .title(request.getTitle())
@@ -46,8 +49,9 @@ public class JobPostingServiceImpl implements JobPostingService {
                 .salaryRange(request.getSalaryRange())
                 .location(request.getLocation())
                 .expiryDate(request.getExpiryDate())
+                .extractedSkills(skills)
                 .recruiter(recruiter)
-                .status(JobStatus.OPEN)
+                .status(JobStatus.PUBLISHED)
                 .build();
         return jobPostingRepository.save(j);
     }
@@ -61,12 +65,14 @@ public class JobPostingServiceImpl implements JobPostingService {
         if (!job.getRecruiter().getId().equals(recruiterId)) {
             throw new IllegalArgumentException("Unauthorized: cannot edit job of another recruiter");
         }
+        List<String> newSkills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
 
         job.setTitle(request.getTitle());
         job.setDescription(request.getDescription());
         job.setRequirements(request.getRequirements());
         job.setSalaryRange(request.getSalaryRange());
         job.setLocation(request.getLocation());
+        job.setExtractedSkills(newSkills);
         job.setExpiryDate(request.getExpiryDate());
 
         if (request.getStatus() != null) {

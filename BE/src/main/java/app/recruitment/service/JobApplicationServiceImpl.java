@@ -29,7 +29,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     private final JobPostingRepository jobRepo;
     private final UserRepository userRepository;
     private final CandidateProfileRepository profileRepository; // Inject thêm để lấy CV từ profile an toàn hơn
-
+    
     @Override
     @Transactional
     public JobApplication apply(Long candidateId, JobApplicationRequest request) {

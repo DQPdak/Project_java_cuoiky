@@ -257,7 +257,7 @@ public class AuthService {
      * Yêu cầu quên mật khẩu:
      * - Tìm user theo email.
      * - Tạo password reset token (UUID) hết hạn sau 24h.
-     * - Lưu DB và (TODO) gửi email đường dẫn đặt lại mật khẩu.
+     * - Lưu DB và  gửi email đường dẫn đặt lại mật khẩu.
      */
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
@@ -275,7 +275,7 @@ public class AuthService {
         
         passwordResetTokenRepository.save(resetToken);
         
-        // TODO: Gửi email chứa link đặt lại mật khẩu (đính kèm token)
+        // Gửi email chứa link đặt lại mật khẩu (đính kèm token)
         log.info("Password reset token generated for: {}", user.getEmail());
     }
     

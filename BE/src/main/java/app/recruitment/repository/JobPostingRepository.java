@@ -23,4 +23,6 @@ List<JobPosting> findTop10ByStatusOrderByCreatedAtDesc(JobStatus status);
            " LOWER(j.location) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
            "AND j.status = 'OPEN'") // Chỉ tìm job đang mở
     List<JobPosting> searchJobs(@Param("keyword") String keyword);
+    @Query("SELECT DISTINCT j FROM JobPosting j LEFT JOIN FETCH j.extractedSkills WHERE j.id IN :ids")
+    List<JobPosting> findAllByIdsWhithSkills(@Param("ids") List<Long> ids);
 }

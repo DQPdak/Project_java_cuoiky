@@ -3,10 +3,14 @@ package app.ai.service;
 import app.ai.service.cv.gemini.GeminiService;
 import app.ai.service.cv.gemini.dto.MatchResult;
 import app.ai.service.cv.gemini.dto.analysis.CareerAdviceResult;
+import app.auth.model.User;
+import app.auth.repository.UserRepository;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
+import app.recruitment.entity.CVAnalysisResult;
 import app.recruitment.entity.JobApplication;
 import app.recruitment.entity.JobPosting;
+import app.recruitment.repository.CVAnalysisResultRepository;
 import app.recruitment.repository.JobApplicationRepository;
 import app.recruitment.repository.JobPostingRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,6 +37,44 @@ public class JobMatchingService {
     private final JobPostingRepository jobPostingRepository;
     private final CandidateProfileRepository profileRepository;
     private final ObjectMapper objectMapper;
+    private final UserRepository userRepository;
+    private final CVAnalysisResultRepository analysisRepository;
+
+    @Transactional
+    public MatchResult matchCandidateWithJobAI(Long userId, String cvContent, Long jobId, String cvUrl) {
+        // A. Kiểm tra Cache
+        Optional<CVAnalysisResult> existing = analysisRepository.findByUserIdAndJobPostingId(userId, jobId);
+        if (existing.isPresent()) {
+            try {
+                return objectMapper.readValue(existing.get().getAnalysisDetails(), MatchResult.class);
+            } catch (Exception e) {
+                log.warn("Lỗi đọc cache AI, sẽ phân tích lại...");
+            }
+        }
+
+        // B. Gọi AI
+        JobPosting job = jobPostingRepository.findById(jobId).orElseThrow();
+        User user = userRepository.findById(userId).orElseThrow();
+        
+        MatchResult result = geminiService.matchCVWithJob(cvContent, job.getDescription(), job.getRequirements());
+
+        // C. Lưu Cache
+        try {
+            CVAnalysisResult entity = existing.orElse(new CVAnalysisResult());
+            entity.setUser(user);
+            entity.setJobPosting(job);
+            entity.setMatchPercentage(result.getMatchPercentage());
+            entity.setCvUrlUsed(cvUrl);
+            entity.setAnalysisDetails(objectMapper.writeValueAsString(result));
+            entity.setAnalyzedAt(java.time.LocalDateTime.now());
+            
+            analysisRepository.save(entity);
+        } catch (Exception e) {
+            log.error("Không lưu được kết quả AI: " + e.getMessage());
+        }
+
+        return result;
+    }
 
     // --- PHẦN 1: TÍNH TOÁN (WRITE) ---
 
