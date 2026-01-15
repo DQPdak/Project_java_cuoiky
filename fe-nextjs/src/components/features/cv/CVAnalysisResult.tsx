@@ -2,28 +2,36 @@ import React from "react";
 import {
   CheckCircle,
   XCircle,
-  AlertCircle,
+  Award,
+  Sparkles,
+  Lightbulb,
   BookOpen,
   TrendingUp,
-  Award,
-  Star,
+  BrainCircuit,
+  Zap,
 } from "lucide-react";
 
-// 1. Định nghĩa Interface khớp chính xác với hình ảnh bạn gửi
+// Định nghĩa Interface khớp chính xác với DTO MatchResult 5 cột từ Backend
 interface AnalysisData {
   matchPercentage: number;
+  totalRequiredSkills: number;
   evaluation: string;
-  careerAdvice: string;
   learningPath: string;
+  careerAdvice: string;
 
+  // 5 Nhóm kỹ năng
   matchedSkillsList: string[];
   missingSkillsList: string[];
-  extraSkillsList: string[]; // Skill thừa/bổ sung
+  otherHardSkillsList: string[];
+  otherSoftSkillsList: string[];
+  recommendedSkillsList: string[];
 
-  totalRequiredSkills: number;
+  // Đếm số lượng
   matchedSkillsCount: number;
   missingSkillsCount: number;
-  extraSkillsCount: number;
+  otherHardSkillsCount: number;
+  otherSoftSkillsCount: number;
+  recommendedSkillsCount: number;
 }
 
 interface CVAnalysisResultProps {
@@ -31,26 +39,82 @@ interface CVAnalysisResultProps {
 }
 
 export default function CVAnalysisResult({ result }: CVAnalysisResultProps) {
-  // Nếu chưa có dữ liệu thì hiện loading hoặc trống
   if (!result) {
     return (
-      <div className="text-center p-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-        <p className="text-gray-400 italic">Đang chờ kết quả phân tích...</p>
+      <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-500 font-medium">
+          Hệ thống AI đang phân tích dữ liệu...
+        </p>
       </div>
     );
   }
 
-  // Xác định màu sắc dựa trên điểm số
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600 border-green-500";
-    if (score >= 50) return "text-yellow-600 border-yellow-500";
-    return "text-red-600 border-red-500";
-  };
-
-  const scoreColorClass = getScoreColor(result.matchPercentage);
+  // Xác định màu sắc chủ đạo dựa trên điểm số
+  const scoreColorClass =
+    result.matchPercentage >= 80
+      ? "text-green-600 border-green-500 bg-green-50"
+      : result.matchPercentage >= 50
+      ? "text-yellow-600 border-yellow-500 bg-yellow-50"
+      : "text-red-600 border-red-500 bg-red-50";
+  // Component phụ render thẻ kỹ năng để tái sử dụng
+  const SkillCard = ({
+    title,
+    count,
+    skills,
+    icon: Icon,
+    colorClass,
+    borderClass,
+    bgClass,
+    description,
+  }: any) => (
+    <div
+      className={`flex flex-col h-full p-5 rounded-2xl border ${borderClass} ${bgClass} shadow-sm transition-all hover:shadow-md`}
+    >
+      <div className="flex items-start justify-between mb-4 pb-3 border-b border-black/5">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl ${colorClass} text-white`}>
+            <Icon size={20} />
+          </div>
+          <div>
+            <h4 className="font-bold text-gray-800 text-sm uppercase tracking-tight">
+              {title}
+            </h4>
+            <p className="text-[10px] text-gray-500 font-medium mt-0.5">
+              {description}
+            </p>
+          </div>
+        </div>
+        <span
+          className={`text-xl font-black ${colorClass.replace("bg-", "text-")}`}
+        >
+          {count}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {skills && skills.length > 0 ? (
+          skills.map((skill: string, i: number) => (
+            <span
+              key={i}
+              className={`px-3 py-1.5 bg-white border ${borderClass} ${colorClass.replace(
+                "bg-",
+                "text-"
+              )} rounded-lg text-xs font-bold shadow-sm`}
+            >
+              {skill}
+            </span>
+          ))
+        ) : (
+          <span className="text-gray-400 text-xs italic">
+            Không tìm thấy dữ liệu
+          </span>
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-8 animate-fade-in-up">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
       {/* --- PHẦN 1: ĐIỂM SỐ & ĐÁNH GIÁ TỔNG QUAN --- */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-center">
         {/* Vòng tròn điểm số */}
@@ -103,103 +167,117 @@ export default function CVAnalysisResult({ result }: CVAnalysisResultProps) {
         </div>
       </div>
 
-      {/* --- PHẦN 2: CHI TIẾT KỸ NĂNG (3 CỘT) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Cột 1: Kỹ năng ĐẠT (Màu xanh) */}
-        <div className="bg-white p-5 rounded-xl border border-green-100 shadow-sm flex flex-col h-full">
-          <div className="flex items-center gap-2 mb-4 text-green-700 font-bold border-b border-green-100 pb-3">
-            <CheckCircle size={20} />
-            <span>Đã đáp ứng ({result.matchedSkillsCount})</span>
-          </div>
-          <div className="flex flex-wrap gap-2 content-start">
-            {result.matchedSkillsList?.length > 0 ? (
-              result.matchedSkillsList.map((skill, idx) => (
-                <span
-                  key={idx}
-                  className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-semibold border border-green-200 shadow-sm"
-                >
-                  {skill}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-400 text-sm italic">
-                Chưa tìm thấy kỹ năng phù hợp.
-              </span>
-            )}
-          </div>
+      {/* 2. GRID KỸ NĂNG: PHÂN LOẠI 5 NHÓM */}
+      <div className="space-y-6">
+        {/* HÀNG 1: TRỌNG TÂM (ĐÁP ỨNG & THIẾU) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SkillCard
+            title="Kỹ năng đáp ứng"
+            description="Đúng yêu cầu JD (Cả chuyên môn & mềm)"
+            count={result.matchedSkillsCount}
+            skills={result.matchedSkillsList}
+            icon={CheckCircle}
+            colorClass="bg-green-600"
+            borderClass="border-green-100"
+            bgClass="bg-green-50/30"
+          />
+          <SkillCard
+            title="Kỹ năng còn thiếu"
+            description="Yêu cầu trong JD nhưng CV chưa có"
+            count={result.missingSkillsCount}
+            skills={result.missingSkillsList}
+            icon={XCircle}
+            colorClass="bg-red-600"
+            borderClass="border-red-100"
+            bgClass="bg-red-50/30"
+          />
         </div>
 
-        {/* Cột 2: Kỹ năng THIẾU (Màu đỏ) */}
-        <div className="bg-white p-5 rounded-xl border border-red-100 shadow-sm flex flex-col h-full">
-          <div className="flex items-center gap-2 mb-4 text-red-700 font-bold border-b border-red-100 pb-3">
-            <XCircle size={20} />
-            <span>Còn thiếu ({result.missingSkillsCount})</span>
+        {/* HÀNG 2: BỔ TRỢ (CHUYÊN MÔN & MỀM KHÁC) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SkillCard
+            title="Chuyên môn khác"
+            description="Tech-stack bạn có nhưng Job không yêu cầu"
+            count={result.otherHardSkillsCount}
+            skills={result.otherHardSkillsList}
+            icon={Award}
+            colorClass="bg-blue-600"
+            borderClass="border-blue-100"
+            bgClass="bg-blue-50/30"
+          />
+          <SkillCard
+            title="Kỹ năng mềm khác"
+            description="Lợi thế mềm bổ trợ ngoài yêu cầu"
+            count={result.otherSoftSkillsCount}
+            skills={result.otherSoftSkillsList}
+            icon={Sparkles}
+            colorClass="bg-purple-600"
+            borderClass="border-purple-100"
+            bgClass="bg-purple-50/30"
+          />
+        </div>
+
+        {/* HÀNG 3: GỢI Ý NÂNG CAO (AI RECOMMENDED) */}
+        <div className="bg-gradient-to-br from-amber-600 to-orange-700 p-8 rounded-[2rem] text-white shadow-lg relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+            <Lightbulb size={120} />
           </div>
-          <div className="flex flex-wrap gap-2 content-start">
-            {result.missingSkillsList?.length > 0 ? (
-              result.missingSkillsList.map((skill, idx) => (
-                <span
-                  key={idx}
-                  className="px-3 py-1 bg-red-50 text-red-700 rounded-lg text-sm font-semibold border border-red-200 shadow-sm"
-                >
-                  {skill}
-                </span>
-              ))
-            ) : (
-              <div className="text-green-600 text-sm flex items-center gap-1 bg-green-50 px-3 py-2 rounded-lg w-full">
-                <Star size={16} fill="currentColor" /> Tuyệt vời! Bạn đủ 100% kỹ
-                năng.
+          <div className="relative z-10 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                <Zap size={24} className="text-amber-300 fill-amber-300" />
               </div>
-            )}
-          </div>
-        </div>
+              <div>
+                <h4 className="text-xl font-black uppercase tracking-tight">
+                  Kỹ năng gợi ý từ chuyên gia AI
+                </h4>
+                <p className="text-amber-100 text-xs font-medium">
+                  Cần thiết cho công việc thực tế (ngoài JD & CV)
+                </p>
+              </div>
+            </div>
 
-        {/* Cột 3: Kỹ năng THỪA/BỔ TRỢ (Màu xám/tím) */}
-        <div className="bg-white p-5 rounded-xl border border-purple-100 shadow-sm flex flex-col h-full">
-          <div className="flex items-center gap-2 mb-4 text-purple-700 font-bold border-b border-purple-100 pb-3">
-            <AlertCircle size={20} />
-            <span>Kỹ năng khác ({result.extraSkillsCount})</span>
-          </div>
-          <div className="flex flex-wrap gap-2 content-start">
-            {result.extraSkillsList?.length > 0 ? (
-              result.extraSkillsList.map((skill, idx) => (
-                <span
-                  key={idx}
-                  className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium border border-purple-200"
-                >
-                  {skill}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-400 text-sm italic">
-                Không có kỹ năng bổ sung.
-              </span>
-            )}
+            <div className="flex flex-wrap gap-3">
+              {result.recommendedSkillsList?.length > 0 ? (
+                result.recommendedSkillsList.map((skill, i) => (
+                  <span
+                    key={i}
+                    className="px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-white/20 transition-colors"
+                  >
+                    <TrendingUp size={14} /> {skill}
+                  </span>
+                ))
+              ) : (
+                <p className="text-sm opacity-80 italic">
+                  Không có gợi ý bổ sung tại thời điểm này.
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* --- PHẦN 3: LỘ TRÌNH & LỜI KHUYÊN --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* 3. LỘ TRÌNH HÀNH ĐỘNG (ACTION PLAN) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Lộ trình học tập */}
-        <div className="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-xl border border-indigo-100 shadow-sm">
-          <h3 className="font-bold text-indigo-900 mb-4 flex items-center gap-2 text-lg">
-            <BookOpen className="text-indigo-600" size={24} />
-            Lộ trình cải thiện
-          </h3>
-          <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-            {result.learningPath || "Chưa có lộ trình cụ thể."}
+        <div className="bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm space-y-5">
+          <div className="flex items-center gap-3 text-blue-700">
+            <BookOpen size={24} />
+            <h4 className="text-lg font-bold">Lộ trình học tập chi tiết</h4>
+          </div>
+          <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+            {result.learningPath}
           </div>
         </div>
 
         {/* Lời khuyên sự nghiệp */}
-        <div className="bg-gradient-to-br from-orange-50 to-white p-6 rounded-xl border border-orange-100 shadow-sm">
-          <h3 className="font-bold text-orange-900 mb-4 flex items-center gap-2 text-lg">
-            <TrendingUp className="text-orange-600" size={24} />
-            Lời khuyên sự nghiệp
-          </h3>
-          <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-            {result.careerAdvice || "Chưa có lời khuyên cụ thể."}
+        <div className="bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm space-y-5">
+          <div className="flex items-center gap-3 text-green-700">
+            <TrendingUp size={24} />
+            <h4 className="text-lg font-bold">Lời khuyên phát triển</h4>
+          </div>
+          <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+            {result.careerAdvice}
           </div>
         </div>
       </div>

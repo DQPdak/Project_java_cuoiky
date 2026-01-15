@@ -76,5 +76,4 @@ public class JobFastMatchingService {
         return scores;
     }
     
-    // Đã xóa hàm calculateScore riêng lẻ vì logic đã gộp vào vòng lặp để tối ưu hiệu năng
 }

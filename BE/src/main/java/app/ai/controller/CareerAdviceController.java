@@ -1,7 +1,7 @@
 package app.ai.controller;
 
 import app.ai.service.JobMatchingService;
-import app.ai.service.cv.gemini.dto.analysis.CareerAdviceResult;
+import app.ai.service.cv.gemini.dto.MatchResult; // [SỬA] Đổi từ CareerAdviceResult sang MatchResult
 import app.recruitment.entity.JobApplication;
 import app.recruitment.repository.JobApplicationRepository;
 import app.util.SecurityUtils;
@@ -37,7 +37,8 @@ public class CareerAdviceController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không có quyền truy cập");
         }
 
-        CareerAdviceResult result = jobMatchingService.getCareerAdvice(applicationId);
+        // [SỬA] Gọi hàm getApplicationAnalysis và dùng kiểu dữ liệu MatchResult
+        MatchResult result = jobMatchingService.getApplicationAnalysis(applicationId);
         return ResponseEntity.ok(result);
     }
 }

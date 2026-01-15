@@ -10,6 +10,7 @@ export default function JobAnalysisPage() {
   const params = useParams();
   const router = useRouter();
   const jobId = params.jodId;
+  console.log("id2:", jobId);
 
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
