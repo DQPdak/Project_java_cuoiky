@@ -3,6 +3,7 @@ package app.ai.controller;
 import app.ai.service.JobFastMatchingService;
 import app.ai.service.JobMatchingService;
 import app.ai.service.cv.CVAnalysisService;
+import app.ai.service.cv.gemini.dto.FastMatchResult;
 import app.ai.service.cv.gemini.dto.MatchResult;
 import app.candidate.model.CandidateProfile;
 import app.candidate.service.CandidateService;
@@ -29,7 +30,7 @@ public class CandidateMatchingController {
 
     // API 1: Tính điểm nhanh (Trang chủ)
     @PostMapping("/batch-scores")
-    public ResponseEntity<Map<Long, Integer>> getBatchScores(@RequestBody List<Long> jobIds) {
+    public ResponseEntity<Map<Long, FastMatchResult>> getBatchScores(@RequestBody List<Long> jobIds) {
         try {
             Long userId = securityUtils.getCurrentUserId();
             CandidateProfile profile = candidateService.getProfile(userId);
@@ -40,7 +41,7 @@ public class CandidateMatchingController {
             List<String> candidateSkills = profile.getSkills();
             
             // Gọi Service Nhanh
-            Map<Long, Integer> scores = fastMatchingService.calculateBatchCompatibility(candidateSkills, jobIds);
+            Map<Long, FastMatchResult> scores = fastMatchingService.calculateBatchCompatibility(candidateSkills, jobIds);
             
             return ResponseEntity.ok(scores);
         } catch (Exception e) {
