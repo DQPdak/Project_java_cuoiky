@@ -5,25 +5,37 @@ import java.util.List;
 
 @Data
 public class MatchResult {
-    // 1. Điểm số
+    // --- PHẦN 1: SỐ LIỆU THỐNG KÊ (STATISTICS) ---
+
+    // 1. Điểm số tổng quan (0-100)
     private int matchPercentage;
 
-    // 2. Kỹ năng khớp (CV có + Job cần)
-    private int matchedSkillsCount;
-    private List<String> matchedSkillsList; // [THÊM MỚI]
+    // 2. Tổng số skill Job yêu cầu (Mẫu số)
+    private int totalRequiredSkills;
 
-    // 3. Kỹ năng thiếu (Job cần + CV không có)
+    // 3. Kỹ năng khớp (CV có + Job cần) -> Tử số
+    private int matchedSkillsCount;
+    private List<String> matchedSkillsList; 
+
+    // 4. Kỹ năng thiếu (Job cần + CV không có) -> Bị trừ điểm
     private int missingSkillsCount;
     private List<String> missingSkillsList;
     
-    // 4. Kỹ năng thừa (CV có + Job không cần)
+    // 5. Kỹ năng thừa (CV có + Job không cần) -> Không tính điểm
     private int extraSkillsCount;
-    private List<String> extraSkillsList;   // [THÊM MỚI]
+    private List<String> extraSkillsList;   
 
-    // Tổng số skill Job yêu cầu
-    private int totalRequiredSkills;
+    // --- PHẦN 2: NỘI DUNG PHÂN TÍCH (CONTENT) ---
 
-    // 5. Gợi ý hoàn thiện (3 phần: Bổ sung cái thiếu, Lời khuyên cái chưa có, Lộ trình)
-    // Phần này AI sẽ trả về text Tiếng Việt dài
+    // 6. Đánh giá chung (Ngắn gọn - Tiếng Việt)
+    // Tóm tắt điểm mạnh, điểm yếu chí mạng
     private String evaluation; 
+
+    // [THÊM MỚI] 7. Lộ trình học tập chi tiết (Dạng Markdown - Tiếng Việt)
+    // Chứa kế hoạch hành động từng tuần để lấp lỗ hổng kỹ năng
+    private String learningPath; 
+
+    // [THÊM MỚI] 8. Lời khuyên sự nghiệp (Tiếng Việt)
+    // Về thái độ, cách phỏng vấn, deal lương...
+    private String careerAdvice; 
 }
