@@ -41,7 +41,7 @@ public class CandidateSearchServiceImpl implements CandidateSearchService {
                     .collect(Collectors.toList());
         }
 
-        // Skill / GPA filtering: chưa có trường lưu trữ trong User -> TODO: extend DB or use CVAnalysisService
+        // Skill / GPA filtering: chưa có trường lưu trữ trong User ->  extend DB or use CVAnalysisService
         if (skill != null && !skill.isBlank()) {
             log.warn("Skill filter requested ('{}') but User.skills not present in schema. Returning name-filtered results only.", skill);
             // Optional: further filter by heuristic (e.g., candidate.fullName contains skill) - not implemented

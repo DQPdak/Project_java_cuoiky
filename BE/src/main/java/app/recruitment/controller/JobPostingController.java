@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import app.recruitment.service.JobPostingService;
+import app.util.SecurityUtils;
 import app.recruitment.dto.request.JobPostingRequest;
 import app.recruitment.dto.response.JobPostingResponse;
 import app.recruitment.mapper.RecruitmentMapper;
@@ -25,12 +26,12 @@ public class JobPostingController {
 
     private final JobPostingService jobPostingService;
     private final RecruitmentMapper mapper;
-
+    private final SecurityUtils securityUtils;
     @PostMapping
     public ResponseEntity<JobPostingResponse> create(
             @Valid @RequestBody JobPostingRequest request
     ) {
-        Long recruiterId = getCurrentUserId();
+        Long recruiterId = securityUtils.getCurrentUserId();
         JobPosting created = jobPostingService.create(recruiterId, request);
         JobPostingResponse resp = mapper.toJobPostingResponse(created);
         return ResponseEntity.created(URI.create("/api/recruiter/jobs/" + resp.getId())).body(resp);

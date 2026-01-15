@@ -4,33 +4,26 @@ import app.ai.service.cv.gemini.dto.GeminiResponse;
 import app.ai.service.cv.gemini.dto.MatchResult;
 import app.ai.service.cv.gemini.dto.analysis.CareerAdviceResult;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class GeminiService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper;
+    private final GeminiApiClient geminiApiClient;
 
-    @Value("${gemini.api.key}") // Lấy key từ application.properties
+    @Value("${gemini.api.key}") 
     private String apiKey;
-
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=";
 
     /**
      * CHỨC NĂNG 1: Phân tích CV (Raw Text -> JSON Profile)
@@ -66,7 +59,112 @@ public class GeminiService {
                 Chỉ trả về JSON, không kèm lời dẫn.
                 """.formatted(rawText);
 
-        return callGemini(prompt, GeminiResponse.class);
+        return parseResponse(prompt, GeminiResponse.class);
+    }
+
+    public List<String> extractSkillsFromJob(String jobDescription, String jobRequirements) {
+       String prompt = """
+                Bạn là một Hệ thống Chấm điểm Tuyển dụng Tự động (Automated Scoring System).
+                Nhiệm vụ: So sánh 'CV Ứng viên' với 'Yêu cầu Công việc' (Job Requirements) theo quy tắc toán học tuyệt đối.
+
+                --- QUY TẮC NGÔN NGỮ (LANGUAGE RULES) ---
+                1. **DỮ LIỆU TRÍCH XUẤT (Lists)**: GIỮ NGUYÊN ngôn ngữ gốc. 
+                   - Nếu Job viết "Java", output là "Java". 
+                   - Nếu CV viết "Lập trình viên", output là "Lập trình viên". 
+                   - KHÔNG ĐƯỢC DỊCH thuật ngữ.
+                2. **NHẬN XÉT (Evaluation)**: BẮT BUỘC viết bằng **TIẾNG VIỆT**.
+
+                --- QUY TẮC TÍNH ĐIỂM (SCORING LOGIC) ---
+                Điểm số (matchPercentage) dựa trên 2 yếu tố:
+                1. **Kỹ năng (70%)**: Chỉ tính dựa trên các kỹ năng ĐƯỢC VIẾT RÕ RÀNG trong 'JOB REQUIREMENTS'.
+                   - Công thức: (Số kỹ năng trùng khớp / Tổng số kỹ năng Job yêu cầu) * 70.
+                   - TUYỆT ĐỐI KHÔNG trừ điểm vì thiếu kỹ năng mà Job không yêu cầu (ví dụ: Job không ghi Kafka thì không được trừ điểm vì thiếu Kafka).
+                   - TUYỆT ĐỐI KHÔNG cộng điểm cho kỹ năng thừa (Extra skills).
+                2. **Kinh nghiệm (30%)**:
+                   - Đọc số năm kinh nghiệm yêu cầu trong Job và số năm trong CV.
+                   - Nếu CV >= Job: 30 điểm.
+                   - Nếu CV < Job: Tính tỷ lệ (CV/Job) * 30.
+
+                --- YÊU CẦU ĐẦU RA (JSON FORMAT) ---
+                Hãy trả về JSON theo cấu trúc sau (không Markdown) với ngôn ngữ là "TIẾNG VIỆT":
+                {
+                  "matchPercentage": (Integer: Tổng điểm Skill + Kinh nghiệm, Max 100),
+                  
+                  "totalRequiredSkills": (Integer: Tổng số skill tìm thấy trong Job Requirements),
+                  
+                  "matchedSkillsCount": (Integer),
+                  "matchedSkillsList": ["Danh sách skill có trong cả Job và CV (Giữ nguyên gốc)"],
+                  
+                  "missingSkillsCount": (Integer),
+                  "missingSkillsList": ["Danh sách skill có trong Job nhưng CV thiếu (Giữ nguyên gốc)"],
+                  
+                  "extraSkillsCount": (Integer),
+                  "extraSkillsList": ["Danh sách skill CV có nhưng Job KHÔNG yêu cầu (Giữ nguyên gốc)"],
+                  
+                  "evaluation": "Viết 3 đoạn văn ngắn bằng TIẾNG VIỆT:\n1. [Yêu cầu bắt buộc]: Liệt kê các skill trong missingSkillsList mà ứng viên CẦN học ngay để đáp ứng công việc.\n2. [Lời khuyên nâng cao]: Gợi ý các skill theo chuẩn ngành mà Job KHÔNG yêu cầu nhưng nên học để CV đẹp hơn (Ví dụ: CI/CD, Cloud...).\n3. [Lộ trình]: Đưa ra lời khuyên ngắn gọn về hướng phát triển."
+                }
+
+                --- DỮ LIỆU ĐẦU VÀO ---
+                [JOB DESCRIPTION]
+                %s
+
+                [JOB REQUIREMENTS (NGUỒN CHUẨN ĐỂ SO SÁNH)]
+                %s
+
+                [CANDIDATE CV]
+                %s
+                """.formatted(jobDescription, jobRequirements);
+
+        try {
+            // Gọi hàm raw để lấy chuỗi JSON (ví dụ: "[\"Java\", \"Spring\"]")
+            String jsonString = geminiApiClient.generateContent(prompt);
+            
+            // Parse chuỗi JSON thành List<String>
+           return objectMapper.readValue(jsonString, new TypeReference<List<String>>(){});
+        } catch (Exception e) {
+            log.error("Lỗi tách skill từ Job: ", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * CHỨC NĂNG 2: So sánh CV (Raw Text) với Job (Dùng cho Flow Chi Tiết / Preview)
+     * [MỚI] Hàm này được thêm vào để phục vụ JobMatchingService.matchCandidateWithJobAI
+     */
+    public MatchResult matchCVWithJob(String cvText, String jobDescription, String jobRequirements) {
+       String prompt = """
+                You are a strict Recruitment AI. Compare Candidate CV vs Job Description.
+
+                --- CRITICAL RULES ---
+                1. **STRICT SCORING**: 
+                   - Only count a skill as "Missing" if it is EXPLICITLY written in 'JOB REQUIREMENTS'.
+                   - If Candidate has all explicit skills -> Score = 100 (Do not deduct points for skills not listed).
+                2. **LANGUAGE**: The value of "evaluation" field MUST be in **VIETNAMESE** (Tiếng Việt).
+                3. **RECOMMENDATION**: Identify skills NOT in JD but good for the role, put them in 'recommendedSkills'.
+
+                --- INPUT DATA ---
+                JOB DESCRIPTION:
+                %s
+                
+                JOB REQUIREMENTS (Truth Source):
+                %s
+                
+                CANDIDATE CV:
+                %s
+                
+                --- OUTPUT JSON FORMAT ---
+                {
+                  "matchPercentage": (0-100),
+                  "matchedSkillsCount": (int),
+                  "missingSkillsCount": (int),
+                  "totalRequiredSkills": (int),
+                  "missingSkillsList": ["Skill A", "Skill B"],
+                  "recommendedSkills": ["Skill X (Nên học thêm)", "Skill Y"],
+                  "evaluation": "Viết nhận xét ngắn gọn bằng Tiếng Việt. Ví dụ: 'Ứng viên đáp ứng đủ yêu cầu bắt buộc. Tuy nhiên để CV ấn tượng hơn, bạn nên bổ sung kiến thức về...'"
+                }
+                """.formatted(jobDescription, jobRequirements, cvText);
+
+       return parseResponse(prompt, MatchResult.class);
     }
 
     /**
@@ -106,7 +204,7 @@ public class GeminiService {
                 Chỉ trả về JSON thuần túy.
                 """.formatted(jobData, candidateData);
 
-        return callGemini(prompt, MatchResult.class);
+        return parseResponse(prompt, MatchResult.class);
     }
 
     public CareerAdviceResult suggestCareerPath(String candidateData, String jobData) {
@@ -129,51 +227,17 @@ public class GeminiService {
                 }
                 """.formatted(jobData, candidateData);
 
-        return callGemini(prompt, CareerAdviceResult.class);
+       return parseResponse(prompt, CareerAdviceResult.class);
     }
     // --- HÀM HELPER GỌI API (Private) ---
-    private <T> T callGemini(String prompt, Class<T> responseType) {
+
+    private <T> T parseResponse(String prompt, Class<T> responseType) {
         try {
-            // 1. Tạo Body request theo chuẩn Gemini API
-            Map<String, Object> contentPart = new HashMap<>();
-            contentPart.put("text", prompt);
-
-            Map<String, Object> parts = new HashMap<>();
-            parts.put("parts", List.of(contentPart));
-
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("contents", List.of(parts));
-
-            // 2. Tạo Header
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-
-            // 3. Gửi Request POST
-            String url = GEMINI_API_URL + apiKey;
-            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
-
-            // 4. Parse Response của Gemini để lấy phần text
-            // Cấu trúc trả về: candidates[0].content.parts[0].text
-            String rawJson = response.getBody();
-            var jsonNode = objectMapper.readTree(rawJson);
-            String aiTextResponse = jsonNode.path("candidates").get(0)
-                    .path("content").path("parts").get(0)
-                    .path("text").asText();
-
-            // 5. Làm sạch chuỗi JSON (xóa ```json và ``` nếu có)
-            String cleanJson = aiTextResponse.replaceAll("```json", "")
-                                             .replaceAll("```", "")
-                                             .trim();
-
-            // 6. Map JSON clean vào Object đích (GeminiResponse hoặc MatchResult)
-            return objectMapper.readValue(cleanJson, responseType);
-
+            String jsonResponse = geminiApiClient.generateContent(prompt);
+            return objectMapper.readValue(jsonResponse, responseType);
         } catch (Exception e) {
-            log.error("Lỗi khi gọi Gemini API: ", e);
-            // Trả về null hoặc object rỗng tùy logic business của bạn
-            throw new RuntimeException("AI processing failed: " + e.getMessage());
+            log.error("Lỗi parse dữ liệu AI: ", e);
+            throw new RuntimeException("AI Error: " + e.getMessage());
         }
     }
 }
