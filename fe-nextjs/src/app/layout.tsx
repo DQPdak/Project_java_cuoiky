@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
-import { AuthProvider } from "@/context/Authcontext"; // Import AuthProvider
 import "./globals.css";
+import { AuthProvider } from "@/context/Authcontext"; 
+import GoogleOAuthWrapper from "@/components/providers/GoogleOAuthWrapper";
+
+export const metadata: Metadata = {
+  title: "CareerMate",
+  description: "Nền tảng tuyển dụng việc làm",
+};
 
 export default function RootLayout({
   children,
@@ -10,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider> 
-          {children}
-        </AuthProvider>
+        <GoogleOAuthWrapper>
+          <AuthProvider> 
+            {children}
+          </AuthProvider>
+        </GoogleOAuthWrapper>
       </body>
     </html>
   );

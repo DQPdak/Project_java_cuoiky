@@ -1,8 +1,7 @@
-// fe-nextjs/src/context/Authcontext.tsx
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getToken, removeToken, getUserRole } from "@/utils/authStorage";
+import { getToken, removeToken } from "@/utils/authStorage";
 import { useRouter } from "next/navigation";
 import { User, UserRole } from "@/types/auth";
 
@@ -27,7 +26,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const storedUser = localStorage.getItem('currentUser');
       
       if (token && storedUser) {
-        setUser(JSON.parse(storedUser));
+        try {
+            setUser(JSON.parse(storedUser));
+        } catch (e) {
+            console.error("Lỗi parse user từ localStorage", e);
+            localStorage.removeItem('currentUser');
+        }
       } else {
         // Nếu không có token nhưng có user rác -> xóa đi
         if (!token) localStorage.removeItem('currentUser');
@@ -38,12 +42,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = (userData: User) => {
+    // --- KHỐI KIỂM TRA AN TOÀN (MỚI) ---
+    // Ngăn chặn lỗi crash nếu userData bị null/undefined
+    if (!userData) {
+        console.error("❌ AuthContext: Hàm login được gọi nhưng không có dữ liệu user!", userData);
+        return; 
+    }
+
+    if (!userData.userRole) {
+        console.error("❌ AuthContext: User không có quyền (userRole)", userData);
+        // Có thể mặc định gán role nếu cần thiết, hoặc return
+        // return; 
+    }
+    // ------------------------------------
+
+    console.log("✅ AuthContext: Đăng nhập thành công với user:", userData);
+
     setUser(userData);
     localStorage.setItem('currentUser', JSON.stringify(userData));
 
     // ĐIỀU HƯỚNG DỰA TRÊN ROLE
-    // Căn cứ vào cấu trúc thư mục bạn đã upload
-    switch (userData.userRole) {
+    // Sử dụng Optional Chaining (?) để an toàn hơn
+    switch (userData?.userRole) {
       case UserRole.ADMIN:
         router.push('/admin/dashboard'); 
         break;
@@ -51,7 +71,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         router.push('/dashboard-recruiter');
         break;
       case UserRole.CANDIDATE:
+        router.push('/dashboard-candidate');
+        break;
       default:
+        // Nếu không có role hoặc role lạ, về trang chủ candidate
+        console.warn("⚠️ Role không xác định, chuyển về trang Dashboard Candidate");
         router.push('/dashboard-candidate');
         break;
     }

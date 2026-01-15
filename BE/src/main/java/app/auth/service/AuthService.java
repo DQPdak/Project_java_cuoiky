@@ -1,291 +1,236 @@
-
 package app.auth.service;
 
-// Lombok: tự động sinh constructor cho các field final và cung cấp logger
-import lombok.RequiredArgsConstructor; // Tạo constructor với các field final
-import lombok.extern.slf4j.Slf4j;      // Tạo logger 'log' (log.info, log.error,...)
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-// Spring Security: xác thực người dùng và mã hóa mật khẩu
-import org.springframework.security.authentication.AuthenticationManager;              // Quản lý xác thực tổng quát
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken; // Token chứa email/password để xác thực
-import org.springframework.security.core.Authentication;                                // Kết quả xác thực (principal, authorities,...)
-import org.springframework.security.crypto.password.PasswordEncoder;                    // Mã hóa mật khẩu (BCrypt,...)
-
-// Spring Framework: khai báo service và giao dịch (transaction)
-import org.springframework.stereotype.Service;           // Đánh dấu lớp là Service (bean của Spring)
-import org.springframework.transaction.annotation.Transactional; // Quản lý giao dịch DB
-
-// DTO request/response phục vụ API
 import app.auth.dto.request.*;
 import app.auth.dto.response.AuthResponse;
 import app.auth.dto.response.UserResponse;
-// Exception tuỳ chỉnh của ứng dụng
 import app.auth.exception.*;
 import app.auth.model.PasswordResetToken;
 import app.auth.model.RefreshToken;
 import app.auth.model.User;
 import app.auth.model.enums.AuthProvider;
+import app.auth.model.enums.UserRole;
 import app.auth.model.enums.UserStatus;
-// Repository và provider JWT
 import app.auth.repository.PasswordResetTokenRepository;
 import app.auth.repository.UserRepository;
 import app.auth.security.JwtTokenProvider;
 
-// Thư viện Java thời gian và tiện ích
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * AuthService: Chứa toàn bộ nghiệp vụ liên quan đến xác thực/ủy quyền:
- * - Đăng ký, đăng nhập, đăng nhập bằng Google
- * - Làm mới token, đăng xuất
- * - Quên mật khẩu / đặt lại mật khẩu
- *
- * - @Service: đăng ký bean ở tầng service.
- * - @RequiredArgsConstructor: Lombok sinh constructor nhận các field final.
- * - @Slf4j: cung cấp logger để ghi log.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AuthService {
     
-    // Repository thao tác DB với User
     private final UserRepository userRepository;
-    // Mã hóa mật khẩu (BCrypt,...)
     private final PasswordEncoder passwordEncoder;
-    // Cung cấp chức năng tạo/parse/validate JWT
     private final JwtTokenProvider jwtTokenProvider;
-    // Quản lý xác thực (dùng cho login email/password)
     private final AuthenticationManager authenticationManager;
-    // Nghiệp vụ refresh token (tạo / kiểm tra hết hạn / xóa)
     private final RefreshTokenService refreshTokenService;
-    // Nghiệp vụ xác thực Google (verify token, lấy thông tin user từ Google)
     private final GoogleOAuthService googleOAuthService;
-    // Repository thao tác DB với token đặt lại mật khẩu
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
     
-    /**
-     * Đăng ký tài khoản mới:
-     * - Kiểm tra trùng email.
-     * - Tạo user (mã hóa mật khẩu, set vai trò, provider LOCAL, trạng thái...).
-     * - Lưu DB.
-     * - Sinh access token và refresh token.
-     * - Trả về AuthResponse chứa token + thông tin user.
-     *
-     * @Transactional: đảm bảo mọi thao tác DB thực thi trong một giao dịch.
-     */
+    // --- ĐĂNG KÝ ---
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         log.info("Registering new user with email: {}", request.getEmail());
         
-        // Kiểm tra email đã tồn tại
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("Email đã được sử dụng");
         }
+
+        if (request.getUserRole() == UserRole.ADMIN) {
+            throw new UnauthorizedException("Không thể đăng ký vai trò Quản trị viên qua đường dẫn này");
+        }
         
-        // Tạo user mới (mã hóa mật khẩu trước khi lưu)
+        // Sinh mã xác thực 6 ký tự
+        String verificationCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .userRole(request.getUserRole())
                 .authProvider(AuthProvider.LOCAL)
-                .status(UserStatus.ACTIVE) // Hoặc PENDING_VERIFICATION nếu cần xác thực email
+                .status(UserStatus.PENDING_VERIFICATION) // Chờ xác thực
                 .isEmailVerified(false)
+                .verificationCode(verificationCode)
                 .build();
         
         user = userRepository.save(user);
-        log.info("User registered successfully with id: {}", user.getId());
         
-        // Sinh token đăng nhập
+        // Gửi email xác thực
+        emailService.sendVerificationEmail(user.getEmail(), verificationCode);
+        
+        log.info("User registered successfully via email, waiting for verification: {}", user.getId());
+        
         String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
         
         return buildAuthResponse(user, accessToken, refreshToken.getToken());
     }
+
+    // --- XÁC THỰC EMAIL ---
+    @Transactional
+    public void verifyEmail(String email, String code) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng"));
+
+        if (user.getIsEmailVerified()) {
+            throw new AuthException("Tài khoản đã được xác thực trước đó");
+        }
+
+        // Kiểm tra mã xác thực
+        if (user.getVerificationCode() == null || !user.getVerificationCode().equals(code)) {
+            throw new InvalidTokenException("Mã xác thực không chính xác");
+        }
+
+        // Kích hoạt tài khoản
+        user.setStatus(UserStatus.ACTIVE);
+        user.setIsEmailVerified(true);
+        user.setVerificationCode(null); // Xóa mã sau khi dùng
+        userRepository.save(user);
+        
+        log.info("User verified email successfully: {}", email);
+    }
     
-    /**
-     * Đăng nhập bằng email và mật khẩu:
-     * - Dùng AuthenticationManager để xác thực (ném lỗi nếu sai).
-     * - Nạp user từ DB (phòng hờ trong trường hợp khác).
-     * - Kiểm tra trạng thái tài khoản (phải ACTIVE).
-     * - Cập nhật thời điểm đăng nhập gần nhất.
-     * - Sinh access token (từ Authentication) và refresh token.
-     * - Trả về AuthResponse.
-     */
+    // --- ĐĂNG NHẬP LOCAL ---
     @Transactional
     public AuthResponse login(LoginRequest request) {
         log.info("User login attempt with email: {}", request.getEmail());
         
-        // Xác thực email/password (ném lỗi nếu không hợp lệ)
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
         
-        // Lấy user từ DB (nếu không có, coi như thông tin đăng nhập không đúng)
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Email hoặc mật khẩu không đúng"));
         
-        // Kiểm tra trạng thái tài khoản
+        if (user.getStatus() == UserStatus.PENDING_VERIFICATION) {
+             throw new UnauthorizedException("Vui lòng xác thực email trước khi đăng nhập");
+        }
+
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new UnauthorizedException("Tài khoản đã bị khóa hoặc chưa được kích hoạt");
         }
         
-        // Cập nhật thời điểm đăng nhập
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
         
-        // Sinh token
         String accessToken = jwtTokenProvider.generateAccessToken(authentication);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
         
-        log.info("User logged in successfully: {}", user.getEmail());
-        
         return buildAuthResponse(user, accessToken, refreshToken.getToken());
     }
     
-    /**
-     * Đăng nhập/đăng ký bằng Google:
-     * - Verify Google token để lấy thông tin (googleId, email, name, picture).
-     * - Tìm user theo googleId, nếu không có thì tìm theo email.
-     * - Nếu chưa có user:
-     *   + Yêu cầu chọn vai trò (CANDIDATE/RECRUITER).
-     *   + Tạo user mới (provider GOOGLE, email verified true).
-     * - Nếu đã có user:
-     *   + Cập nhật googleId/proficeImage nếu chưa có.
-     *   + Đánh dấu email đã xác thực, cập nhật lastLoginAt.
-     * - Sinh token và trả về AuthResponse.
-     */
+    // --- ĐĂNG NHẬP GOOGLE (Đã hoàn thiện) ---
     @Transactional
     public AuthResponse googleAuth(GoogleAuthRequest request) {
-        log.info("Google authentication attempt");
+        log.info("Processing Google Login");
+
+        // 1. Xác thực token với Google (Sẽ ném lỗi nếu token không hợp lệ)
+        Map<String, String> googleInfo = googleOAuthService.verifyGoogleToken(request.getGoogleToken());
         
-        // Xác thực token Google và lấy thông tin người dùng
-        Map<String, String> userInfo = googleOAuthService.verifyGoogleToken(request.getGoogleToken());
-        
-        String googleId = userInfo.get("googleId");
-        String email = userInfo.get("email");
-        String name = userInfo.get("name");
-        String pictureUrl = userInfo.get("pictureUrl");
-        
-        // Tìm user theo googleId, nếu chưa thì thử theo email
-        User user = userRepository.findByGoogleId(googleId)
-                .or(() -> userRepository.findByEmail(email))
-                .orElse(null);
-        
+        String email = googleInfo.get("email");
+        String googleId = googleInfo.get("googleId");
+        String name = googleInfo.get("name");
+        String pictureUrl = googleInfo.get("pictureUrl");
+
+        // 2. Kiểm tra hoặc Tạo user mới
+        User user = userRepository.findByEmail(email).orElse(null);
+
         if (user == null) {
-            // Tạo user mới từ Google (cần vai trò cho lần đầu)
-            if (request.getUserRole() == null) {
-                throw new AuthException("Vui lòng chọn loại tài khoản (Ứng viên hoặc Nhà tuyển dụng)");
-            }
-            
+            // == User mới ==
+            log.info("Creating new user from Google: {}", email);
             user = User.builder()
                     .fullName(name)
                     .email(email)
-                    // Đặt mật khẩu ngẫu nhiên (không dùng để login trực tiếp)
-                    .password(passwordEncoder.encode("GOOGLE_AUTH_" + UUID.randomUUID()))
+                    .password(passwordEncoder.encode("GOOGLE_" + UUID.randomUUID())) // Mật khẩu ngẫu nhiên
+                    .userRole(request.getUserRole() != null ? request.getUserRole() : UserRole.CANDIDATE)
+                    .authProvider(AuthProvider.GOOGLE)
                     .googleId(googleId)
                     .profileImageUrl(pictureUrl)
-                    .userRole(request.getUserRole())
-                    .authProvider(AuthProvider.GOOGLE)
-                    .status(UserStatus.ACTIVE)
+                    .status(UserStatus.ACTIVE)      // Google đã xác thực nên Active luôn
                     .isEmailVerified(true)
                     .build();
-            
             user = userRepository.save(user);
-            log.info("New user created via Google auth: {}", email);
         } else {
-            // Cập nhật thông tin cho user đã tồn tại
+            // == User cũ ==
+            log.info("Updating existing user with Google info: {}", email);
+            // Link tài khoản Google nếu chưa có
             if (user.getGoogleId() == null) {
                 user.setGoogleId(googleId);
+                user.setAuthProvider(AuthProvider.GOOGLE);
             }
-            if (user.getProfileImageUrl() == null || user.getProfileImageUrl().isEmpty()) {
+            // Cập nhật Avatar
+            if (pictureUrl != null) {
                 user.setProfileImageUrl(pictureUrl);
             }
-            user.setIsEmailVerified(true);
+            // Kích hoạt tài khoản nếu đang chờ xác thực
+            if (user.getStatus() != UserStatus.ACTIVE) {
+                user.setStatus(UserStatus.ACTIVE);
+                user.setIsEmailVerified(true);
+            }
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
-            log.info("Existing user logged in via Google: {}", email);
         }
-        
-        // Sinh token
+
+        // 3. Tạo Token hệ thống
         String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
-        
+
         return buildAuthResponse(user, accessToken, refreshToken.getToken());
     }
-    
-    /**
-     * Làm mới access token từ refresh token:
-     * - Tìm refresh token theo chuỗi được gửi lên.
-     * - Verify hạn dùng của refresh token (ném lỗi nếu hết hạn).
-     * - Sinh access token mới từ email người dùng.
-     * - Trả về AuthResponse với access token mới và refresh token cũ.
-     */
+
+    // --- LÀM MỚI TOKEN ---
     @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         String requestRefreshToken = request.getRefreshToken();
-        
         RefreshToken refreshToken = refreshTokenService.findByToken(requestRefreshToken);
         refreshToken = refreshTokenService.verifyExpiration(refreshToken);
-        
         User user = refreshToken.getUser();
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
-        
         return buildAuthResponse(user, newAccessToken, requestRefreshToken);
     }
-    
-    /**
-     * Đăng xuất người dùng:
-     * - Xóa các refresh token của user (vô hiệu hóa phiên đăng nhập).
-     */
+
+    // --- ĐĂNG XUẤT ---
     @Transactional
     public void logout(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng"));
-        
         refreshTokenService.deleteByUser(user);
-        log.info("User logged out: {}", email);
     }
-    
-    /**
-     * Yêu cầu quên mật khẩu:
-     * - Tìm user theo email.
-     * - Tạo password reset token (UUID) hết hạn sau 24h.
-     * - Lưu DB và  gửi email đường dẫn đặt lại mật khẩu.
-     */
+
+    // --- QUÊN MẬT KHẨU ---
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với email này"));
-        
-        // Sinh reset token
         String token = UUID.randomUUID().toString();
+        // Tạo token hết hạn sau 24h
         PasswordResetToken resetToken = PasswordResetToken.builder()
                 .token(token)
                 .user(user)
                 .expiryDate(LocalDateTime.now().plusHours(24))
                 .used(false)
                 .build();
-        
         passwordResetTokenRepository.save(resetToken);
         
-        // Gửi email chứa link đặt lại mật khẩu (đính kèm token)
-        log.info("Password reset token generated for: {}", user.getEmail());
+        emailService.sendResetPasswordEmail(user.getEmail(), token);
     }
-    
-    /**
-     * Đặt lại mật khẩu:
-     * - Tìm PasswordResetToken theo token.
-     * - Kiểm tra đã dùng hay chưa, còn hạn hay không.
-     * - Mã hóa và cập nhật mật khẩu user.
-     * - Đánh dấu token đã dùng để tránh tái sử dụng.
-     */
+
+    // --- ĐẶT LẠI MẬT KHẨU ---
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
@@ -294,7 +239,6 @@ public class AuthService {
         if (resetToken.getUsed()) {
             throw new InvalidTokenException("Token đã được sử dụng");
         }
-        
         if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new InvalidTokenException("Token đã hết hạn");
         }
@@ -305,15 +249,9 @@ public class AuthService {
         
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
-        
-        log.info("Password reset successfully for: {}", user.getEmail());
     }
-    
-    /**
-     * buildAuthResponse: Chuẩn hóa dữ liệu trả về cho client sau khi xác thực.
-     * - Build UserResponse từ entity User.
-     * - Build AuthResponse chứa accessToken, refreshToken, tokenType, expiresIn.
-     */
+
+    // Helper: Build response object
     private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {
         UserResponse userResponse = UserResponse.builder()
                 .id(user.getId())
@@ -326,7 +264,6 @@ public class AuthService {
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
                 .build();
-        
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -334,5 +271,5 @@ public class AuthService {
                 .expiresIn(jwtTokenProvider.getAccessTokenExpiration())
                 .user(userResponse)
                 .build();
-       }
+    }
 }
