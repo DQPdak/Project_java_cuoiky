@@ -1,41 +1,52 @@
 package app.ai.service.cv.gemini.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MatchResult {
-    // --- PHẦN 1: SỐ LIỆU THỐNG KÊ (STATISTICS) ---
-
-    // 1. Điểm số tổng quan (0-100)
+    // Thống kê cơ bản
     private int matchPercentage;
-
-    // 2. Tổng số skill Job yêu cầu (Mẫu số)
     private int totalRequiredSkills;
 
-    // 3. Kỹ năng khớp (CV có + Job cần) -> Tử số
+    // --- 5 CỘT KỸ NĂNG THEO YÊU CẦU ---
+
+    // 1. Kỹ năng ĐÁP ỨNG (Job cần + CV có) - Cả Cứng & Mềm
     private int matchedSkillsCount;
-    private List<String> matchedSkillsList; 
+    @Builder.Default
+    private List<String> matchedSkillsList = new ArrayList<>();
 
-    // 4. Kỹ năng thiếu (Job cần + CV không có) -> Bị trừ điểm
+    // 2. Kỹ năng THIẾU (Job cần + CV không có) - Cả Cứng & Mềm
     private int missingSkillsCount;
-    private List<String> missingSkillsList;
+    @Builder.Default
+    private List<String> missingSkillsList = new ArrayList<>();
     
-    // 5. Kỹ năng thừa (CV có + Job không cần) -> Không tính điểm
-    private int extraSkillsCount;
-    private List<String> extraSkillsList;   
+    // 3. Kỹ năng CHUYÊN MÔN KHÁC (CV có + Job không cần) - Chỉ Hard Skills
+    private int otherHardSkillsCount;
+    @Builder.Default
+    private List<String> otherHardSkillsList = new ArrayList<>();   
 
-    // --- PHẦN 2: NỘI DUNG PHÂN TÍCH (CONTENT) ---
+    // 4. Kỹ năng MỀM KHÁC (CV có + Job không cần) - Chỉ Soft Skills
+    private int otherSoftSkillsCount;
+    @Builder.Default
+    private List<String> otherSoftSkillsList = new ArrayList<>(); 
 
-    // 6. Đánh giá chung (Ngắn gọn - Tiếng Việt)
-    // Tóm tắt điểm mạnh, điểm yếu chí mạng
+    // 5. Kỹ năng GỢI Ý THÊM (Cả Job & CV đều không có, AI đề xuất cho thực tế)
+    private int recommendedSkillsCount;
+    @Builder.Default
+    private List<String> recommendedSkillsList = new ArrayList<>();
+
+    // Nội dung tư vấn
     private String evaluation; 
-
-    // [THÊM MỚI] 7. Lộ trình học tập chi tiết (Dạng Markdown - Tiếng Việt)
-    // Chứa kế hoạch hành động từng tuần để lấp lỗ hổng kỹ năng
     private String learningPath; 
-
-    // [THÊM MỚI] 8. Lời khuyên sự nghiệp (Tiếng Việt)
-    // Về thái độ, cách phỏng vấn, deal lương...
     private String careerAdvice; 
 }

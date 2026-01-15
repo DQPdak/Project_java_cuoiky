@@ -2,7 +2,6 @@ package app.ai.service.cv.gemini;
 
 import app.ai.service.cv.gemini.dto.GeminiResponse;
 import app.ai.service.cv.gemini.dto.MatchResult;
-import app.ai.service.cv.gemini.dto.analysis.CareerAdviceResult;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,34 +29,38 @@ public class GeminiService {
      */
     public GeminiResponse parseCV(String rawText) {
         String prompt = """
-                Bạn là một trợ lý nhân sự chuyên nghiệp (HR Assistant).
-                Nhiệm vụ: Trích xuất thông tin từ văn bản CV dưới đây thành định dạng JSON chuẩn.
-                
-                NỘI DUNG CV:
-                %s
-                
-                YÊU CẦU ĐẦU RA (JSON FORMAT ONLY):
-                {
-                  "contact": {
-                    "name": "Họ tên đầy đủ",
-                    "email": "Email",
-                    "phoneNumber": "Số điện thoại",
-                    "address": "Địa chỉ (nếu có)",
-                    "linkedIn": "Link LinkedIn (nếu có)"
-                  },
-                  "skills": ["Kỹ năng A", "Kỹ năng B", ...],
-                  "experiences": [
-                    {
-                      "company": "Tên công ty",
-                      "role": "Vị trí",
-                      "startDate": "dd/MM/yyyy hoặc MM/yyyy",
-                      "endDate": "dd/MM/yyyy hoặc Present",
-                      "description": "Mô tả công việc"
-                    }
-                  ]
-                }
-                Chỉ trả về JSON, không kèm lời dẫn.
-                """.formatted(rawText);
+              Bạn là một trợ lý nhân sự chuyên nghiệp (HR Assistant).
+              Nhiệm vụ: Trích xuất thông tin từ văn bản CV dưới đây thành JSON hợp lệ.
+
+              NỘI DUNG CV:
+              %s
+
+              YÊU CẦU:
+              - Chỉ trả về JSON hợp lệ, không thêm lời chào, không thêm Markdown, không giải thích.
+              - JSON phải theo đúng cấu trúc sau:
+
+              {
+                "contact": {
+                  "name": "Họ tên đầy đủ",
+                  "email": "Email",
+                  "phoneNumber": "Số điện thoại",
+                  "address": "Địa chỉ (nếu có)",
+                  "linkedIn": "Link LinkedIn (nếu có)"
+                },
+                "skills": ["Kỹ năng A", "Kỹ năng B", ...],
+                "experiences": [
+                  {
+                    "company": "Tên công ty",
+                    "role": "Vị trí",
+                    "startDate": "dd/MM/yyyy hoặc MM/yyyy",
+                    "endDate": "dd/MM/yyyy hoặc Present",
+                    "description": "Mô tả công việc"
+                  }
+                ]
+              }
+              **LƯU Ý QUAN TRONG CHỈ TRẢ VỀ DỮ LIỆU JSON NGHIÊM CẤM CÁC DỮ LIỆU KHÁC
+              """.formatted(rawText);
+
 
         return parseResponse(prompt, GeminiResponse.class);
     }
@@ -90,49 +93,65 @@ public class GeminiService {
      */
     public MatchResult matchCVWithJob(String cvText, String jobDescription, String jobRequirements) {
        String prompt = """
-    Bạn là một Hệ thống Chấm điểm Tuyển dụng Tự động. Nhiệm vụ: So sánh CV với Job Requirements.
+                Bạn là Chuyên gia Tuyển dụng (HR Tech). Hãy phân tích CV so với JD và phân loại kỹ năng vào 5 NHÓM riêng biệt.
+                --- CẢNH BÁO QUAN TRỌNG ---
+                  BẠN LÀ MỘT API TRẢ VỀ DỮ LIỆU. KHÔNG ĐƯỢC CHÀO HỎI. KHÔNG ĐƯỢC GIẢI THÍCH.
+                  CHỈ TRẢ VỀ DUY NHẤT MỘT KHỐI JSON HỢP LỆ.
+                  VIỆC THÊM BẤT KỲ VĂN BẢN NÀO NGOÀI JSON SẼ LÀM HỎNG HỆ THỐNG.
+                --- LOGIC PHÂN LOẠI 5 CỘT (BẮT BUỘC) ---
+                1. **matchedSkillsList** (ĐÁP ỨNG): 
+                  - Kỹ năng (Cả Cứng & Mềm) mà Job YÊU CẦU và CV ĐÃ CÓ.
 
-    --- QUY TẮC BẮT BUỘC ---
-    1. **NGÔN NGỮ**: Các trường 'evaluation', 'learningPath', 'careerAdvice' BẮT BUỘC viết bằng **TIẾNG VIỆT**.
-    2. **DANH SÁCH**: Các trường List (matchedSkillsList...) không được để null. Nếu rỗng thì để [].
-    3. **TÍNH ĐIỂM**:
-       - Kỹ năng (70%%): (Trùng khớp / Tổng yêu cầu) * 70.
-       - Kinh nghiệm (30%%): So sánh số năm kinh nghiệm.
-       - KHÔNG trừ điểm nếu thiếu kỹ năng mà Job KHÔNG yêu cầu.
+                2. **missingSkillsList** (THIẾU):
+                  - Kỹ năng (Cả Cứng & Mềm) mà Job YÊU CẦU nhưng CV KHÔNG CÓ.
 
-    --- CẤU TRÚC JSON MẪU (BẮT BUỘC ĐIỀN ĐỦ) ---
-    Hãy trả về JSON đúng cấu trúc sau:
+                3. **otherHardSkillsList** (CHUYÊN MÔN KHÁC):
+                  - Kỹ năng CHUYÊN MÔN (Hard Skills/Tech Stack/Công cụ) mà CV CÓ nhưng Job KHÔNG yêu cầu.
+                  - Ví dụ: Job cần Java, CV có thêm Python -> Python vào đây.
 
-    {
-      "matchPercentage": (Integer 0-100),
-      "totalRequiredSkills": (Integer),
-      
-      "matchedSkillsCount": (Integer),
-      "matchedSkillsList": ["Skill A", "Skill B", "Skill C"],
+                4. **otherSoftSkillsList** (KỸ NĂNG MỀM KHÁC):
+                  - Kỹ năng MỀM (Soft Skills/Ngôn ngữ/Thái độ) mà CV CÓ nhưng Job KHÔNG yêu cầu.
+                  - Ví dụ: Leadership, English, Teamwork (nếu Job không ghi).
 
-      "missingSkillsCount": (Integer),
-      "missingSkillsList": ["Skill D", "Skill E"],
+                5. **recommendedSkillsList** (GỢI Ý THÊM):
+                  - Các kỹ năng (Cứng hoặc Mềm) mà CẢ Job và CV ĐỀU KHÔNG CÓ.
+                  - NHƯNG bạn (AI) thấy cần thiết cho vị trí này trong thực tế công việc hiện đại.
+                  - BẮT BUỘC phải gợi ý ít nhất 3 kỹ năng, gồm cả Hard Skills (ví dụ: CI/CD, Cloud, Monitoring, Security) và Soft Skills (ví dụ: Communication, Critical Thinking, Time Management).
+                  - Nếu không chắc, hãy đưa ra gợi ý phổ biến trong ngành liên quan hoặc các kỹ năng mềm phổ biến.
 
-      "extraSkillsCount": (Integer),
-      "extraSkillsList": ["Skill F", "Skill G"],
 
-      "evaluation": "Viết 3 đoạn văn ngắn bằng TIẾNG VIỆT nhận xét điểm mạnh và điểm yếu.",
-      
-      "learningPath": "Viết Lộ trình học tập chi tiết dạng Markdown bằng TIẾNG VIỆT. Chia theo tuần (Tuần 1, Tuần 2...). Tập trung vào missingSkillsList.",
-      
-      "careerAdvice": "Lời khuyên ngắn gọn bằng TIẾNG VIỆT về thái độ và định hướng."
-    }
+                --- DỮ LIỆU ĐẦU VÀO ---
+                [JOB]
+                %s
+                %s
+                [CV]
+                %s
 
-    --- DỮ LIỆU ĐẦU VÀO ---
-    [JOB DESCRIPTION]
-    %s
+                --- OUTPUT JSON ---
+                {
+                  "matchPercentage": (0-100),
+                  "totalRequiredSkills": (int),
+                  
+                  "matchedSkillsCount": (int),
+                  "matchedSkillsList": ["A", "B"],
 
-    [JOB REQUIREMENTS]
-    %s
+                  "missingSkillsCount": (int),
+                  "missingSkillsList": ["C"],
 
-    [CANDIDATE CV]
-    %s
-    """.formatted(jobDescription, jobRequirements, cvText);
+                  "otherHardSkillsCount": (int),
+                  "otherHardSkillsList": ["D"],
+
+                  "otherSoftSkillsCount": (int),
+                  "otherSoftSkillsList": ["E"],
+
+                  "recommendedSkillsCount": (int),
+                  "recommendedSkillsList": ["F", "G"],
+
+                  "evaluation": "Nhận xét tiếng Việt...",
+                  "learningPath": "Lộ trình học tập (Markdown Tiếng Việt)...",
+                  "careerAdvice": "Lời khuyên (Tiếng Việt)..."
+                }
+                """.formatted(jobDescription, jobRequirements, cvText);
 
        return parseResponse(prompt, MatchResult.class);
     }

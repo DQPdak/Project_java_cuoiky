@@ -51,12 +51,32 @@ public class GeminiApiClient {
             // 3. Gọi API
             String url = GEMINI_API_URL + apiKey;
             ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+            
+            if (response.getBody() == null || response.getBody().isEmpty()) {
+                throw new RuntimeException("Gemini API trả về response rỗng");
+            }
 
             // 4. Lấy phần text trả lời từ cấu trúc phức tạp của Google
             var jsonNode = objectMapper.readTree(response.getBody());
-            String aiTextResponse = jsonNode.path("candidates").get(0)
-                    .path("content").path("parts").get(0)
-                    .path("text").asText();
+            
+            // Kiểm tra cấu trúc response có đầy đủ không
+            if (jsonNode.path("candidates").isEmpty() || !jsonNode.path("candidates").has(0)) {
+                log.error("API response không có candidates: {}", response.getBody());
+                throw new RuntimeException("Gemini API response không hợp lệ: thiếu candidates");
+            }
+            
+            var candidate = jsonNode.path("candidates").get(0);
+            if (!candidate.has("content") || candidate.path("content").path("parts").isEmpty()) {
+                log.error("API response không có content/parts: {}", response.getBody());
+                throw new RuntimeException("Gemini API response không hợp lệ: thiếu content hoặc parts");
+            }
+            
+            String aiTextResponse = candidate.path("content").path("parts").get(0).path("text").asText();
+            
+            if (aiTextResponse == null || aiTextResponse.isEmpty()) {
+                log.error("API response text trống: {}", response.getBody());
+                throw new RuntimeException("Gemini API response không hợp lệ: text trống");
+            }
 
             // 5. Làm sạch Markdown (```json)
             return aiTextResponse.replaceAll("```json", "")
