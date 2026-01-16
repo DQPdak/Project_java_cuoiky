@@ -7,7 +7,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -20,10 +19,6 @@ public class GeminiService {
 
     private final ObjectMapper objectMapper;
     private final GeminiApiClient geminiApiClient;
-
-    @Value("${gemini.api.key}") 
-    private String apiKey;
-
     /**
      * CHỨC NĂNG 1: Phân tích CV (Raw Text -> JSON Profile)
      */

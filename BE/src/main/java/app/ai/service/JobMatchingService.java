@@ -39,7 +39,6 @@ public class JobMatchingService {
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
     private final CVAnalysisResultRepository analysisRepository;
-
     /**
      * LUỒNG 1: Preview cho ứng viên (Cache -> AI -> Save Cache)
      */
@@ -47,9 +46,27 @@ public class JobMatchingService {
     public MatchResult matchCandidateWithJobAI(Long userId, String cvContent, Long jobId, String cvUrl) {
         // 1. Kiểm tra Cache
         Optional<CVAnalysisResult> existing = analysisRepository.findByUserIdAndJobPostingId(userId, jobId);
+        
+        // [CHUẨN BỊ DỮ LIỆU CANDIDATE ĐỂ GÁN VÀO KẾT QUẢ]
+        CandidateProfile profile = profileRepository.findByUserId(userId).orElse(null);
+        String cName = (profile != null) ? profile.getFullName() : "Ứng viên";
+        // Convert Experience entity sang DTO nếu cần (để hiển thị bên FE)
+        // List<ExperienceDTO> cExps = ... (như code mẫu trước)
+
         if (existing.isPresent()) {
             try {
-                return objectMapper.readValue(existing.get().getAnalysisDetails(), MatchResult.class);
+                MatchResult cachedResult = objectMapper.readValue(existing.get().getAnalysisDetails(), MatchResult.class);
+                
+                // [FIX 1] GÁN JOB TITLE KHI LẤY TỪ CACHE
+                if (existing.get().getJobPosting() != null) {
+                    cachedResult.setJobTitle(existing.get().getJobPosting().getTitle());
+                    cachedResult.setCompany(existing.get().getJobPosting().getCompany().getName()); // Nếu có trường này
+                }
+                
+                // [FIX 2] GÁN TÊN ỨNG VIÊN
+                cachedResult.setCandidateName(cName);
+                
+                return cachedResult;
             } catch (Exception e) {
                 log.warn("Lỗi đọc cache AI. Sẽ phân tích lại.");
             }
@@ -67,6 +84,16 @@ public class JobMatchingService {
             StringUtils.hasText(job.getDescription()) ? job.getDescription() : "",
             StringUtils.hasText(job.getRequirements()) ? job.getRequirements() : ""
         );
+
+        // [FIX 3] GÁN JOB TITLE VÀO KẾT QUẢ MỚI TỪ AI (QUAN TRỌNG NHẤT)
+        // Nếu thiếu dòng này, FE sẽ nhận jobTitle = null
+        result.setJobTitle(job.getTitle());
+        if (job.getCompany() != null) {
+            result.setCompany(job.getCompany().getName());
+        }
+        
+        // [FIX 4] GÁN TÊN ỨNG VIÊN
+        result.setCandidateName(cName);
 
         // 4. Lưu Cache
         try {
@@ -275,7 +302,7 @@ public class JobMatchingService {
         if (profile.getExperiences() != null) {
             var expList = profile.getExperiences().stream().map(exp -> {
                 Map<String, Object> eMap = new HashMap<>();
-                eMap.put("companyName", exp.getCompany());
+                eMap.put("company", exp.getCompany());
                 eMap.put("role", exp.getRole());
                 eMap.put("description", exp.getDescription());
                 eMap.put("startDate", exp.getStartDate() != null ? exp.getStartDate().toString() : "");

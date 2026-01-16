@@ -9,6 +9,10 @@ import java.util.Optional;
 @Repository
 public interface CVAnalysisResultRepository extends JpaRepository<CVAnalysisResult, Long> {
     
-    // Tìm kết quả đã lưu
+    // Tìm kết quả đã phân tích của User với 1 Job cụ thể
     Optional<CVAnalysisResult> findByUserIdAndJobPostingId(Long userId, Long jobPostingId);
+
+    // [MỚI] Hàm xóa sạch lịch sử phân tích cũ của User
+    // Để khi họ update CV, hệ thống buộc phải tính điểm lại từ đầu
+    void deleteByUserId(Long userId);
 }

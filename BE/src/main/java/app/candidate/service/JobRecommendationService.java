@@ -69,6 +69,8 @@ public class JobRecommendationService {
                     jobMap.put("location", job.getLocation() != null ? job.getLocation() : "Remote");
                     jobMap.put("salary", job.getSalaryRange() != null ? job.getSalaryRange() : "Thỏa thuận");
                     jobMap.put("matchScore", Math.round(score));
+                    jobMap.put("description", job.getDescription());
+                    jobMap.put("requirements", job.getRequirements());
 
                     jobMap.put("skillsFound", findMatchingSkills(candidateSkills, jobContent));
 

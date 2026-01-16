@@ -1,7 +1,6 @@
 package app.ai.service.cv;
 
 import app.ai.service.cv.extractortext.CVTextExtractor;
-import app.ai.service.cv.extractortext.Interface.IFileTextExtractor;
 import app.ai.service.cv.gemini.GeminiService; // Import lại Gemini
 import app.ai.service.cv.gemini.dto.GeminiResponse;
 import lombok.RequiredArgsConstructor;
