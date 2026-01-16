@@ -17,9 +17,14 @@ public class MatchResult {
     // Thống kê cơ bản
     private int matchPercentage;
     private int totalRequiredSkills;
+    private String jobTitle;
+    private String company;
+    private String candidateName;
+    private List<ExperienceDTO> candidateExperiences;
 
     // --- 5 CỘT KỸ NĂNG THEO YÊU CẦU ---
 
+    
     // 1. Kỹ năng ĐÁP ỨNG (Job cần + CV có) - Cả Cứng & Mềm
     private int matchedSkillsCount;
     @Builder.Default

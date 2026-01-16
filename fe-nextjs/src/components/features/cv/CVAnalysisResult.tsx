@@ -1,4 +1,3 @@
-import React from "react";
 import {
   CheckCircle,
   XCircle,
@@ -7,7 +6,6 @@ import {
   Lightbulb,
   BookOpen,
   TrendingUp,
-  BrainCircuit,
   Zap,
 } from "lucide-react";
 

@@ -9,6 +9,7 @@ import app.auth.repository.UserRepository;
 import app.candidate.dto.request.CandidateProfileUpdateRequest;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
+import app.recruitment.repository.CVAnalysisResultRepository; // [IMPORT MỚI]
 import app.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,10 @@ public class CandidateService {
     private final CandidateProfileRepository candidateProfileRepository;
     private final UserRepository userRepository;
     private final CVAnalysisService cvAnalysisService;
-    private final CloudinaryService cloudinaryService; // Inject Service Cloudinary
+    private final CloudinaryService cloudinaryService; 
+    
+    // [INJECT MỚI] Repository quản lý kết quả phân tích AI
+    private final CVAnalysisResultRepository cvAnalysisResultRepository; 
 
     @Transactional
     public CandidateProfile uploadAndAnalyzeCV(Long userId, MultipartFile file) throws Exception {
@@ -37,7 +41,6 @@ public class CandidateService {
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         // 2. Upload file lên Cloudinary trước để lấy link online
-        // (Nếu lỗi upload thì sẽ dừng luôn, không tốn tiền gọi AI)
         String cvOnlineUrl = cloudinaryService.uploadFile(file);
 
         // 3. Gọi AI phân tích nội dung file
@@ -47,8 +50,8 @@ public class CandidateService {
         CandidateProfile profile = candidateProfileRepository.findByUserId(userId)
                 .orElse(CandidateProfile.builder()
                         .user(user)
-                        .skills(new ArrayList<>())     // Init list tránh null pointer
-                        .experiences(new ArrayList<>()) // Init list tránh null pointer
+                        .skills(new ArrayList<>())     
+                        .experiences(new ArrayList<>()) 
                         .build());
 
         // 5. Cập nhật dữ liệu từ kết quả AI vào Entity
@@ -56,6 +59,11 @@ public class CandidateService {
 
         // 6. Lưu đường dẫn file online vào profile
         profile.setCvFilePath(cvOnlineUrl);
+
+        // [LOGIC MỚI] Xóa cache cũ vì người dùng vừa nộp CV mới
+        // Lần sau họ xem Job, AI sẽ phải chấm lại theo CV mới này
+        cvAnalysisResultRepository.deleteByUserId(userId);
+        log.info("Đã xóa cache phân tích cũ của user {} do upload CV mới", userId);
 
         // 7. Lưu tất cả xuống Database
         return candidateProfileRepository.save(profile);
@@ -65,19 +73,15 @@ public class CandidateService {
         try {
             // --- A. Cập nhật Contact (Tên, Email, SĐT...) ---
             if (result.getContact() != null) {
-                // Tên
                 if (result.getContact().getName() != null && !result.getContact().getName().isEmpty()) {
                     profile.setFullName(result.getContact().getName());
                 }
-                // Email
                 if (result.getContact().getEmail() != null && !result.getContact().getEmail().isEmpty()) {
                     profile.setEmail(result.getContact().getEmail());
                 }
-                // Số điện thoại
                 if (result.getContact().getPhoneNumber() != null && !result.getContact().getPhoneNumber().isEmpty()) {
                     profile.setPhoneNumber(result.getContact().getPhoneNumber());
                 }
-                // Địa chỉ & LinkedIn
                 if (result.getContact().getAddress() != null) {
                     profile.setAddress(result.getContact().getAddress());
                 }
@@ -88,33 +92,25 @@ public class CandidateService {
 
             // --- B. Cập nhật Skills ---
             if (result.getSkills() != null && !result.getSkills().isEmpty()) {
-                // Thay thế toàn bộ skill cũ bằng skill mới từ CV
                 profile.setSkills(new ArrayList<>(result.getSkills()));
             }
 
             // --- C. Cập nhật Experience (Quan trọng) ---
             if (result.getExperiences() != null) {
-                // 1. Xóa danh sách kinh nghiệm cũ để tránh trùng lặp
                 if (profile.getExperiences() != null) {
                     profile.getExperiences().clear();
                 } else {
                     profile.setExperiences(new ArrayList<>());
                 }
 
-                // 2. Map từng item từ DTO (AI) sang Entity (DB)
                 for (ExperienceDTO dto : result.getExperiences()) {
                     Experience entity = new Experience();
-                    
                     entity.setCompany(dto.getCompany());
                     entity.setRole(dto.getRole());
                     entity.setStartDate(dto.getStartDate());
                     entity.setEndDate(dto.getEndDate());
                     entity.setDescription(dto.getDescription());
-                    
-                    // QUAN TRỌNG: Gắn quan hệ ngược (Foreign Key)
                     entity.setCandidateProfile(profile); 
-                    
-                    // Thêm vào list
                     profile.getExperiences().add(entity);
                 }
             }
@@ -127,7 +123,6 @@ public class CandidateService {
 
         } catch (Exception e) {
             log.error("Lỗi khi map dữ liệu AI sang Profile: ", e);
-            // Không throw exception ở đây để đảm bảo các dữ liệu khác (như file path) vẫn được lưu
         }
     }
 
@@ -139,41 +134,36 @@ public class CandidateService {
         // Cập nhật thông tin cơ bản
         if (request.getAboutMe() != null) profile.setAboutMe(request.getAboutMe());
         if (request.getPhoneNumber() != null) profile.setPhoneNumber(request.getPhoneNumber());
-        if (request.getAddress() != null) profile.setAddress(request.getAddress()); // Cập nhật địa chỉ
-
-        // --- CẬP NHẬT 2 LINK ---
+        if (request.getAddress() != null) profile.setAddress(request.getAddress()); 
         if (request.getLinkedInUrl() != null) profile.setLinkedInUrl(request.getLinkedInUrl());
 
         // Cập nhật JSON fields
         if (request.getSkills() != null) profile.setSkills(request.getSkills());
         if (request.getExperiences() != null) {
-            // 1. Xóa list cũ (để thay thế hoàn toàn)
             if (profile.getExperiences() != null) {
                 profile.getExperiences().clear();
             } else {
                 profile.setExperiences(new ArrayList<>());
             }
 
-            // 2. Convert từng Map trong Request thành Object Experience
             List<Map<String, Object>> rawExps = request.getExperiences();
             
             for (Map<String, Object> expMap : rawExps) {
                 Experience exp = new Experience();
-                // Lấy dữ liệu từ Map và ép kiểu về String (kiểm tra null an toàn)
                 exp.setCompany((String) expMap.getOrDefault("companyName", ""));
                 exp.setRole((String) expMap.getOrDefault("role", ""));
                 exp.setDescription((String) expMap.getOrDefault("description", ""));
                 exp.setStartDate((String) expMap.getOrDefault("startDate", ""));
                 exp.setEndDate((String) expMap.getOrDefault("endDate", ""));
                 
-                // Quan trọng: Gán ngược lại profile cha để Hibernate hiểu quan hệ
                 exp.setCandidateProfile(profile);
-                
-                // Thêm vào list
                 profile.getExperiences().add(exp);
             }
         }
-        // if (request.getEducations() != null) profile.setEducations(request.getEducations());
+
+        // [LOGIC MỚI] Hồ sơ thay đổi -> Điểm cũ sai -> Xóa cache
+        cvAnalysisResultRepository.deleteByUserId(userId);
+        log.info("Đã xóa cache phân tích cũ của user {} do update profile", userId);
 
         return candidateProfileRepository.save(profile);
     }
