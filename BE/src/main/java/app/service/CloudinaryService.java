@@ -29,12 +29,13 @@ public class CloudinaryService {
             }
 
             // Upload file lên Cloudinary
-            Map uploadResult = cloudinary.uploader().upload(
+            @SuppressWarnings("unchecked")
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(
                 file.getBytes(),
                 ObjectUtils.asMap(
                     "resource_type", resourceType,
-                    "folder", "phantichcv",  // Chỉ định folder lưu trên Cloudinary
-                    "public_id", UUID.randomUUID().toString() // Tên file duy nhất
+                    "folder", "phantichcv", 
+                    "public_id", UUID.randomUUID().toString()
                 )
             );
 

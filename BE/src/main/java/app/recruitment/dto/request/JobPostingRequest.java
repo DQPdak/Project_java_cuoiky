@@ -4,7 +4,6 @@ import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Future;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 public class JobPostingRequest {
