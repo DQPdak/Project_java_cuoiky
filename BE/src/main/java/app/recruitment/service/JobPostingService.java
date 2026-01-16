@@ -2,8 +2,7 @@ package app.recruitment.service;
 
 import app.recruitment.dto.request.JobPostingRequest;
 import app.recruitment.dto.response.JobPostingResponse;
-import app.recruitment.entity.JobPosting;
-import app.recruitment.entity.enums.JobStatus; // Import Enum
+import app.recruitment.entity.JobPosting; // Import Enum
 
 import java.util.List;
 import java.util.Optional;

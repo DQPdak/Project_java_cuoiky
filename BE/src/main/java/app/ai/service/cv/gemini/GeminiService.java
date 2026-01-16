@@ -151,6 +151,10 @@ public class GeminiService {
        return parseResponse(prompt, MatchResult.class);
     }
 
+    public String callAiChat(String prompt) {
+        return geminiApiClient.generateContent(prompt);
+    }
+
     // --- HÀM HELPER ---
     private <T> T parseResponse(String prompt, Class<T> responseType) {
         try {

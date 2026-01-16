@@ -38,6 +38,7 @@ public class JobPosting {
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "job_posting_skills", joinColumns = @JoinColumn(name = "job_id"))
     @Column(name = "skill_name")
+    @Builder.Default
     private List<String> extractedSkills = new ArrayList<>();
     // --- QUẢN LÝ TRẠNG THÁI ---
     @Enumerated(EnumType.STRING)
