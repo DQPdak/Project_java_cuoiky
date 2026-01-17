@@ -7,6 +7,9 @@ import java.util.List;
 
 @Repository
 public interface IInterviewSessionRepository extends JpaRepository<InterviewSession, Long> {
-    // Lấy lịch sử phỏng vấn của 1 user (Mới nhất lên đầu)
+    // Tìm session theo User ID và Job ID (Mới nhất lên đầu)
+    List<InterviewSession> findByUserIdAndJobPostingIdOrderByCreatedAtDesc(Long userId, Long jobPostingId);
+
+    // Tìm tất cả session của user (cái cũ nếu cần dùng chỗ khác)
     List<InterviewSession> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

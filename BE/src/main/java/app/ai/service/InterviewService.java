@@ -5,22 +5,23 @@ import app.ai.models.InterviewSession;
 import app.ai.repository.IInterviewMessageRepository;
 import app.ai.repository.IInterviewSessionRepository;
 import app.ai.service.cv.gemini.GeminiService;
-import app.ai.service.prompt.InterviewPromptBuilder; // Import Builder
+import app.ai.service.prompt.InterviewPromptBuilder;
 import app.auth.model.User;
 import app.auth.repository.UserRepository;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
 import app.recruitment.entity.JobPosting;
 import app.recruitment.repository.JobPostingRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List; // Đã thêm import List
 import java.util.Map;
 
 @Service
@@ -33,9 +34,9 @@ public class InterviewService {
     private final JobPostingRepository jobRepository;
     private final UserRepository userRepository;
     private final CandidateProfileRepository profileRepository;
-    
+
     private final GeminiService geminiService;
-    private final InterviewPromptBuilder promptBuilder; // [NEW] Inject Builder
+    private final InterviewPromptBuilder promptBuilder;
     private final ObjectMapper objectMapper;
 
     // --- 1. BẮT ĐẦU PHỎNG VẤN ---
@@ -55,18 +56,18 @@ public class InterviewService {
                 .build();
         sessionRepository.save(session);
 
-        // Lấy tên ứng viên
+        // Lấy tên ứng viên để AI chào
         String candidateName = "Ứng viên";
         CandidateProfile profile = profileRepository.findByUserId(userId).orElse(null);
         if (profile != null && profile.getFullName() != null) {
             candidateName = profile.getFullName();
         }
 
-        // [LOGIC MỚI] Dùng Builder để tạo Prompt
+        // Tạo Prompt bắt đầu
         String companyName = (job.getCompany() != null) ? job.getCompany().getName() : "Công ty Công nghệ";
         String prompt = promptBuilder.buildStartPrompt(companyName, job.getTitle(), candidateName);
 
-        // Gọi AI
+        // Gọi AI lấy lời chào
         String aiGreeting = geminiService.callAiChat(prompt);
 
         // Lưu và trả về
@@ -87,7 +88,7 @@ public class InterviewService {
         // A. Lưu tin nhắn User
         saveMessage(session, "USER", userContent);
 
-        // B. [LOGIC MỚI] Dùng Builder tạo Prompt kèm lịch sử
+        // B. Tạo Prompt kèm lịch sử chat
         String prompt = promptBuilder.buildChatPrompt(session.getJobPosting(), session.getMessages());
 
         // C. Gọi AI
@@ -103,7 +104,7 @@ public class InterviewService {
         InterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
-        // A. [LOGIC MỚI] Dùng Builder tạo Prompt chấm điểm
+        // A. Tạo Prompt chấm điểm
         String gradingPrompt = promptBuilder.buildGradingPrompt(session.getMessages());
 
         // B. Gọi AI
@@ -111,26 +112,42 @@ public class InterviewService {
 
         // C. Parse kết quả JSON
         try {
-            // Làm sạch JSON nếu AI lỡ thêm Markdown
+            // Làm sạch JSON nếu AI lỡ thêm Markdown (```json ... ```)
             if (resultJson.contains("```json")) {
                 resultJson = resultJson.replace("```json", "").replace("```", "").trim();
+            } else if (resultJson.contains("```")) {
+                 resultJson = resultJson.replace("```", "").trim();
             }
-            
+
             Map<String, Object> map = objectMapper.readValue(resultJson, new TypeReference<Map<String, Object>>(){});
-            
+
             session.setFinalScore((Integer) map.get("score"));
             session.setFeedback((String) map.get("feedback"));
             session.setStatus("COMPLETED");
-            
+
         } catch (Exception e) {
             log.error("Lỗi chấm điểm phỏng vấn: ", e);
-            // Fallback nếu lỗi
+            // Fallback nếu lỗi parse JSON
             session.setFinalScore(0);
             session.setFeedback("Hệ thống gặp lỗi khi chấm điểm. Vui lòng thử lại sau.");
             session.setStatus("COMPLETED");
         }
 
         return sessionRepository.save(session);
+    }
+
+    // --- 4. LẤY DỮ LIỆU (GET) ---
+
+    // Lấy chi tiết cuộc trò chuyện (để xem lại lịch sử chat)
+    public InterviewSession getSessionDetail(Long sessionId) {
+        return sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên phỏng vấn"));
+    }
+
+    // Lấy danh sách lịch sử phỏng vấn CỦA 1 JOB CỤ THỂ (Update mới)
+    public List<InterviewSession> getHistory(Long jobId, Long userId) {
+        // Gọi hàm tìm kiếm theo cả User và Job (để hiển thị đúng trong trang chi tiết Job)
+        return sessionRepository.findByUserIdAndJobPostingIdOrderByCreatedAtDesc(userId, jobId);
     }
 
     // --- Helper ---
@@ -141,20 +158,11 @@ public class InterviewService {
                 .content(content)
                 .sentAt(LocalDateTime.now())
                 .build();
-        
+
         // Cần add vào list của session để đồng bộ Hibernate cache trong cùng transaction
         if (session.getMessages() == null) session.setMessages(new ArrayList<>());
         session.getMessages().add(msg);
-        
-        return messageRepository.save(msg);
-    }
 
-    public InterviewSession getSessionDetail(Long sessionId) {
-    return sessionRepository.findById(sessionId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên phỏng vấn"));
-}
-    
-    public java.util.List<InterviewSession> getUserHistory(Long userId) {
-        return sessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return messageRepository.save(msg);
     }
 }

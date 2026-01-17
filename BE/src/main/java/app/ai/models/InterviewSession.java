@@ -5,6 +5,9 @@ import app.recruitment.entity.JobPosting;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,12 +22,20 @@ public class InterviewSession {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "job_id")
+    @JsonIgnoreProperties({
+        "extractedSkills", 
+        "applications", 
+        "recruiter",           
+        "company",              
+        "hibernateLazyInitializer", 
+        "handler"
+    })
     private JobPosting jobPosting;
 
     // Trạng thái: "ONGOING" (Đang phỏng vấn), "COMPLETED" (Đã xong)

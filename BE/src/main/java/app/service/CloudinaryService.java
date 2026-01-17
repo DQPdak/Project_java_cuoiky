@@ -34,7 +34,7 @@ public class CloudinaryService {
                 file.getBytes(),
                 ObjectUtils.asMap(
                     "resource_type", resourceType,
-                    "folder", "phantichcv", 
+                    "folder", "phantichcv/cv", 
                     "public_id", UUID.randomUUID().toString()
                 )
             );
