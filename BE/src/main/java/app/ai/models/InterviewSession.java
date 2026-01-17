@@ -24,6 +24,15 @@ public class InterviewSession {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
+    @JsonIgnoreProperties({
+        "password", 
+        "roles", 
+        "interviewSessions", 
+        "jobApplications", 
+        "hibernateLazyInitializer", 
+        "handler",
+        "candidateProfile" 
+    })
     private User user;
 
     @ManyToOne(fetch = FetchType.EAGER)

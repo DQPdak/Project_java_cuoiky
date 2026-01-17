@@ -33,7 +33,7 @@ public class CandidateMatchingController {
     public ResponseEntity<Map<Long, FastMatchResult>> getBatchScores(@RequestBody List<Long> jobIds) {
         try {
             Long userId = securityUtils.getCurrentUserId();
-            CandidateProfile profile = candidateService.getProfile(userId);
+            CandidateProfile profile = candidateService.getProfileForMatching(userId);
             
             if (profile == null) return ResponseEntity.badRequest().build();
 

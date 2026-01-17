@@ -68,7 +68,7 @@ public class CandidateService {
         // 7. Lưu tất cả xuống Database
         return candidateProfileRepository.save(profile);
     }
-
+    
     private void updateProfileFromAI(CandidateProfile profile, GeminiResponse result) {
         try {
             // --- A. Cập nhật Contact (Tên, Email, SĐT...) ---
@@ -171,5 +171,10 @@ public class CandidateService {
     public CandidateProfile getProfile(Long userId) {
         return candidateProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Profile not found for user: " + userId));
+    }
+
+    public CandidateProfile getProfileForMatching(Long userId) {
+        return candidateProfileRepository.findByUserIdWithSkills(userId)
+                .orElse(null);
     }
 }
