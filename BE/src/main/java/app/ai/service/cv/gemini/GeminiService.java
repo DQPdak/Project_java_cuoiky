@@ -19,6 +19,11 @@ public class GeminiService {
 
     private final ObjectMapper objectMapper;
     private final GeminiApiClient geminiApiClient;
+
+    // 👇 ĐỊNH NGHĨA CÁC MỨC NHIỆT ĐỘ CHUẨN
+    private static final float TEMP_STRICT = 0.0f;     // Nghiêm túc tuyệt đối (JSON, Chấm điểm)
+    private static final float TEMP_ANALYTICAL = 0.2f; // Phân tích logic (So khớp CV)
+    private static final float TEMP_BALANCED = 0.5f;   // Cân bằng (Phỏng vấn chuyên nghiệp)
     /**
      * CHỨC NĂNG 1: Phân tích CV (Raw Text -> JSON Profile)
      */
@@ -57,7 +62,7 @@ public class GeminiService {
               """.formatted(rawText);
 
 
-        return parseResponse(prompt, GeminiResponse.class);
+        return parseResponse(prompt, GeminiResponse.class, TEMP_STRICT);
     }
 
     /**
@@ -75,7 +80,7 @@ public class GeminiService {
                 """.formatted(jobDescription, jobRequirements);
 
         try {
-            String jsonString = geminiApiClient.generateContent(prompt);
+            String jsonString = geminiApiClient.generateContent(prompt, TEMP_STRICT);
            return objectMapper.readValue(jsonString, new TypeReference<List<String>>(){});
         } catch (Exception e) {
             log.error("Lỗi tách skill từ Job: ", e);
@@ -148,17 +153,17 @@ public class GeminiService {
                 }
                 """.formatted(jobDescription, jobRequirements, cvText);
 
-       return parseResponse(prompt, MatchResult.class);
+       return parseResponse(prompt, MatchResult.class,TEMP_ANALYTICAL);
     }
 
     public String callAiChat(String prompt) {
-        return geminiApiClient.generateContent(prompt);
+        return geminiApiClient.generateContent(prompt, TEMP_BALANCED);
     }
 
     // --- HÀM HELPER ---
-    private <T> T parseResponse(String prompt, Class<T> responseType) {
+   private <T> T parseResponse(String prompt, Class<T> responseType, float temperature) {
         try {
-            String jsonResponse = geminiApiClient.generateContent(prompt);
+            String jsonResponse = geminiApiClient.generateContent(prompt, temperature);
             return objectMapper.readValue(jsonResponse, responseType);
         } catch (Exception e) {
             log.error("Lỗi parse dữ liệu AI: ", e);

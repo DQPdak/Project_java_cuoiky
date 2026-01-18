@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +22,7 @@ public class JobRecommendationService {
 
     private final CandidateProfileRepository profileRepository;
     private final JobPostingRepository jobRepository;
-
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> getRecommendedJobs(Long userId) {
         // Tìm hồ sơ ứng viên
         Optional<CandidateProfile> profileOpt = profileRepository.findByUserId(userId);

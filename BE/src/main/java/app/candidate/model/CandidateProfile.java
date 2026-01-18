@@ -9,7 +9,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "candidate_profiles")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

@@ -88,6 +88,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/interview/**").permitAll()
                 .requestMatchers("/api/cv/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()
+                .requestMatchers("api/candidate/**").permitAll()
                 .anyRequest().authenticated() // còn lại cần xác thực
             )
             // Provider xác thực sử dụng UserDetailsService
