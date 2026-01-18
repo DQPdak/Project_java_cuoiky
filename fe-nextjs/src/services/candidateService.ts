@@ -41,7 +41,9 @@ export const applyJob = async (jobId: number) => {
 
 // API Lấy danh sách việc đã ứng tuyển (để hiển thị trạng thái)
 export const getMyApplications = async () => {
-  const response = await api.get("/recruitment/applications/my-applications"); // Bạn cần tạo endpoint này ở BE nếu chưa có
+  // Giả định endpoint BE là /job-applications/my-application
+  // Bạn cần kiểm tra lại file JobApplicationController.java để chắc chắn đường dẫn
+  const response = await api.get("/applications/me");
   return response.data.data;
 };
 

@@ -190,9 +190,11 @@ export default function CandidateDashboard() {
               phân tích xu hướng thị trường và đưa ra lời khuyên.
             </p>
           </div>
-          <button className="w-fit bg-white text-purple-700 py-2 px-6 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 transition relative z-10">
-            Chat với AI Coach
-          </button>
+          <Link href={`/interview/`}>
+            <button className="w-fit bg-white text-purple-700 py-2 px-6 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 transition relative z-10">
+              Chat với AI Coach
+            </button>
+          </Link>
         </div>
       </div>
 
