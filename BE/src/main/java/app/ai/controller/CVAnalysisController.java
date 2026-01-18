@@ -31,24 +31,4 @@ public class CVAnalysisController {
             return ResponseEntity.badRequest().body("Lỗi xử lý AI: " + e.getMessage());
         }
     }
-
-    // API Upload & Save (SỬA)
-    @PostMapping("/upload-cv")
-    public ResponseEntity<?> uploadCV(
-            @RequestParam("userId") Long userId,
-            @RequestParam("file") MultipartFile file) {
-        try {
-            // Xử lý logic
-            candidateService.uploadAndAnalyzeCV(userId, file);
-            
-            // 👇 SỬA: Lấy DTO trả về, không trả Entity trực tiếp
-            CandidateProfileResponse response = candidateService.getProfileDTO(userId);
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Lỗi lưu hồ sơ: " + e.getMessage());
-        }
-    }
 }
