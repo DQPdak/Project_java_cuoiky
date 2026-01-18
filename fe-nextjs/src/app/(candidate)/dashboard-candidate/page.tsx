@@ -16,14 +16,11 @@ import {
   TrendingUp,
   Star,
   ArrowRight,
-  Building,
   Sparkles,
-  Clock,
   Briefcase,
   FileText, // Icon cho mô tả
-  ListChecks, // Icon cho yêu cầu
-  CheckCircle, // Icon skill match
-  AlertCircle, // Icon skill missing
+  ListChecks,
+  User, // Icon cho yêu cầu
 } from "lucide-react";
 
 const formatTimeAgo = (dateString: string) => {
@@ -99,7 +96,7 @@ export default function CandidateDashboard() {
                 ...j,
                 matchScore: 0,
                 skillsFound: [],
-              }))
+              })),
             );
           }
         } else {
@@ -159,31 +156,22 @@ export default function CandidateDashboard() {
                   stroke="currentColor"
                   strokeWidth="4"
                   fill="transparent"
-                  className="text-gray-100"
-                />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="transparent"
                   className="text-blue-600"
-                  strokeDasharray="175.9"
-                  strokeDashoffset="35"
-                  strokeLinecap="round"
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-lg text-blue-700">
-                80%
+              <span className="absolute inset-0 flex items-center justify-center text-blue-700">
+                {/* Nếu có CV thì hiện hình File, chưa có thì hiện hình Người */}
+                <FileText size={24} strokeWidth={2.5} />
               </span>
             </div>
             <div className="text-right">
-              <p className="font-bold text-gray-800 text-lg">Hồ sơ tốt</p>
-              <p className="text-xs text-gray-500">Cập nhật thêm kỹ năng mềm</p>
+              <p className="font-bold text-gray-800 text-lg">CV Của Bạn</p>
+              <p className="text-gray-500 text-sm">
+                Xem và cập nhật CV của bạn
+              </p>
             </div>
           </div>
-          <Link href="/cv-analysis">
+          <Link href="/upload-cv">
             <button className="w-full bg-gray-50 text-blue-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-50 border border-blue-100 transition">
               Cập nhật CV ngay
             </button>

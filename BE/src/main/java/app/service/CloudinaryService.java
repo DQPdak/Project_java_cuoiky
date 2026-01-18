@@ -8,7 +8,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -18,28 +17,26 @@ public class CloudinaryService {
 
     public String uploadFile(MultipartFile file) {
         try {
-            // Xác định loại file dựa vào contentType
-            String contentType = file.getContentType();
-            String resourceType;
-
-            if (contentType != null && contentType.startsWith("image")) {
-                resourceType = "image"; // ảnh
-            } else {
-                resourceType = "raw";   // PDF, DOCX, ZIP...
+            // 1. Lấy tên file gốc (ví dụ: "CV_NguyenVanA.pdf")
+            String originalFileName = file.getOriginalFilename();
+            
+            // Xử lý trường hợp tên file bị null (ít khi xảy ra nhưng nên có)
+            if (originalFileName == null) {
+                originalFileName = "cv_file"; 
             }
 
-            // Upload file lên Cloudinary
+            // 2. Upload với tham số public_id được set cứng bằng tên file gốc
             @SuppressWarnings("unchecked")
             Map<String, Object> uploadResult = cloudinary.uploader().upload(
                 file.getBytes(),
                 ObjectUtils.asMap(
-                    "resource_type", resourceType,
-                    "folder", "phantichcv/cv", 
-                    "public_id", UUID.randomUUID().toString()
+                    "resource_type", "auto",       // Tự động nhận diện loại file
+                    "public_id", originalFileName, // ✅ QUAN TRỌNG: Ép dùng tên file gốc làm ID (để giữ đuôi .pdf/.docx)
+                    "unique_filename", true,       // Thêm ký tự ngẫu nhiên để tránh trùng lặp
+                    "folder", "phantichcv/cv"
                 )
             );
 
-            // Trả về đường dẫn URL online (https://res.cloudinary.com/...)
             return uploadResult.get("secure_url").toString();
 
         } catch (IOException e) {

@@ -14,7 +14,7 @@ export const uploadCV = async (file: File): Promise<CandidateProfile> => {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    }
+    },
   );
 
   return response.data.data;
