@@ -139,9 +139,17 @@ public class InterviewService {
     // --- 4. LẤY DỮ LIỆU (GET) ---
 
     // Lấy chi tiết cuộc trò chuyện (để xem lại lịch sử chat)
+    @Transactional(readOnly = true)
     public InterviewSession getSessionDetail(Long sessionId) {
-        return sessionRepository.findById(sessionId)
+        InterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên phỏng vấn"));
+        
+        // [FIX LỖI] "Chạm" vào danh sách để ép Hibernate tải dữ liệu ngay lập tức
+        if (session.getMessages() != null) {
+            session.getMessages().size(); 
+        }
+        
+        return session;
     }
 
     // Lấy danh sách lịch sử phỏng vấn CỦA 1 JOB CỤ THỂ (Update mới)

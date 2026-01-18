@@ -36,8 +36,9 @@ public class InterviewPromptBuilder {
           .append("1. Luôn đóng vai HR, không được thoát vai.\n")
           .append("2. Chỉ hỏi MỘT câu hỏi mỗi lượt. Đừng hỏi dồn.\n")
           .append("3. Câu hỏi cần xoáy sâu vào kinh nghiệm thực tế liên quan đến JD.\n")
-          .append("4. Giọng điệu chuyên nghiệp nhưng cởi mở.\n\n");
-
+          .append("4. Giọng điệu chuyên nghiệp nhưng cởi mở.\n\n")
+          .append("5. KIỂM SOÁT: Nếu bạn thấy đã hỏi đủ thông tin (khoảng 5-7 câu hỏi) HOẶC ứng viên chào tạm biệt, hãy kết thúc phỏng vấn.\n")
+          .append("6. BẮT BUỘC: Khi kết thúc, hãy nói lời cảm ơn và thêm ký hiệu '[[END_INTERVIEW]]' vào CUỐI CÙNG câu trả lời để hệ thống nhận biết.\n\n");
         // B. Lịch sử chat (Context Memory)
         sb.append("--- LỊCH SỬ HỘI THOẠI ---\n");
         // Lấy tối đa 20 tin nhắn gần nhất để tránh lỗi quá dài (Token limit)
