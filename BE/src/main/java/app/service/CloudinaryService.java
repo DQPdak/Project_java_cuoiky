@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID; // Import thêm để dùng nếu muốn tạo tên file ngẫu nhiên (optional)
 
 @Service
 @RequiredArgsConstructor
@@ -15,24 +16,25 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
+    /**
+     * Upload CV (Giữ nguyên logic cũ của bạn)
+     * Folder: phantichcv/cv
+     * Public ID: Tên file gốc
+     */
     public String uploadFile(MultipartFile file) {
         try {
-            // 1. Lấy tên file gốc (ví dụ: "CV_NguyenVanA.pdf")
             String originalFileName = file.getOriginalFilename();
-            
-            // Xử lý trường hợp tên file bị null (ít khi xảy ra nhưng nên có)
             if (originalFileName == null) {
                 originalFileName = "cv_file"; 
             }
 
-            // 2. Upload với tham số public_id được set cứng bằng tên file gốc
             @SuppressWarnings("unchecked")
             Map<String, Object> uploadResult = cloudinary.uploader().upload(
                 file.getBytes(),
                 ObjectUtils.asMap(
-                    "resource_type", "auto",       // Tự động nhận diện loại file
-                    "public_id", originalFileName, // ✅ QUAN TRỌNG: Ép dùng tên file gốc làm ID (để giữ đuôi .pdf/.docx)
-                    "unique_filename", true,       // Thêm ký tự ngẫu nhiên để tránh trùng lặp
+                    "resource_type", "auto",
+                    "public_id", originalFileName,
+                    "unique_filename", true,
                     "folder", "phantichcv/cv"
                 )
             );
@@ -41,6 +43,29 @@ public class CloudinaryService {
 
         } catch (IOException e) {
             throw new RuntimeException("Lỗi upload file lên Cloudinary: " + e.getMessage());
+        }
+    }
+
+    /**
+     * [MỚI] Upload Avatar
+     * Folder: avatar
+     * Public ID: Tự động (Cloudinary sinh) hoặc Random để tránh trùng
+     */
+    public String uploadAvatar(MultipartFile file) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(
+                file.getBytes(),
+                ObjectUtils.asMap(
+                    "resource_type", "image",      // Chỉ định rõ là ảnh
+                    "folder", "phantichcv/avatar"             // Yêu cầu: lưu vào folder tên "avatar"
+                )
+            );
+
+            return uploadResult.get("secure_url").toString();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi upload avatar lên Cloudinary: " + e.getMessage());
         }
     }
 }
