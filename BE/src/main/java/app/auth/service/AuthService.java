@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile; 
 
 import app.auth.dto.request.*;
 import app.auth.dto.response.AuthResponse;
@@ -22,6 +23,7 @@ import app.auth.model.enums.UserStatus;
 import app.auth.repository.PasswordResetTokenRepository;
 import app.auth.repository.UserRepository;
 import app.auth.security.JwtTokenProvider;
+import app.service.CloudinaryService;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -41,9 +43,12 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     
+    // 1. Thêm service này để upload ảnh
+    private final CloudinaryService cloudinaryService;
+    
     // --- ĐĂNG KÝ ---
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, MultipartFile avatar) { // Thêm tham số avatar
         log.info("Registering new user with email: {}", request.getEmail());
         
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -68,6 +73,23 @@ public class AuthService {
                 .verificationCode(verificationCode)
                 .build();
         
+        // --- LOGIC UPLOAD AVATAR MỚI ---
+        if (avatar != null && !avatar.isEmpty()) {
+            try {
+                // Gọi hàm uploadAvatar bên CloudinaryService
+                String avatarUrl = cloudinaryService.uploadAvatar(avatar);
+                user.setProfileImageUrl(avatarUrl);
+            } catch (Exception e) {
+                log.error("Lỗi upload avatar khi đăng ký: {}", e.getMessage());
+                // Nếu lỗi thì vẫn cho đăng ký nhưng dùng ảnh mặc định
+                user.setProfileImageUrl("https://res.cloudinary.com/dqp6v7g3r/image/upload/v1/avatar/default_avatar");
+            }
+        } else {
+            // Ảnh mặc định nếu người dùng không chọn ảnh
+            user.setProfileImageUrl("https://res.cloudinary.com/dqp6v7g3r/image/upload/v1/avatar/default_avatar");
+        }
+        // -------------------------------
+
         user = userRepository.save(user);
         
         // Gửi email xác thực
@@ -134,12 +156,11 @@ public class AuthService {
         return buildAuthResponse(user, accessToken, refreshToken.getToken());
     }
     
-    // --- ĐĂNG NHẬP GOOGLE (Đã hoàn thiện) ---
+    // --- ĐĂNG NHẬP GOOGLE ---
     @Transactional
     public AuthResponse googleAuth(GoogleAuthRequest request) {
         log.info("Processing Google Login");
 
-        // 1. Xác thực token với Google (Sẽ ném lỗi nếu token không hợp lệ)
         Map<String, String> googleInfo = googleOAuthService.verifyGoogleToken(request.getGoogleToken());
         
         String email = googleInfo.get("email");
@@ -147,37 +168,31 @@ public class AuthService {
         String name = googleInfo.get("name");
         String pictureUrl = googleInfo.get("pictureUrl");
 
-        // 2. Kiểm tra hoặc Tạo user mới
         User user = userRepository.findByEmail(email).orElse(null);
 
         if (user == null) {
-            // == User mới ==
             log.info("Creating new user from Google: {}", email);
             user = User.builder()
                     .fullName(name)
                     .email(email)
-                    .password(passwordEncoder.encode("GOOGLE_" + UUID.randomUUID())) // Mật khẩu ngẫu nhiên
+                    .password(passwordEncoder.encode("GOOGLE_" + UUID.randomUUID()))
                     .userRole(request.getUserRole() != null ? request.getUserRole() : UserRole.CANDIDATE)
                     .authProvider(AuthProvider.GOOGLE)
                     .googleId(googleId)
                     .profileImageUrl(pictureUrl)
-                    .status(UserStatus.ACTIVE)      // Google đã xác thực nên Active luôn
+                    .status(UserStatus.ACTIVE)
                     .isEmailVerified(true)
                     .build();
             user = userRepository.save(user);
         } else {
-            // == User cũ ==
             log.info("Updating existing user with Google info: {}", email);
-            // Link tài khoản Google nếu chưa có
             if (user.getGoogleId() == null) {
                 user.setGoogleId(googleId);
                 user.setAuthProvider(AuthProvider.GOOGLE);
             }
-            // Cập nhật Avatar
             if (pictureUrl != null) {
                 user.setProfileImageUrl(pictureUrl);
             }
-            // Kích hoạt tài khoản nếu đang chờ xác thực
             if (user.getStatus() != UserStatus.ACTIVE) {
                 user.setStatus(UserStatus.ACTIVE);
                 user.setIsEmailVerified(true);
@@ -186,7 +201,6 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        // 3. Tạo Token hệ thống
         String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
@@ -218,7 +232,6 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với email này"));
         String token = UUID.randomUUID().toString();
-        // Tạo token hết hạn sau 24h
         PasswordResetToken resetToken = PasswordResetToken.builder()
                 .token(token)
                 .user(user)
@@ -251,7 +264,6 @@ public class AuthService {
         passwordResetTokenRepository.save(resetToken);
     }
 
-    // Helper: Build response object
     private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {
         UserResponse userResponse = UserResponse.builder()
                 .id(user.getId())

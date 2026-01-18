@@ -1,4 +1,3 @@
-
 package app.auth.model.enums;
 
 /**
