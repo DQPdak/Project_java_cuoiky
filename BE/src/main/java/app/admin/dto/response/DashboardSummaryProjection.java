@@ -1,8 +1,9 @@
 package app.admin.dto.response;
 
 public interface DashboardSummaryProjection {
-    Long getTotalUsers();
-    Long getTotalJobs();
-    Long getTotalApplications();
-    Long getTotalArticles();
+    Long getCandidateTotal();
+    Long getRecruiterTotal();
+    Long getJobPostTotal();
+    Long getJobPostPublished();
+    Long getApplicationTotal();
 }
