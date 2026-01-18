@@ -2,7 +2,7 @@ package app.candidate.controller;
 
 import app.auth.dto.response.MessageResponse;
 import app.candidate.dto.request.CandidateProfileUpdateRequest;
-import app.candidate.model.CandidateProfile;
+import app.candidate.dto.response.CandidateProfileResponse; // 👈 Dùng DTO
 import app.candidate.service.CandidateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,21 +19,24 @@ import app.auth.repository.UserRepository;
 public class CandidateProfileController {
 
     private final CandidateService candidateService;
-    private final UserRepository userRepository; // Dùng tạm để lấy ID từ email
+    private final UserRepository userRepository;
 
     @PostMapping("/upload-cv")
     public ResponseEntity<?> uploadCV(@RequestParam("file") MultipartFile file) {
         try {
-            // Lấy User hiện tại từ Security Context
+            // Lấy User hiện tại
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Xử lý upload và phân tích
-            CandidateProfile profile = candidateService.uploadAndAnalyzeCV(user.getId(), file);
+            // 1. Xử lý upload và phân tích (Entity ẩn bên trong Service)
+            candidateService.uploadAndAnalyzeCV(user.getId(), file);
 
-            return ResponseEntity.ok(MessageResponse.success("Phân tích CV thành công", profile));
+            // 2. Gọi hàm lấy DTO an toàn để trả về FE
+            CandidateProfileResponse response = candidateService.getProfileDTO(user.getId());
+
+            return ResponseEntity.ok(MessageResponse.success("Phân tích CV thành công", response));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body(MessageResponse.error("Lỗi xử lý CV: " + e.getMessage()));
@@ -48,7 +51,8 @@ public class CandidateProfileController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         try {
-            CandidateProfile profile = candidateService.getProfile(user.getId());
+            // SỬA: Lấy DTO thay vì Entity để tránh lỗi Lazy Loading
+            CandidateProfileResponse profile = candidateService.getProfileDTO(user.getId());
             return ResponseEntity.ok(MessageResponse.success("Lấy thông tin thành công", profile));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(MessageResponse.error("Chưa có hồ sơ"));
@@ -63,7 +67,12 @@ public class CandidateProfileController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         try {
-            CandidateProfile updatedProfile = candidateService.updateProfile(user.getId(), request);
+            // 1. Thực hiện update
+            candidateService.updateProfile(user.getId(), request);
+            
+            // 2. Lấy lại dữ liệu mới nhất dạng DTO
+            CandidateProfileResponse updatedProfile = candidateService.getProfileDTO(user.getId());
+            
             return ResponseEntity.ok(MessageResponse.success("Cập nhật hồ sơ thành công", updatedProfile));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(MessageResponse.error("Lỗi cập nhật: " + e.getMessage()));

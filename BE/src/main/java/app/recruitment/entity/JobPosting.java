@@ -12,7 +12,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "job_postings")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

@@ -13,7 +13,8 @@ import app.recruitment.entity.JobPosting;
 
 @Entity
 @Table(name = "companies")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

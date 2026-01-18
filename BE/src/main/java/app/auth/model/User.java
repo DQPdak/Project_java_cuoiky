@@ -6,9 +6,10 @@ import jakarta.persistence.*; // @Entity, @Table, @Index, @Id, @GeneratedValue, 
 
 // Lombok: tự động sinh getter/setter, toString, equals/hashCode, constructor, builder...
 import lombok.AllArgsConstructor; // Tạo constructor với tất cả tham số
-import lombok.Builder;            // Hỗ trợ Builder pattern
-import lombok.Data;               // Sinh getter/setter, equals/hashCode, toString
+import lombok.Builder;            // Hỗ trợ Builder pattern           // Sinh getter/setter, equals/hashCode, toString
+import lombok.Getter;
 import lombok.NoArgsConstructor;  // Tạo constructor không tham số
+import lombok.Setter;
 
 // Spring Data JPA Auditing: tự động điền các trường thời gian tạo/sửa khi bật auditing
 import org.springframework.data.annotation.CreatedDate;        // Đánh dấu trường sẽ tự động set thời điểm tạo
@@ -34,7 +35,8 @@ import java.time.LocalDateTime;
     @Index(name = "idx_google_id", columnList = "google_id") // Index trên google_id phục vụ đăng nhập Google
 })
 @EntityListeners(AuditingEntityListener.class)
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
