@@ -25,7 +25,7 @@ public class AuthController {
     private final AuthService authService;
 
     /**
-     * ĐĂNG KÝ TÀI KHOẢN (UPDATED)
+     * ĐĂNG KÝ
      */
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MessageResponse> register(
@@ -33,31 +33,52 @@ public class AuthController {
             @RequestPart(value = "avatar", required = false) MultipartFile avatar
     ) {
         log.info("Register request received for email: {}", request.getEmail());
-        
         authService.register(request, avatar);
-
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(MessageResponse.success("Đăng ký thành công"));
+                .body(MessageResponse.success("Đăng ký thành công. Vui lòng kiểm tra email để xác thực."));
+    }
+
+    /**
+     * XÁC THỰC EMAIL
+     */
+    @PostMapping("/verify-email")
+    public ResponseEntity<MessageResponse> verifyEmail(
+            @RequestParam String email,
+            @RequestParam String code
+    ) {
+        log.info("Verify email request: {} with code: {}", email, code);
+        authService.verifyEmail(email, code);
+        return ResponseEntity.ok(MessageResponse.success("Xác thực tài khoản thành công"));
+    }
+
+    /**
+     * [MỚI] GỬI LẠI MÃ XÁC THỰC
+     * Endpoint này dùng khi người dùng không nhận được mã hoặc mã hết hạn (nếu có logic hết hạn)
+     */
+    @PostMapping("/resend-verification")
+    public ResponseEntity<MessageResponse> resendVerification(@RequestParam String email) {
+        log.info("Resend verification code request for email: {}", email);
+        authService.resendVerificationCode(email);
+        return ResponseEntity.ok(MessageResponse.success("Mã xác thực mới đã được gửi đến email của bạn"));
     }
 
     /**
      * ĐĂNG NHẬP
      */
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<MessageResponse> login(@Valid @RequestBody LoginRequest request) {
+        AuthResponse authData = authService.login(request);
+        return ResponseEntity.ok(MessageResponse.success("Đăng nhập thành công", authData));
     }
 
     /**
      * ĐĂNG NHẬP GOOGLE
      */
     @PostMapping("/google")
-    public ResponseEntity<AuthResponse> googleAuth(@Valid @RequestBody GoogleAuthRequest request) {
-        // SỬA LỖI Ở ĐÂY: gọi đúng hàm googleAuth() của service
-        AuthResponse response = authService.googleAuth(request); 
-        return ResponseEntity.ok(response);
+    public ResponseEntity<MessageResponse> googleAuth(@Valid @RequestBody GoogleAuthRequest request) {
+        AuthResponse authData = authService.googleAuth(request);
+        return ResponseEntity.ok(MessageResponse.success("Đăng nhập Google thành công", authData));
     }
 
     /**
@@ -101,9 +122,6 @@ public class AuthController {
         return ResponseEntity.ok(MessageResponse.success("Mật khẩu đã được đặt lại thành công"));
     }
 
-    /**
-     * API KIỂM TRA TRẠNG THÁI
-     */
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("Auth API is working!");
