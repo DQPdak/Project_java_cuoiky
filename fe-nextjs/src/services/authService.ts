@@ -13,31 +13,105 @@ import {
 } from "@/utils/authStorage";
 
 // --- ĐĂNG KÝ ---
+// Giữ nguyên logic Multipart, trả về BackendResponse
 export const register = async (
-  data: RegisterRequest
+  data: RegisterRequest,
+  avatarFile?: File | null
 ): Promise<BackendResponse<AuthResponseData>> => {
-  // Gọi API: POST /api/auth/register
+  const formData = new FormData();
+  
+  // Đóng gói JSON vào Blob
+  formData.append(
+    "request",
+    new Blob([JSON.stringify(data)], { type: "application/json" })
+  );
+
+  // Đính kèm file ảnh nếu có
+  if (avatarFile) {
+    formData.append("avatar", avatarFile);
+  }
+
   const response = await api.post<BackendResponse<AuthResponseData>>(
     "/auth/register",
-    data
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
   );
   return response.data;
 };
 
 // --- ĐĂNG NHẬP ---
+// Bây giờ login cũng trả về cấu trúc chuẩn BackendResponse
 export const login = async (data: LoginRequest): Promise<AuthResponseData> => {
   const response = await api.post<BackendResponse<AuthResponseData>>(
     "/auth/login",
     data
   );
+  
+  // Lấy dữ liệu từ tầng 'data' của MessageResponse
+  // response.data (axios body) -> .data (trường data của Backend)
   const authData = response.data.data;
 
-  // Lưu token nếu đăng nhập thành công
-  if (authData?.accessToken) {
+  // Nếu không có data (trường hợp lỗi logic trả về 200 nhưng data null)
+  if (!authData) {
+      throw new Error("Không nhận được dữ liệu xác thực từ server");
+  }
+
+  // Lưu token
+  if (authData.accessToken) {
     setToken(authData.accessToken);
     setRefreshToken(authData.refreshToken);
     setUserRole(authData.user.userRole);
   }
+  return authData;
+};
+
+// --- XÁC THỰC EMAIL ---
+export const verifyEmail = async (email: string, code: string) => {
+  const response = await api.post("/auth/verify-email", null, {
+    params: { email, code },
+  });
+  return response.data;
+};
+
+// --- GỬI LẠI MÃ XÁC THỰC ---
+export const resendVerification = async (email: string) => {
+  const response = await api.post("/auth/resend-verification", null, {
+    params: { email },
+  });
+  return response.data;
+};
+
+// --- ĐĂNG NHẬP GOOGLE ---
+export const googleLogin = async (
+  googleToken: string,
+  userRole: string = "CANDIDATE"
+) => {
+  // Backend giờ trả về BackendResponse
+  const response = await api.post<BackendResponse<AuthResponseData>>(
+    "/auth/google", 
+    { googleToken, userRole }
+  );
+
+  // Lấy data chuẩn hóa
+  const authData = response.data.data;
+
+  if (!authData || !authData.accessToken) {
+    console.error("❌ Không lấy được Auth Data hợp lệ:", authData);
+    throw new Error("Dữ liệu trả về từ Server không hợp lệ");
+  }
+
+  if (authData.accessToken) {
+    setToken(authData.accessToken);
+    setRefreshToken(authData.refreshToken);
+    if (authData.user) {
+      setUserRole(authData.user.userRole);
+    }
+  }
+
   return authData;
 };
 
@@ -55,64 +129,17 @@ export const logout = async () => {
   }
 };
 
-// --- QUÊN MẬT KHẨU (Gửi mail) ---
+// --- QUÊN MẬT KHẨU ---
 export const forgotPassword = async (email: string) => {
   const response = await api.post("/auth/forgot-password", { email });
   return response.data;
 };
 
-// --- ĐẶT LẠI MẬT KHẨU (Nhập token) ---
+// --- ĐẶT LẠI MẬT KHẨU ---
 export const resetPassword = async (token: string, newPassword: string) => {
   const response = await api.post("/auth/reset-password", {
     token,
     newPassword,
   });
   return response.data;
-};
-
-// --- XÁC THỰC EMAIL (Quan trọng cho bước đăng ký) ---
-export const verifyEmail = async (email: string, code: string) => {
-  // Backend yêu cầu: POST /api/auth/verify-email?email=...&code=...
-  const response = await api.post("/auth/verify-email", null, {
-    params: { email, code },
-  });
-  return response.data;
-};
-
-// --- ĐĂNG NHẬP BẰNG GOOGLE ---
-export const googleLogin = async (
-  googleToken: string,
-  userRole: string = "CANDIDATE"
-) => {
-  const response = await api.post("/auth/google", {
-    googleToken,
-    userRole,
-  });
-
-  // LOG RA CONSOLE ĐỂ KIỂM TRA (Nhấn F12 tab Console để xem)
-  console.log("👉 Raw Response from Google API:", response.data);
-
-  // FIX QUAN TRỌNG: Kiểm tra dữ liệu nằm ở đâu
-  // Ưu tiên 1: response.data.data (Nếu Backend có bọc wrapper)
-  // Ưu tiên 2: response.data (Nếu Backend trả về trực tiếp)
-  const authData = response.data.data || response.data;
-
-  // Kiểm tra kỹ xem đã lấy được accessToken chưa
-  if (!authData || !authData.accessToken) {
-    console.error("❌ Không lấy được Auth Data hợp lệ:", authData);
-    throw new Error("Dữ liệu trả về từ Server không hợp lệ");
-  }
-
-  // Lưu token vào localStorage
-  if (authData.accessToken) {
-    setToken(authData.accessToken);
-    setRefreshToken(authData.refreshToken);
-
-    // Lưu Role nếu có user
-    if (authData.user) {
-      setUserRole(authData.user.userRole);
-    }
-  }
-
-  return authData;
 };

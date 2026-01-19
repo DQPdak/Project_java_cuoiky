@@ -42,13 +42,11 @@ public class AuthService {
     private final GoogleOAuthService googleOAuthService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
-    
-    // 1. Thêm service này để upload ảnh
     private final CloudinaryService cloudinaryService;
     
     // --- ĐĂNG KÝ ---
     @Transactional
-    public AuthResponse register(RegisterRequest request, MultipartFile avatar) { // Thêm tham số avatar
+    public AuthResponse register(RegisterRequest request, MultipartFile avatar) {
         log.info("Registering new user with email: {}", request.getEmail());
         
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -68,31 +66,26 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .userRole(request.getUserRole())
                 .authProvider(AuthProvider.LOCAL)
-                .status(UserStatus.PENDING_VERIFICATION) // Chờ xác thực
+                .status(UserStatus.PENDING_VERIFICATION)
                 .isEmailVerified(false)
                 .verificationCode(verificationCode)
                 .build();
         
-        // --- LOGIC UPLOAD AVATAR MỚI ---
+        // Upload Avatar
         if (avatar != null && !avatar.isEmpty()) {
             try {
-                // Gọi hàm uploadAvatar bên CloudinaryService
                 String avatarUrl = cloudinaryService.uploadAvatar(avatar);
                 user.setProfileImageUrl(avatarUrl);
             } catch (Exception e) {
                 log.error("Lỗi upload avatar khi đăng ký: {}", e.getMessage());
-                // Nếu lỗi thì vẫn cho đăng ký nhưng dùng ảnh mặc định
                 user.setProfileImageUrl("https://res.cloudinary.com/dqp6v7g3r/image/upload/v1/avatar/default_avatar");
             }
         } else {
-            // Ảnh mặc định nếu người dùng không chọn ảnh
             user.setProfileImageUrl("https://res.cloudinary.com/dqp6v7g3r/image/upload/v1/avatar/default_avatar");
         }
-        // -------------------------------
 
         user = userRepository.save(user);
         
-        // Gửi email xác thực
         emailService.sendVerificationEmail(user.getEmail(), verificationCode);
         
         log.info("User registered successfully via email, waiting for verification: {}", user.getId());
@@ -113,18 +106,38 @@ public class AuthService {
             throw new AuthException("Tài khoản đã được xác thực trước đó");
         }
 
-        // Kiểm tra mã xác thực
         if (user.getVerificationCode() == null || !user.getVerificationCode().equals(code)) {
             throw new InvalidTokenException("Mã xác thực không chính xác");
         }
 
-        // Kích hoạt tài khoản
         user.setStatus(UserStatus.ACTIVE);
         user.setIsEmailVerified(true);
-        user.setVerificationCode(null); // Xóa mã sau khi dùng
+        user.setVerificationCode(null);
         userRepository.save(user);
         
         log.info("User verified email successfully: {}", email);
+    }
+    
+    // --- [MỚI] GỬI LẠI MÃ XÁC THỰC ---
+    @Transactional
+    public void resendVerificationCode(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với email: " + email));
+
+        if (user.getStatus() == UserStatus.ACTIVE || user.getIsEmailVerified()) {
+            throw new AuthException("Tài khoản này đã được xác thực rồi. Bạn có thể đăng nhập ngay.");
+        }
+
+        // Tạo mã mới (Sử dụng cùng logic với hàm register để đồng bộ)
+        String newCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        
+        user.setVerificationCode(newCode);
+        userRepository.save(user);
+
+        // Gửi lại email
+        emailService.sendVerificationEmail(user.getEmail(), newCode);
+        
+        log.info("Resent verification code to user: {}", email);
     }
     
     // --- ĐĂNG NHẬP LOCAL ---

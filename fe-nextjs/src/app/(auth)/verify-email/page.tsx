@@ -2,7 +2,7 @@
 
 import { useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { verifyEmail } from "@/services/authService";
+import { verifyEmail, resendVerification } from "@/services/authService"; // Import thêm resendVerification
 import toast, { Toaster } from "react-hot-toast";
 import Link from "next/link";
 
@@ -17,12 +17,23 @@ function VerifyEmailForm() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // State cho bộ đếm ngược gửi lại mã (60s)
+  const [countdown, setCountdown] = useState(0);
+
   // Cập nhật state khi URL thay đổi (hoặc khi load trang lần đầu)
   useEffect(() => {
     if (emailFromUrl) {
       setEmail(emailFromUrl);
     }
   }, [emailFromUrl]);
+
+  // Logic đếm ngược (Countdown Timer)
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +47,7 @@ function VerifyEmailForm() {
     const loadingToast = toast.loading("Đang kiểm tra mã...");
 
     try {
-      // Gọi API verifyEmail đã viết trong authService
+      // Gọi API verifyEmail
       await verifyEmail(email, code);
 
       toast.dismiss(loadingToast);
@@ -73,19 +84,44 @@ function VerifyEmailForm() {
     }
   };
 
+  // Hàm xử lý khi bấm "Gửi lại mã"
+  const handleResend = async () => {
+    if (!email) {
+      toast.error("Vui lòng nhập email để gửi lại mã.");
+      return;
+    }
+    
+    const loadingToast = toast.loading("Đang gửi lại mã...");
+    try {
+      await resendVerification(email);
+      
+      toast.dismiss(loadingToast);
+      toast.success("Đã gửi mã mới! Vui lòng kiểm tra email.");
+      
+      // Bắt đầu đếm ngược 60 giây
+      setCountdown(60);
+      
+    } catch (error: any) {
+      toast.dismiss(loadingToast);
+      const msg = error.response?.data?.message || "Không thể gửi lại mã. Vui lòng thử lại sau.";
+      toast.error(msg);
+    }
+  };
+
   return (
-    <div className="w-full max-w-md mx-auto p-6">
+    <div className="w-full max-w-md mx-auto p-6 bg-white rounded-lg shadow-md my-10">
       <Toaster position="top-center" reverseOrder={false} />
 
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-900">Xác thực tài khoản</h2>
         <p className="mt-2 text-sm text-gray-600">
-          Chúng tôi đã gửi mã 6 số đến email: <br />
+          Vui lòng nhập mã xác thực 6 số đã được gửi đến email: <br />
           <span className="font-medium text-blue-600">{email || "..."}</span>
         </p>
       </div>
 
       <form className="space-y-6" onSubmit={handleVerify}>
+        {/* Input Email */}
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email nhận mã
@@ -98,10 +134,12 @@ function VerifyEmailForm() {
               className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="nhap-email-cua-ban@example.com"
             />
           </div>
         </div>
 
+        {/* Input Code */}
         <div>
           <label htmlFor="code" className="block text-sm font-medium text-gray-700">
             Mã xác thực (6 ký tự)
@@ -113,13 +151,14 @@ function VerifyEmailForm() {
               required
               maxLength={6}
               placeholder="VD: A1B2C3"
-              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm tracking-widest uppercase font-bold text-center"
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm tracking-widest uppercase font-bold text-center text-xl"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
             />
           </div>
         </div>
 
+        {/* Nút Submit */}
         <div>
           <button
             type="submit"
@@ -131,19 +170,27 @@ function VerifyEmailForm() {
         </div>
       </form>
 
-      <div className="mt-6 text-center">
+      {/* Phần Gửi lại mã */}
+      <div className="mt-6 text-center border-t pt-4">
         <p className="text-sm text-gray-600">
           Chưa nhận được mã?{" "}
-          <button 
-            type="button"
-            className="font-medium text-blue-600 hover:text-blue-500"
-            onClick={() => toast("Tính năng gửi lại đang phát triển", { icon: "🚧" })}
-          >
-            Gửi lại
-          </button>
+          {countdown > 0 ? (
+            <span className="font-medium text-gray-400 cursor-not-allowed">
+              Gửi lại sau {countdown}s
+            </span>
+          ) : (
+            <button 
+              type="button"
+              className="font-medium text-blue-600 hover:text-blue-500 hover:underline focus:outline-none"
+              onClick={handleResend}
+            >
+              Gửi lại mã
+            </button>
+          )}
         </p>
+        
         <div className="mt-4">
-          <Link href="/login" className="text-sm font-medium text-gray-500 hover:text-gray-900">
+          <Link href="/login" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
             ← Quay lại đăng nhập
           </Link>
         </div>
@@ -155,7 +202,7 @@ function VerifyEmailForm() {
 // Bắt buộc phải bọc trong Suspense khi dùng useSearchParams trong Next.js App Router
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<div className="text-center p-10">Đang tải...</div>}>
+    <Suspense fallback={<div className="text-center p-10">Đang tải trang xác thực...</div>}>
       <VerifyEmailForm />
     </Suspense>
   );
