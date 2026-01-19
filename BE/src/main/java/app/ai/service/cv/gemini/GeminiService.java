@@ -156,6 +156,28 @@ public class GeminiService {
        return parseResponse(prompt, MatchResult.class,TEMP_ANALYTICAL);
     }
 
+    /**
+     * CHỨC NĂNG: Chat thông thường (Không lưu DB)
+     */
+    public String chatWithAI(String userMessage) {
+        // Prompt định hình tính cách cho AI
+        String prompt = """
+                Bạn là một trợ lý ảo AI thông minh và hữu ích.
+                Nhiệm vụ của bạn là trả lời câu hỏi của người dùng một cách ngắn gọn, chính xác.
+                
+                YÊU CẦU:
+                - Trả lời bằng Tiếng Việt.
+                - Nếu là câu hỏi lập trình, hãy định dạng code bằng Markdown.
+                - Giữ giọng văn thân thiện, chuyên nghiệp.
+                
+                CÂU HỎI CỦA NGƯỜI DÙNG:
+                %s
+                """.formatted(userMessage);
+
+        
+        return callAiChat(prompt);
+    }
+
     public String callAiChat(String prompt) {
         return geminiApiClient.generateContent(prompt, TEMP_BALANCED);
     }
