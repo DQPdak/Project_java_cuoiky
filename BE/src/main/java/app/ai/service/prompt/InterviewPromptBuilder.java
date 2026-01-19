@@ -1,6 +1,6 @@
 package app.ai.service.prompt;
 
-import app.ai.models.InterviewMessage;
+import app.ai.dto.InterviewMessage;
 import app.recruitment.entity.JobPosting;
 import org.springframework.stereotype.Component;
 import java.util.List;

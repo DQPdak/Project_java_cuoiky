@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/context/Authcontext"; 
+import { AuthProvider } from "@/context/Authcontext";
 import GoogleOAuthWrapper from "@/components/providers/GoogleOAuthWrapper";
-
+import AIChatWidget from "@/components/features/chat/AIChatWidget";
 export const metadata: Metadata = {
   title: "CareerMate",
   description: "Nền tảng tuyển dụng việc làm",
@@ -17,8 +17,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <GoogleOAuthWrapper>
-          <AuthProvider> 
+          <AuthProvider>
             {children}
+            <AIChatWidget />
           </AuthProvider>
         </GoogleOAuthWrapper>
       </body>
