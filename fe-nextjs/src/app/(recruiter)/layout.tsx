@@ -17,8 +17,8 @@ export default function RecruiterLayout({ children }: { children: React.ReactNod
   };
 
   const navItems = [
-    { name: 'Dashboard', href: '/recruiter/dashboard', icon: LayoutDashboard },
-    { name: 'Tin tuyển dụng', href: '/recruiter/jobs', icon: Briefcase },
+    { name: 'Dashboard', href: '/dashboard-recruiter', icon: LayoutDashboard },
+    { name: 'Tin tuyển dụng', href: '/recruiter/manage-jobs', icon: Briefcase },
     { name: 'Ứng viên', href: '/recruiter/candidates', icon: Users },
     { name: 'Công ty', href: '/recruiter/company', icon: Building },
   ];
