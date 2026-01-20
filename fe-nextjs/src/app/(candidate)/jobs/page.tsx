@@ -1,114 +1,412 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import api from '@/services/api';
-import { MapPin, DollarSign, Building, Search, ArrowLeft, Calendar } from 'lucide-react';
-import Link from 'next/link';
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/Authcontext";
+import * as candidateService from "@/services/candidateService";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Search,
+  MapPin,
+  DollarSign,
+  Briefcase,
+  ArrowRight,
+  Sparkles,
+  AlertCircle,
+  Building2,
+  List,
+  FileText,
+  ListChecks,
+} from "lucide-react";
+import Link from "next/link";
 
-// Component con để dùng useSearchParams an toàn trong Suspense
-function SearchContent() {
-  const searchParams = useSearchParams();
-  const keyword = searchParams.get('keyword') || '';
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [inputVal, setInputVal] = useState(keyword);
+export default function JobsPage() {
+  const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Mặc định là 'all' (Tất cả việc làm)
+  const [activeTab, setActiveTab] = useState<"all" | "matching">("all");
+
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Logic bắt URL
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    if (mode === "matching") {
+      setActiveTab("matching");
+    } else {
+      setActiveTab("all");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
-    fetchJobs(keyword);
-    setInputVal(keyword);
-  }, [keyword]);
+    if (user?.id) {
+      fetchJobs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeTab]);
 
-  const fetchJobs = async (query: string) => {
-    setLoading(true);
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredJobs(jobs);
+    } else {
+      const lowerTerm = searchTerm.toLowerCase();
+      const filtered = jobs.filter(
+        (job) =>
+          job.title?.toLowerCase().includes(lowerTerm) ||
+          job.company?.toLowerCase().includes(lowerTerm),
+      );
+      setFilteredJobs(filtered);
+    }
+  }, [searchTerm, jobs]);
+
+  const fetchJobs = async () => {
     try {
-      const res = await api.get(`/recruitment/jobs/search?keyword=${query}`);
-      setJobs(res.data.data);
+      setLoading(true);
+      let data = [];
+
+      if (activeTab === "matching") {
+        // Tab phụ: API matching đã có sẵn điểm
+        data = await candidateService.getMatchingJobs();
+      } else {
+        // Tab chính: Lấy tất cả job
+        if (typeof candidateService.getAllJobs === "function") {
+          data = await candidateService.getAllJobs();
+        } else {
+          // Fallback nếu chưa có getAllJobs
+          data = await candidateService.getRecentJobs();
+        }
+      }
+
+      // [UPDATE] TÍNH ĐIỂM CHO TAB 'ALL'
+      // Nếu đang ở tab 'all' và có dữ liệu, gọi thêm API tính điểm để hiển thị % phù hợp
+      if (activeTab === "all" && Array.isArray(data) && data.length > 0) {
+        try {
+          // Lấy danh sách ID
+          const jobIds = data.map((j: any) => j.id);
+
+          // Kiểm tra hàm getBatchScores có tồn tại không
+          if (typeof candidateService.getBatchScores === "function") {
+            const scoresMap = await candidateService.getBatchScores(jobIds);
+
+            // Merge điểm vào danh sách job
+            data = data.map((job: any) => {
+              const scoreData = scoresMap[job.id];
+
+              // Xử lý an toàn: API có thể trả về số (80) hoặc object ({matchScore: 80})
+              let matchScore = 0;
+              let skillsFound = [];
+
+              if (typeof scoreData === "number") {
+                matchScore = scoreData;
+              } else if (scoreData && typeof scoreData === "object") {
+                matchScore = scoreData.matchScore || 0;
+                skillsFound = scoreData.matchedSkills || [];
+              }
+
+              return {
+                ...job,
+                matchScore,
+                // Nếu API batch trả về skillsFound thì dùng, không thì giữ nguyên
+                skillsFound:
+                  skillsFound.length > 0 ? skillsFound : job.skillsFound,
+              };
+            });
+          }
+        } catch (err) {
+          console.error("Lỗi tính điểm batch (không ảnh hưởng hiển thị):", err);
+          // Vẫn hiển thị job bình thường dù lỗi tính điểm
+        }
+      }
+
+      const safeData = Array.isArray(data) ? data : [];
+
+      // Sắp xếp:
+      // - Matching: Điểm cao lên đầu
+      // - All: Có thể giữ nguyên (thường là mới nhất) hoặc cũng đưa điểm cao lên đầu
+      if (activeTab === "matching") {
+        safeData.sort(
+          (a: any, b: any) => (b.matchScore || 0) - (a.matchScore || 0),
+        );
+      }
+
+      setJobs(safeData);
+      setFilteredJobs(safeData);
     } catch (error) {
-      console.error(error);
+      console.error("Lỗi tải việc làm:", error);
+      setJobs([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push(`/jobs?keyword=${inputVal}`);
+  const handleApply = async (jobId: number) => {
+    router.push(`/jobs/${jobId}`);
+  };
+
+  const handleTabChange = (tab: "all" | "matching") => {
+    setActiveTab(tab);
+    setSearchTerm("");
+    router.replace(tab === "all" ? "/jobs" : `/jobs?mode=${tab}`);
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
-      {/* Thanh tìm kiếm phía trên */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link href="/dashboard-candidate" className="p-2 hover:bg-gray-100 rounded-full">
-            <ArrowLeft size={24} className="text-gray-600"/>
-        </Link>
-        <form onSubmit={handleSearch} className="flex-1 flex gap-2 relative">
-            <Search className="absolute left-3 top-3 text-gray-400" size={20}/>
-            <input 
-                type="text" 
-                value={inputVal}
-                onChange={(e) => setInputVal(e.target.value)}
-                placeholder="Tìm kiếm việc làm, công ty..."
-                className="w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
-            />
-            <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition">
-                Tìm
-            </button>
-        </form>
-      </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            {activeTab === "all" ? "Tất cả việc làm" : "Việc làm phù hợp"}
+          </h1>
+          <p className="mt-2 text-gray-600">
+            {activeTab === "all"
+              ? "Khám phá tất cả các cơ hội nghề nghiệp đang mở tuyển."
+              : "Danh sách các công việc được AI đề xuất dựa trên hồ sơ của bạn."}
+          </p>
+        </div>
 
-      <h2 className="text-xl font-bold mb-6 text-gray-800">
-        {keyword ? `Kết quả cho "${keyword}"` : "Việc làm mới nhất"} 
-        <span className="text-sm font-normal text-gray-500 ml-2">({jobs.length} kết quả)</span>
-      </h2>
-      
-      {loading ? (
-        <div className="space-y-4">
-             {[1,2,3].map(i => <div key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse"/>)}
+        {/* TABS SWITCHER */}
+        <div className="flex gap-4 mb-6 border-b border-gray-200">
+          <button
+            onClick={() => handleTabChange("all")}
+            className={`pb-3 px-1 flex items-center gap-2 font-medium text-sm transition-colors border-b-2 ${
+              activeTab === "all"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            <List className="h-4 w-4" />
+            Tất cả việc làm
+          </button>
+
+          <button
+            onClick={() => handleTabChange("matching")}
+            className={`pb-3 px-1 flex items-center gap-2 font-medium text-sm transition-colors border-b-2 ${
+              activeTab === "matching"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
+            Gợi ý cho bạn (AI)
+          </button>
         </div>
-      ) : (
-        <div className="grid gap-4">
-            {jobs.length === 0 ? (
-                <div className="text-center py-10 bg-white rounded-xl border border-dashed">
-                    <p className="text-gray-500">Không tìm thấy công việc nào phù hợp.</p>
-                </div>
-            ) : jobs.map((job) => (
-               <div key={job.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition group relative overflow-hidden">
-                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                       <div>
-                           <h3 className="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition">{job.title}</h3>
-                           <div className="flex items-center text-gray-600 text-sm mt-2 gap-4 flex-wrap">
-                               <span className="flex items-center font-medium"><Building size={16} className="mr-1.5 text-gray-400"/> {job.companyName || "Công ty ẩn danh"}</span>
-                               <span className="flex items-center"><MapPin size={16} className="mr-1.5 text-gray-400"/> {job.location}</span>
-                               <span className="flex items-center text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded border border-green-100">
-                                   <DollarSign size={14} className="mr-1"/> {job.salaryRange || "Thỏa thuận"}
-                               </span>
-                               <span className="flex items-center text-gray-400 text-xs">
-                                   <Calendar size={14} className="mr-1"/> Hết hạn: {new Date(job.deadline).toLocaleDateString('vi-VN')}
-                               </span>
-                           </div>
-                       </div>
-                       <button 
-                         onClick={() => {/* Xử lý ứng tuyển sau */}}
-                         className="px-5 py-2.5 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-600 hover:text-white transition whitespace-nowrap">
-                         Chi tiết
-                       </button>
-                   </div>
-               </div>
+
+        {/* SearchContent Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên công việc, công ty..."
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Job List Section */}
+        {loading ? (
+          <div className="grid grid-cols-1 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="bg-white p-6 rounded-xl shadow-sm animate-pulse h-48"
+              ></div>
             ))}
-        </div>
-      )}
+          </div>
+        ) : filteredJobs.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6">
+            {filteredJobs.map((job) => (
+              <div
+                key={job.id}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex flex-col md:flex-row justify-between gap-6">
+                  {/* Job Info */}
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                          {job.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-gray-600 mt-1">
+                          <Building2 className="h-4 w-4" />
+                          <span className="font-medium">{job.company}</span>
+                        </div>
+                      </div>
+
+                      {/* [ĐÃ SỬA] Luôn hiện Match Score Badge */}
+                      <div className="flex flex-col items-end">
+                        <div
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold border ${
+                            (job.matchScore || 0) >= 50
+                              ? "bg-green-50 text-green-700 border-green-100" // Cao: Xanh lá
+                              : (job.matchScore || 0) > 0
+                                ? "bg-blue-50 text-blue-700 border-blue-100" // Có điểm: Xanh dương
+                                : "bg-gray-100 text-gray-500 border-gray-200" // 0 điểm: Xám
+                          }`}
+                        >
+                          <Sparkles
+                            className={`h-4 w-4 ${
+                              (job.matchScore || 0) >= 50
+                                ? "fill-green-700"
+                                : ""
+                            }`}
+                          />
+                          {job.matchScore || 0}% Phù hợp
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 mt-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        {job.location || "Remote"}
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                        <DollarSign className="h-4 w-4 text-gray-500" />
+                        {job.salary || "Thỏa thuận"}
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                        <Briefcase className="h-4 w-4 text-gray-500" />
+                        {job.jobType || "Toàn thời gian"}
+                      </div>
+                    </div>
+
+                    {/* MÔ TẢ & YÊU CẦU */}
+                    <div className="space-y-3 mt-5 border-t border-gray-100 pt-4">
+                      {job.description && (
+                        <div className="flex gap-3 items-start">
+                          <FileText
+                            size={16}
+                            className="mt-0.5 text-blue-500 shrink-0"
+                          />
+                          <div>
+                            <span className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                              Mô tả:
+                            </span>
+                            <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
+                              {job.description}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {job.requirements && (
+                        <div className="flex gap-3 items-start">
+                          <ListChecks
+                            size={16}
+                            className="mt-0.5 text-orange-500 shrink-0"
+                          />
+                          <div>
+                            <span className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                              Yêu cầu:
+                            </span>
+                            <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
+                              {job.requirements}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Matching Skills - Chỉ hiện nếu có dữ liệu */}
+                    {job.skillsFound && job.skillsFound.length > 0 && (
+                      <div className="mt-5">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Kỹ năng phù hợp:
+                        </span>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {job.skillsFound
+                            .slice(0, 5)
+                            .map((skill: string, idx: number) => (
+                              <span
+                                key={idx}
+                                className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs rounded-md font-medium border border-blue-100"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                          {job.skillsFound.length > 5 && (
+                            <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-md border border-gray-200">
+                              +{job.skillsFound.length - 5}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-col gap-3 min-w-[200px] border-l border-gray-100 pl-6 md:justify-center">
+                    <button
+                      onClick={() => router.push(`/cv-analysis/${job.id}`)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-700 rounded-lg font-medium hover:bg-purple-100 transition-colors border border-purple-100"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      AI Phân tích
+                    </button>
+
+                    <button
+                      onClick={() => router.push(`/interview/${job.id}`)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 border border-gray-200 transition-colors"
+                    >
+                      <Building2 className="h-4 w-4" />
+                      Phỏng vấn thử
+                    </button>
+
+                    <button
+                      onClick={() => handleApply(job.id)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm shadow-blue-200 transition-all"
+                    >
+                      Ứng tuyển ngay
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-gray-100 p-4 rounded-full inline-flex mb-4">
+              <AlertCircle className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {activeTab === "matching"
+                ? "Không tìm thấy công việc phù hợp (Match > 50%)"
+                : "Không tìm thấy công việc nào"}
+            </h3>
+            <p className="text-gray-500 mt-2 max-w-md mx-auto">
+              {activeTab === "matching"
+                ? "Hãy thử cập nhật hồ sơ kỹ năng của bạn hoặc chuyển sang tab 'Tất cả việc làm' để xem thêm cơ hội."
+                : "Hiện tại hệ thống chưa có công việc nào đang mở."}
+            </p>
+            {activeTab === "matching" && (
+              <div className="flex gap-3 justify-center mt-6">
+                <button
+                  onClick={() => handleTabChange("all")}
+                  className="px-6 py-2.5 bg-white text-blue-600 border border-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                >
+                  Xem tất cả việc làm
+                </button>
+                <Link
+                  href="/profile"
+                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Cập nhật hồ sơ
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
-}
-
-// Wrap trong Suspense để tránh lỗi build Next.js khi dùng useSearchParams
-export default function JobSearchPage() {
-    return (
-        <Suspense fallback={<div>Loading search...</div>}>
-            <SearchContent />
-        </Suspense>
-    )
 }

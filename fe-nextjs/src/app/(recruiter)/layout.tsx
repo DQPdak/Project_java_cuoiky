@@ -2,12 +2,13 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Briefcase, Building, LogOut, PlusCircle } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, Users, Briefcase, Building, LogOut } from 'lucide-react';
 import { logout } from '@/services/authService';
-import { useRouter } from 'next/navigation';
+import Header from '@/components/layout/Header';
 
 export default function RecruiterLayout({ children }: { children: React.ReactNode }) {
+  // --- PHẦN LOGIC TỪ NHÁNH recruitment_API ---
   const pathname = usePathname();
   const router = useRouter();
 
@@ -23,9 +24,10 @@ export default function RecruiterLayout({ children }: { children: React.ReactNod
     { name: 'Công ty', href: '/recruiter/company', icon: Building },
   ];
 
+  // --- PHẦN GIAO DIỆN HỢP NHẤT ---
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
+      {/* Sidebar (Giữ nguyên giao diện bạn đã sửa) */}
       <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed h-full">
         <div className="h-16 flex items-center px-6 border-b border-gray-100">
            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold mr-2">C</div>
@@ -64,10 +66,13 @@ export default function RecruiterLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-8">
-        {children}
-      </main>
+      {/* Main Content (Kết hợp Header và layout từ nhánh main) */}
+      <div className="flex-1 md:ml-64 flex flex-col">
+        <Header />
+        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
