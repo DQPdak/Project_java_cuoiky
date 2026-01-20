@@ -22,7 +22,7 @@ export default function GoogleLoginButton({ textType = "signin_with" }: GoogleLo
       const loadingToast = toast.loading("Đang kết nối Google...");
       try {
         const userResponse = await googleLogin(credentialResponse.credential);
-        const userObject = userResponse.user || userResponse.data?.user;
+        const userObject = userResponse.user ;
         
         if (!userObject) throw new Error("Không tìm thấy user");
 
