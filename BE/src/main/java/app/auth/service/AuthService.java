@@ -71,6 +71,9 @@ public class AuthService {
                 .verificationCode(verificationCode)
                 .build();
         
+        // Lấy avatar mặc định dựa trên Role
+        String defaultAvatar = getDefaultAvatar(request.getUserRole());
+        
         // Upload Avatar
         if (avatar != null && !avatar.isEmpty()) {
             try {
@@ -78,10 +81,12 @@ public class AuthService {
                 user.setProfileImageUrl(avatarUrl);
             } catch (Exception e) {
                 log.error("Lỗi upload avatar khi đăng ký: {}", e.getMessage());
-                user.setProfileImageUrl("https://res.cloudinary.com/dqp6v7g3r/image/upload/v1/avatar/default_avatar");
+                // Nếu upload lỗi, dùng avatar mặc định theo role
+                user.setProfileImageUrl(defaultAvatar);
             }
         } else {
-            user.setProfileImageUrl("https://res.cloudinary.com/dqp6v7g3r/image/upload/v1/avatar/default_avatar");
+            // Nếu không có file, dùng avatar mặc định theo role
+            user.setProfileImageUrl(defaultAvatar);
         }
 
         user = userRepository.save(user);
@@ -296,5 +301,17 @@ public class AuthService {
                 .expiresIn(jwtTokenProvider.getAccessTokenExpiration())
                 .user(userResponse)
                 .build();
+    }
+
+    // --- Helper: Lấy Avatar mặc định theo Role ---
+    private String getDefaultAvatar(UserRole role) {
+        if (role == UserRole.RECRUITER) {
+            return "https://res.cloudinary.com/dpym64zg9/image/upload/v1768899002/phantichcv/avatar/mqmr0xwe2dvbwibsfry3.png";
+        } else if (role == UserRole.ADMIN) {
+            return "https://res.cloudinary.com/dpym64zg9/image/upload/v1768899030/phantichcv/avatar/zvdmchfkluytc6aljtii.png";
+        } else {
+            // Mặc định là CANDIDATE
+            return "https://res.cloudinary.com/dpym64zg9/image/upload/v1768898865/phantichcv/avatar/gqwoyrmv8osjl5hjlygz.png";
+        }
     }
 }

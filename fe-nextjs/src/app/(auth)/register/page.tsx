@@ -178,16 +178,6 @@ export default function RegisterPage() {
           </select>
         </div>
 
-        {/* --- Upload Avatar --- */}
-        <div>
-          <label htmlFor="avatar" className="block text-sm font-medium text-gray-700">Ảnh đại diện (Tùy chọn)</label>
-          <input id="avatar" name="avatar" type="file" accept="image/*"
-            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            onChange={handleFileChange}
-          />
-          <p className="mt-1 text-xs text-gray-500">Hỗ trợ: JPG, PNG, GIF. Tối đa 5MB.</p>
-        </div>
-
         <button type="submit" disabled={loading}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50 transition-colors"
         >
@@ -201,7 +191,7 @@ export default function RegisterPage() {
             <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Hoặc đăng ký với</span>
+            <span className="px-2 bg-white text-gray-500">Hoặc đăng ký với tư cách người ứng tuyển</span>
           </div>
         </div>
         <div className="mt-4">
