@@ -17,9 +17,7 @@ public class CVAnalysisController {
 
     private final CVTextExtractor cvTextExtractor;
     private final GeminiService geminiService;
-    private final CandidateService candidateService;
 
-    // API Test AI (Giữ nguyên vì trả về GeminiResponse POJO, không phải Entity)
     @PostMapping("/analyze")
     public ResponseEntity<?> analyzeCV(@RequestParam("file") MultipartFile file) {
         try {

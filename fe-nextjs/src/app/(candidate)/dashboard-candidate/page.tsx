@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  getRecommendedJobs,
+  getRecentJobs,
   applyJob,
   getBatchScores,
 } from "@/services/candidateService";
@@ -66,7 +66,7 @@ export default function CandidateDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const jobsData = await getRecommendedJobs();
+        const jobsData = await getRecentJobs();
 
         if (jobsData && jobsData.length > 0) {
           const jobIds = jobsData.map((job: any) => job.id);
@@ -203,10 +203,10 @@ export default function CandidateDashboard() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <Star className="text-yellow-500 fill-yellow-500" size={24} />
-            Việc làm dành riêng cho bạn
+            Danh Sách công việc mới nhất
           </h2>
           <Link
-            href="#"
+            href="/jobs?mode=all" // [QUAN TRỌNG] Thêm query param
             className="text-sm text-blue-600 hover:underline font-medium flex items-center"
           >
             Xem tất cả <ArrowRight size={16} className="ml-1" />

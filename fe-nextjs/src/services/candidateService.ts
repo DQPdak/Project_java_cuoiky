@@ -26,9 +26,22 @@ export const getMyProfile = async (): Promise<CandidateProfile> => {
   return response.data.data;
 };
 
-export const getRecommendedJobs = async () => {
-  const response = await api.get("/candidate/recommendations");
-  return response.data.data; // Trả về List Job
+export const getAllJobs = async () => {
+  // Giả sử endpoint BE là /recruitment/jobs/active hoặc /recruitment/jobs
+  // Bạn cần kiểm tra lại Controller BE để có endpoint chính xác
+  const response = await api.get("/candidate/recommendations/all");
+  return response.data.data;
+};
+
+export const getRecentJobs = async () => {
+  const response = await api.get("/candidate/recommendations/recent");
+  return response.data.data;
+};
+
+export const getMatchingJobs = async () => {
+  // Gọi API: /api/candidate/recommendations/matching
+  const response = await api.get("/candidate/recommendations/matching");
+  return response.data.data;
 };
 
 export const applyJob = async (jobId: number) => {

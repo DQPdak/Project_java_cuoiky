@@ -50,7 +50,7 @@ public class CandidateMatchingController {
         }
     }
 
-    // API 2: Xem chi tiết (Preview)
+    // API 2: Phân tích CV cụ thể
     @GetMapping("/preview/{jobId}")
     public ResponseEntity<MatchResult> previewMatch(@PathVariable Long jobId) {
         try {

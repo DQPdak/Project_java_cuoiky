@@ -1,120 +1,120 @@
 package app.candidate.service;
 
+import app.ai.service.JobFastMatchingService;
+import app.ai.service.cv.gemini.dto.FastMatchResult;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
 import app.recruitment.entity.JobPosting;
 import app.recruitment.repository.JobPostingRepository;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;            // Import Logger thủ công
-import org.slf4j.LoggerFactory;     // Import LoggerFactory
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class JobRecommendationService {
 
-    // 1. Khai báo Logger thủ công để sửa lỗi "cannot find symbol log"
-    private static final Logger log = LoggerFactory.getLogger(JobRecommendationService.class);
 
     private final CandidateProfileRepository profileRepository;
     private final JobPostingRepository jobRepository;
+    private final JobFastMatchingService fastMatchingService;
+
+    // Lấy tất cả JOB
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getRecommendedJobs(Long userId) {
-        // Tìm hồ sơ ứng viên
-        Optional<CandidateProfile> profileOpt = profileRepository.findByUserId(userId);
-
-        if (profileOpt.isEmpty()) {
-            log.info("User {} chưa có hồ sơ CandidateProfile. Trả về list rỗng.", userId);
-            return Collections.emptyList();
-        }
-
-        CandidateProfile profile = profileOpt.get();
-        List<String> candidateSkills = profile.getSkills();
-
-        // Nếu chưa có kỹ năng thì không gợi ý được
-        if (candidateSkills == null || candidateSkills.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        // 2. Lấy tất cả công việc
+    public List<Map<String, Object>> getAllJobs() {
         List<JobPosting> allJobs = jobRepository.findAll();
-        List<Map<String, Object>> recommendedJobs = new ArrayList<>();
-
+        List<Map<String, Object>> resultList = new ArrayList<>();
         for (JobPosting job : allJobs) {
-            // Tính toán điểm số (thêm try-catch để an toàn tuyệt đối)
-            try {
-                // Kết hợp cả Mô tả và Yêu cầu để so khớp
-                String description = job.getDescription() != null ? job.getDescription() : "";
-                String requirements = job.getRequirements() != null ? job.getRequirements() : "";
-                String jobContent = description + " " + requirements;
+            resultList.add(mapJobToBasicInfo(job));
+        }
+        return resultList;
+    }
 
-                double score = calculateMatchScore(candidateSkills, jobContent);
+    // --- HÀM 1: LẤY 10 JOB MỚI NHẤT (KHÔNG TÍNH ĐIỂM) ---
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getRecentJobs() {
+        // Lấy 10 job có ID lớn nhất (tức là mới nhất)
+        Page<JobPosting> page = jobRepository.findAll(
+                PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "id"))
+        );
 
-                if (score > 0) {
-                    Map<String, Object> jobMap = new HashMap<>();
-                    jobMap.put("id", job.getId());
-                    jobMap.put("title", job.getTitle() != null ? job.getTitle() : "Chưa có tiêu đề");
+        List<Map<String, Object>> recentJobs = new ArrayList<>();
+        for (JobPosting job : page.getContent()) {
+            recentJobs.add(mapJobToBasicInfo(job));
+        }
+        return recentJobs;
+    }
 
-                    // 2. Sửa lỗi "cannot find symbol getCompany": Chỉ lấy từ job.getCompany()
-                    String companyName = "Công ty ẩn danh";
-                    if (job.getCompany() != null) {
-                        companyName = job.getCompany().getName();
-                    }
-                    // Đã xóa đoạn job.getRecruiter().getCompany() gây lỗi
-                    jobMap.put("company", companyName);
+    // --- HÀM 2: LỌC JOB CÓ ĐỘ TƯƠNG THÍCH >= 50% ---
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getMatchingJobs(Long userId) {
+        // 1. Lấy Profile & Skill
+        Optional<CandidateProfile> profileOpt = profileRepository.findByUserId(userId);
+        if (profileOpt.isEmpty() || profileOpt.get().getSkills().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> candidateSkills = profileOpt.get().getSkills();
 
-                    jobMap.put("location", job.getLocation() != null ? job.getLocation() : "Remote");
-                    jobMap.put("salary", job.getSalaryRange() != null ? job.getSalaryRange() : "Thỏa thuận");
-                    jobMap.put("matchScore", Math.round(score));
-                    jobMap.put("description", job.getDescription());
-                    jobMap.put("requirements", job.getRequirements());
+        // 2. Lấy tất cả Job ID
+        List<Long> allJobIds = jobRepository.findAll().stream()
+                .map(JobPosting::getId)
+                .collect(Collectors.toList());
+        if (allJobIds.isEmpty()) return Collections.emptyList();
 
-                    jobMap.put("skillsFound", findMatchingSkills(candidateSkills, jobContent));
+        // 3. Tính điểm nhanh (Batch)
+        Map<Long, FastMatchResult> scores = fastMatchingService.calculateBatchCompatibility(candidateSkills, allJobIds);
 
-                    recommendedJobs.add(jobMap);
-                }
-            } catch (Exception e) {
-                log.warn("Lỗi khi tính toán job ID {}: {}", job.getId(), e.getMessage());
+        // 4. Lọc Job có điểm >= 50
+        List<Long> passedJobIds = scores.entrySet().stream()
+                .filter(entry -> entry.getValue().getMatchScore() >= 50) // Sử dụng getScore() hoặc getMatchScore() tùy DTO của bạn
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        if (passedJobIds.isEmpty()) return Collections.emptyList();
+
+        // 5. Lấy thông tin chi tiết các Job đã lọc
+        List<JobPosting> passedJobs = jobRepository.findAllById(passedJobIds);
+        List<Map<String, Object>> resultList = new ArrayList<>();
+
+        for (JobPosting job : passedJobs) {
+            FastMatchResult result = scores.get(job.getId());
+            if (result != null) {
+                Map<String, Object> jobMap = mapJobToBasicInfo(job);
+                // Gán thêm thông tin điểm số
+                jobMap.put("matchScore", result.getMatchScore());
+                jobMap.put("skillsFound", result.getMatchedSkills());
+                jobMap.put("skillsMissing", result.getMissingSkills());
+                resultList.add(jobMap);
             }
         }
 
-        // Sắp xếp theo điểm giảm dần
-        recommendedJobs.sort((j1, j2) -> {
-            Long s1 = (Long) j1.get("matchScore");
-            Long s2 = (Long) j2.get("matchScore");
+        // 6. Sắp xếp điểm giảm dần
+        resultList.sort((j1, j2) -> {
+            Integer s1 = (Integer) j1.get("matchScore");
+            Integer s2 = (Integer) j2.get("matchScore");
             return s2.compareTo(s1);
         });
 
-        // Lấy Top 10
-        if (recommendedJobs.size() > 10) {
-            return recommendedJobs.subList(0, 10);
-        }
-
-        return recommendedJobs;
+        return resultList;
     }
 
-    private double calculateMatchScore(List<String> candidateSkills, String jobContent) {
-        if (jobContent == null || candidateSkills == null) return 0;
-        String lowerContent = jobContent.toLowerCase();
-
-        long matchCount = candidateSkills.stream()
-                .filter(skill -> skill != null && lowerContent.contains(skill.toLowerCase()))
-                .count();
-
-        if (candidateSkills.isEmpty()) return 0;
-        return ((double) matchCount / candidateSkills.size()) * 100;
-    }
-
-    private List<String> findMatchingSkills(List<String> candidateSkills, String jobContent) {
-        if (jobContent == null || candidateSkills == null) return Collections.emptyList();
-        String lowerContent = jobContent.toLowerCase();
-
-        return candidateSkills.stream()
-                .filter(skill -> skill != null && lowerContent.contains(skill.toLowerCase()))
-                .collect(Collectors.toList());
+    // Helper map dữ liệu cơ bản để tránh lặp code
+    private Map<String, Object> mapJobToBasicInfo(JobPosting job) {
+        Map<String, Object> jobMap = new HashMap<>();
+        jobMap.put("id", job.getId());
+        jobMap.put("title", job.getTitle() != null ? job.getTitle() : "Chưa có tiêu đề");
+        jobMap.put("company", job.getCompany() != null ? job.getCompany().getName() : "Công ty ẩn danh");
+        jobMap.put("location", job.getLocation() != null ? job.getLocation() : "Remote");
+        jobMap.put("salary", job.getSalaryRange() != null ? job.getSalaryRange() : "Thỏa thuận");
+        jobMap.put("description", job.getDescription());
+        jobMap.put("requirements", job.getRequirements());
+        jobMap.put("createdAt", job.getCreatedAt()); // Để hiển thị ngày đăng
+        return jobMap;
     }
 }
