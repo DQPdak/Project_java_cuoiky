@@ -81,6 +81,12 @@ public class GlobalExceptionHandler {
         log.error("Auth exception: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(MessageResponse.error(ex.getMessage()));
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<MessageResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Illegal argument: {}", ex.getMessage());
+        return ResponseEntity.badRequest().body(MessageResponse.error(ex.getMessage()));
+    }
     
     // --- PHẦN SỬA ĐỔI QUAN TRỌNG Ở ĐÂY ---
 

@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import app.recruitment.repository.JobApplicationRepository;
+import app.auth.exception.UnauthorizedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -130,5 +132,26 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     @Override
     public Optional<JobApplication> getById(Long id) {
         return appRepo.findById(id);
+    }
+
+    @Override
+    @Transactional
+    public void deleteApplication(Long candidateId, Long applicationId) {
+        // 1. Tìm đơn ứng tuyển (Sửa jobApplicationRepository -> appRepo)
+        JobApplication application = appRepo.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn ứng tuyển"));
+
+        // 2. Kiểm tra quyền: Chỉ chủ sở hữu mới được xóa
+        if (!application.getCandidate().getId().equals(candidateId)) {
+            throw new RuntimeException("Bạn không có quyền xóa đơn ứng tuyển này");
+        }
+
+        // 3. Kiểm tra trạng thái: Chỉ cho xóa khi đang PENDING
+        if (application.getStatus() != ApplicationStatus.PENDING) {
+            throw new RuntimeException("Không thể hủy đơn khi đã được Duyệt hoặc Từ chối");
+        }
+
+        // 4. Xóa (Sửa jobApplicationRepository -> appRepo)
+        appRepo.delete(application);
     }
 }

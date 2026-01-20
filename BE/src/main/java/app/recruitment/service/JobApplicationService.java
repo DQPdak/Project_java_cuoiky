@@ -23,4 +23,6 @@ public interface JobApplicationService {
     List<JobApplicationResponse> getApplicationsByCandidateId(Long candidateId);
     
     Optional<JobApplication> getById(Long id);
+
+    void deleteApplication(Long candidateId, Long applicationId);
 }

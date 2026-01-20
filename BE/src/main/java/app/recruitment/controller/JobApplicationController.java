@@ -91,4 +91,12 @@ public class JobApplicationController {
                 .stream().map(mapper::toJobApplicationResponse).collect(Collectors.toList());
         return ResponseEntity.ok(list);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> cancelApplication(@PathVariable Long id) {
+        Long candidateId = getCurrentUserId();
+        applicationService.deleteApplication(candidateId, id);
+
+        return ResponseEntity.ok(MessageResponse.success("Hủy ứng tuyển thành công", null));
+    }
 }
