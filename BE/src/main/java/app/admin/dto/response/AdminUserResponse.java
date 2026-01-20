@@ -1,22 +1,22 @@
-// package app.admin.dto.response;
+package app.admin.dto.response;
 
-// import app.admin.entity.Role;
-// import app.admin.entity.UserStatus;
-// import lombok.*;
+import app.auth.model.enums.UserRole;
+import app.auth.model.enums.UserStatus;
+import lombok.*;
 
-// import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-// @Data
-// @Builder
-// @NoArgsConstructor
-// @AllArgsConstructor
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 
-// public class AdminUserResponse {
-//     private Long id;
-//     private String fullName;
-//     private String email;
-//     private Role role;
-//     private UserStatus status;
-//     private LocalDate createdAt;
-// }
+public class AdminUserResponse {
+    private Long id;
+    private String fullName;
+    private String email;
+    private UserRole userRole;
+    private UserStatus status;
+    private LocalDateTime createdAt;
+}
 

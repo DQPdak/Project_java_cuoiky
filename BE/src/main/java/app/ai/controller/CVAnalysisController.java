@@ -1,7 +1,5 @@
 package app.ai.controller;
 
-import app.candidate.dto.response.CandidateProfileResponse; // 👈 Import DTO
-import app.candidate.service.CandidateService;
 import app.ai.service.cv.extractortext.CVTextExtractor;
 import app.ai.service.cv.gemini.GeminiService;
 import app.ai.service.cv.gemini.dto.GeminiResponse;
@@ -17,7 +15,6 @@ public class CVAnalysisController {
 
     private final CVTextExtractor cvTextExtractor;
     private final GeminiService geminiService;
-    private final CandidateService candidateService;
 
     // API Test AI (Giữ nguyên vì trả về GeminiResponse POJO, không phải Entity)
     @PostMapping("/analyze")
