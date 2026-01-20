@@ -29,6 +29,10 @@ public class Article {
     @Column(name = "is_published", nullable = false)
     private Boolean isPublished;
 
+    // ✅ QUAN TRỌNG: trạng thái duyệt
+    @Column(name = "status", length = 20, nullable = false)
+    private String status; // PENDING | APPROVED | REJECTED
+
     @Column(name = "author_id")
     private Long authorId;
 
@@ -42,6 +46,7 @@ public class Article {
     void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
         if (isPublished == null) isPublished = false;
+        if (status == null) status = "PENDING"; // ✅ mặc định chờ duyệt
     }
 
     @PreUpdate
@@ -49,3 +54,4 @@ public class Article {
         updatedAt = LocalDateTime.now();
     }
 }
+

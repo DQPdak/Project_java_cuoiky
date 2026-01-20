@@ -1,7 +1,5 @@
 package app.ai.controller;
 
-import app.candidate.dto.response.CandidateProfileResponse; // 👈 Import DTO
-import app.candidate.service.CandidateService;
 import app.ai.service.cv.extractortext.CVTextExtractor;
 import app.ai.service.cv.gemini.GeminiService;
 import app.ai.service.cv.gemini.dto.GeminiResponse;

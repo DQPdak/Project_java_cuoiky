@@ -19,6 +19,11 @@ public class ArticleService {
 
     private final ContentArticleRepository repo;
 
+    // ====== Status constants (nhanh, đúng DB varchar) ======
+    private static final String STATUS_PENDING  = "PENDING";
+    private static final String STATUS_APPROVED = "APPROVED";
+    private static final String STATUS_REJECTED = "REJECTED";
+
     private ArticleResponse toResponse(Article a) {
         return ArticleResponse.builder()
                 .id(a.getId())
@@ -30,6 +35,8 @@ public class ArticleService {
                 .authorId(a.getAuthorId())
                 .createdAt(a.getCreatedAt())
                 .updatedAt(a.getUpdatedAt())
+                // ✅ thêm status để admin UI hiển thị & filter
+                .status(a.getStatus())
                 .build();
     }
 
@@ -54,6 +61,12 @@ public class ArticleService {
         return repo.findAll().stream().map(this::toResponse).toList();
     }
 
+    // ✅ Admin: list bài chờ duyệt
+    public List<ArticleResponse> listPendingAdmin() {
+        return repo.findByStatusOrderByCreatedAtDesc(STATUS_PENDING)
+                .stream().map(this::toResponse).toList();
+    }
+
     // ✅ Admin: get bất kỳ
     public ArticleResponse getAdminById(Long id) {
         Article a = repo.findById(id)
@@ -62,6 +75,7 @@ public class ArticleService {
     }
 
     // ✅ Admin: create
+    // Quy ước: tạo bài xong -> PENDING + isPublished=false (chờ duyệt)
     public ArticleResponse create(ArticleCreateRequest req) {
         String slug = (req.getSlug() == null || req.getSlug().isBlank())
                 ? toSlug(req.getTitle())
@@ -72,8 +86,10 @@ public class ArticleService {
                 .content(req.getContent())
                 .slug(slug)
                 .thumbnailUrl(req.getThumbnailUrl())
-                .isPublished(req.getIsPublished() != null && req.getIsPublished())
                 .authorId(req.getAuthorId())
+                // ✅ moderation default
+                .status(STATUS_PENDING)
+                .isPublished(false)
                 .build();
 
         return toResponse(repo.save(a));
@@ -95,9 +111,11 @@ public class ArticleService {
 
         a.setThumbnailUrl(req.getThumbnailUrl());
 
-        if (req.getIsPublished() != null) {
-            a.setIsPublished(req.getIsPublished());
-        }
+        // ❗ Với flow duyệt, không cho update isPublished trực tiếp ở đây nữa (tránh bypass duyệt)
+        // Nếu bạn vẫn muốn cho admin override, có thể mở lại.
+        // if (req.getIsPublished() != null) {
+        //     a.setIsPublished(req.getIsPublished());
+        // }
 
         if (req.getAuthorId() != null) {
             a.setAuthorId(req.getAuthorId());
@@ -106,11 +124,42 @@ public class ArticleService {
         return toResponse(repo.save(a));
     }
 
-    // ✅ Admin: publish/unpublish nhanh
+    // ✅ Admin: approve (duyệt bài)
+    public ArticleResponse approve(Long id) {
+        Article a = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết id=" + id));
+
+        a.setStatus(STATUS_APPROVED);
+        a.setIsPublished(true);
+
+        return toResponse(repo.save(a));
+    }
+
+    // ✅ Admin: reject (từ chối bài)
+    public ArticleResponse reject(Long id) {
+        Article a = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết id=" + id));
+
+        a.setStatus(STATUS_REJECTED);
+        a.setIsPublished(false);
+
+        return toResponse(repo.save(a));
+    }
+
+    // ✅ Admin: publish/unpublish nhanh (giữ lại theo code cũ)
+    // Lưu ý: nếu bạn muốn flow duyệt nghiêm ngặt, có thể chỉ cho publish khi status=APPROVED.
     public ArticleResponse setPublish(Long id, ArticlePublishRequest req) {
         Article a = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết id=" + id));
+
         a.setIsPublished(req.isPublished());
+
+        // nếu publish=true mà chưa APPROVED thì tự set APPROVED cho hợp logic
+        if (req.isPublished() && (a.getStatus() == null || STATUS_PENDING.equals(a.getStatus()))) {
+            a.setStatus(STATUS_APPROVED);
+        }
+
+        // nếu publish=false thì không đổi status (tuỳ bạn); hoặc set REJECTED/…
         return toResponse(repo.save(a));
     }
 

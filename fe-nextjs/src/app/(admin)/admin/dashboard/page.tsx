@@ -42,12 +42,12 @@ export default function AdminDashboard() {
       } catch (error) {
         console.error("Lỗi tải dữ liệu Dashboard:", error);
         // Dữ liệu mẫu (Mock data) phòng khi API chưa chạy
-        setSummary({
-          totalCandidates: 120,
-          totalRecruiters: 15,
-          totalActiveJobs: 45,
-          totalApplications: 300
-        });
+        // setSummary({
+        //   totalCandidates: 120,
+        //   totalRecruiters: 15,
+        //   totalActiveJobs: 45,
+        //   totalApplications: 300
+        // });
         setChartData([
           { date: 'T2', count: 12 },
           { date: 'T3', count: 19 },
