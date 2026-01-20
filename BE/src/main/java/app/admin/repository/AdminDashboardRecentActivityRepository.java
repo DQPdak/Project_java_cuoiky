@@ -10,7 +10,7 @@ import app.auth.model.User;
 import java.util.List;
 
 @Component
-public interface AdminRecentActivityRepository extends Repository<User, Long> {
+public interface AdminDashboardRecentActivityRepository extends Repository<User, Long> {
 
     @Query(value = """
         select 

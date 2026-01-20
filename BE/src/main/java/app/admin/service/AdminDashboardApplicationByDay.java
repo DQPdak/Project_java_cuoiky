@@ -2,7 +2,7 @@ package app.admin.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import app.admin.dto.response.ApplicationsByDayResponse;
+import app.admin.dto.response.AdminDashboardApplicationsByDayResponse;
 import app.admin.repository.AdminDashboardApplicaionByDayRepository;
 
 import java.time.DayOfWeek;
@@ -17,7 +17,7 @@ public class AdminDashboardApplicationByDay {
 
     private final AdminDashboardApplicaionByDayRepository adminDashboardApplicaionByDayRepository;
 
-    public List<ApplicationsByDayResponse> getApplicationsChart(int days) {
+    public List<AdminDashboardApplicationsByDayResponse> getApplicationsChart(int days) {
         if (days <= 0) days = 7;
 
         ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -37,11 +37,11 @@ public class AdminDashboardApplicationByDay {
             countMap.put(d, c);
         }
 
-        List<ApplicationsByDayResponse> result = new ArrayList<>();
+        List<AdminDashboardApplicationsByDayResponse> result = new ArrayList<>();
         for (int i = 0; i < days; i++) {
             LocalDate d = start.plusDays(i);
             long c = countMap.getOrDefault(d, 0L);
-            result.add(new ApplicationsByDayResponse(toVietnamDayLabel(d.getDayOfWeek()), c));
+            result.add(new AdminDashboardApplicationsByDayResponse(toVietnamDayLabel(d.getDayOfWeek()), c));
         }
 
         return result;

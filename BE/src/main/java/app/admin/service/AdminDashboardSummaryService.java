@@ -18,8 +18,7 @@ public class AdminDashboardSummaryService {
         return DashboardSummaryResponse.builder()
                 .totalCandidates(p.getCandidateTotal())
                 .totalRecruiters(p.getRecruiterTotal())
-                .totalActiveJobs(p.getJobPostTotal())
-                .publishedJobs(p.getJobPostPublished())
+                .totalActiveJobs(p.getJobTotal())
                 .totalApplications(p.getApplicationTotal())
                 .build();
     }

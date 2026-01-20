@@ -2,8 +2,8 @@ package app.admin.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import app.admin.dto.response.RecentActivityResponse;
-import app.admin.repository.AdminRecentActivityRepository;
+import app.admin.dto.response.AdminDashboardRecentActivityResponse;
+import app.admin.repository.AdminDashboardRecentActivityRepository;
 import java.sql.Timestamp;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -13,14 +13,14 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AdminDashboardRecentActivityService {
 
-    private final AdminRecentActivityRepository adminActivityRepository;
+    private final AdminDashboardRecentActivityRepository adminActivityRepository;
 
-    public List<RecentActivityResponse> getRecentActivities(int limit) {
+    public List<AdminDashboardRecentActivityResponse> getRecentActivities(int limit) {
         if (limit <= 0) limit = 5;
 
         List<Object[]> rows = adminActivityRepository.findRecentApplicationActivities(limit);
 
-        List<RecentActivityResponse> result = new ArrayList<>();
+        List<AdminDashboardRecentActivityResponse> result = new ArrayList<>();
         Instant now = Instant.now();
 
         for (Object[] r : rows) {
@@ -41,7 +41,7 @@ public class AdminDashboardRecentActivityService {
 
             String message = String.format("%s vừa ứng tuyển vào %s", candidateName, companyName);
 
-            result.add(RecentActivityResponse.builder()
+            result.add(AdminDashboardRecentActivityResponse.builder()
                     .refId(applicationId)
                     .message(message)
                     .createdAt(createdAt)

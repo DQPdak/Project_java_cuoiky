@@ -1,0 +1,37 @@
+// package app.admin.controller;
+
+// import org.springframework.beans.factory.annotation.Autowired;
+// import org.springframework.data.domain.Page;
+// import org.springframework.data.domain.Pageable;
+// import org.springframework.security.access.prepost.PreAuthorize;
+// import org.springframework.web.bind.annotation.*;
+// import app.admin.dto.response.AdminUserResponse;
+// import app.admin.service.AdminUserService;
+
+
+// @RestController
+// @RequestMapping("/api/admin/users")
+// @PreAuthorize("hasRole('ADMIN')")
+// public class AdminUserController {
+
+//     @Autowired
+//     private AdminUserService adminUserService;
+
+//     @GetMapping
+//     public Page<AdminUserResponse> getUsers(
+//         @RequestParam(required = false) String keyword,
+//         Pageable pageable
+//     ) {
+//         return adminUserService.getAllUsers(keyword, pageable);
+//     }
+
+//     @PutMapping("/{id}/lock")
+//     public void lockUser(@PathVariable Long id) {
+//         adminUserService.lockUser(id);
+//     }
+
+//     @PutMapping("/{id}/unlock")
+//     public void unlockUser(@PathVariable Long id) {
+//         adminUserService.unlockUser(id);
+//     }
+// }

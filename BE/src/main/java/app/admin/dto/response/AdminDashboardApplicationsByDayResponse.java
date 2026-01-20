@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApplicationsByDayResponse {
+public class AdminDashboardApplicationsByDayResponse {
     private String date; // "T2".."CN" hoặc "2024-01-15"
     private Long count;
 }

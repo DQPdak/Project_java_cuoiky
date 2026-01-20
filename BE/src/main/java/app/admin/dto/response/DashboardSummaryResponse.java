@@ -8,8 +8,9 @@ import lombok.*;
 @AllArgsConstructor 
 @Builder
 public class DashboardSummaryResponse {
-    private long totalUsers;
-    private long totalJobs;
+    private long totalRecruiters;
+    private long totalCandidates;
+    private long totalActiveJobs;
     private long totalApplications;
     private long totalArticles;
 }
