@@ -40,4 +40,12 @@ public class JobApplicationController {
         
         return ResponseEntity.ok("Cập nhật trạng thái thành công");
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> cancelApplication(@PathVariable Long id) {
+        Long candidateId = getCurrentUserId();
+        applicationService.deleteApplication(candidateId, id);
+
+        return ResponseEntity.ok(MessageResponse.success("Hủy ứng tuyển thành công", null));
+    }
 }

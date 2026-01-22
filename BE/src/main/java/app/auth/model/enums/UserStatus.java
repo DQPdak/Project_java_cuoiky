@@ -11,7 +11,6 @@ package app.auth.model.enums;
  */
 public enum UserStatus {
     ACTIVE,                // Tài khoản hoạt động
-    INACTIVE,              // Tài khoản không hoạt động
     BANNED,                // Tài khoản bị cấm
     PENDING_VERIFICATION   // Đang chờ xác thực email hoặc thông tin
 }

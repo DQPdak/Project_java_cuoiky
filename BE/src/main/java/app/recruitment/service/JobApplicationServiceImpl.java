@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import app.recruitment.repository.JobApplicationRepository;
+import app.auth.exception.UnauthorizedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -175,6 +177,9 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         // Kiểm tra quyền sở hữu trước khi xóa
         if (!app.getCandidate().getId().equals(candidateId)) {
              throw new IllegalArgumentException("Bạn không có quyền xóa đơn ứng tuyển này.");
+        }
+        if (app.getStatus() != ApplicationStatus.PENDING) {
+             throw new IllegalArgumentException("Không thể hủy đơn khi đã được Duyệt hoặc Từ chối.");
         }
         appRepo.delete(app);
     }

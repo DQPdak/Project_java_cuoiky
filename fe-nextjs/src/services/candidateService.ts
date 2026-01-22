@@ -44,11 +44,8 @@ export const getMatchingJobs = async () => {
   return response.data.data;
 };
 
-export const applyJob = async (jobId: number) => {
-  // Gửi request POST, body có thể cần thêm coverLetter nếu muốn
-  const response = await api.post("/recruitment/applications", {
-    jobId: jobId,
-  });
+export const applyJob = async (data: { jobId: number; coverLetter?: string; cvUrl?: string }) => {
+  const response = await api.post("/applications/apply", data);
   return response.data;
 };
 
@@ -84,4 +81,9 @@ export const getJobAnalysisResult = async (jobId: number) => {
     console.error("Lỗi lấy kết quả phân tích:", error);
     throw error;
   }
+};
+
+export const cancelApplication = async (applicationId: number) => {
+  const response = await api.delete(`/applications/${applicationId}`);
+  return response.data;
 };

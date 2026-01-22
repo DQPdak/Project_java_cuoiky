@@ -9,6 +9,8 @@ import {
   getBatchScores,
 } from "@/services/candidateService";
 import toast from "react-hot-toast";
+import ApplyModal from "@/components/features/jobs/ApplyModal";
+import { getMyApplications } from "@/services/candidateService";
 import {
   Search,
   MapPin,
@@ -23,22 +25,35 @@ import {
   User, // Icon cho yêu cầu
 } from "lucide-react";
 
-const formatTimeAgo = (dateString: string) => {
-  if (!dateString) return "Mới đăng";
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffTime = Math.abs(now.getTime() - date.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays <= 1 ? "Vừa xong" : `${diffDays} ngày trước`;
-};
 
 export default function CandidateDashboard() {
+  const formatTimeAgo = (dateString: string) => {
+    if (!dateString) return "Mới đăng";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 1 ? "Vừa xong" : `${diffDays} ngày trước`;
+  };
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [applyingId, setApplyingId] = useState<number | null>(null);
+  const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
 
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+
+  const fetchAppliedStatus = async () => {
+    try {
+      const myApps = await getMyApplications();
+      // Map ra mảng ID. Kiểm tra cấu trúc response của bạn (app.job.id hoặc app.jobId)
+      const ids = Array.isArray(myApps) ? myApps.map((app: any) => app.job?.id || app.jobId) : [];
+      setAppliedJobIds(ids);
+    } catch (error) {
+      console.error("Lỗi lấy trạng thái ứng tuyển:", error);
+    }
+  };
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
@@ -50,17 +65,27 @@ export default function CandidateDashboard() {
     if (e.key === "Enter") handleSearch();
   };
 
-  const handleApply = async (jobId: number) => {
-    setApplyingId(jobId);
-    try {
-      await applyJob(jobId);
-      toast.success("Ứng tuyển thành công! 🎉");
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Lỗi khi ứng tuyển");
-    } finally {
-      setApplyingId(null);
-    }
+  const handleApply = (job: any) => {
+    setSelectedJob(job);
   };
+
+  useEffect(() => {
+    // Hàm lấy danh sách các job đã nộp
+    const fetchAppliedStatus = async () => {
+      try {
+        const myApps = await getMyApplications(); 
+        const ids = Array.isArray(myApps) ? myApps.map((app: any) => app.job?.id || app.jobId) : [];
+        setAppliedJobIds(ids);
+      } catch (error) {
+        console.error("Lỗi lấy trạng thái ứng tuyển:", error);
+      }
+    };
+    fetchAppliedStatus();
+  }, []);
+
+  useEffect(() => {
+    fetchAppliedStatus();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -110,6 +135,7 @@ export default function CandidateDashboard() {
     };
 
     fetchData();
+    fetchAppliedStatus();
   }, []);
 
   return (
@@ -395,16 +421,23 @@ export default function CandidateDashboard() {
                   </Link>
 
                   <button
-                    onClick={() => handleApply(job.id)}
-                    disabled={applyingId === job.id}
+                    onClick={() => handleApply(job)}
+                    disabled={appliedJobIds.includes(job.id)} 
+                    
                     className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-sm flex items-center justify-center
                       ${
-                        applyingId === job.id
-                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        appliedJobIds.includes(job.id)
+                          ? "bg-green-50 text-green-700 border border-green-200 cursor-not-allowed"
                           : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md"
                       }`}
                   >
-                    {applyingId === job.id ? "Đang gửi..." : "Ứng tuyển ngay"}
+                    {appliedJobIds.includes(job.id) ? (
+                      <>
+                        <ListChecks className="mr-2 h-4 w-4"/> Đã ứng tuyển
+                      </>
+                    ) : (
+                      "Ứng tuyển ngay"
+                    )}
                   </button>
                 </div>
               </div>
@@ -412,6 +445,19 @@ export default function CandidateDashboard() {
           ))}
         </div>
       </div>
+      {selectedJob && (
+        <ApplyModal
+          isOpen={!!selectedJob}
+          onClose={() => setSelectedJob(null)}
+          jobId={selectedJob.id}
+          jobTitle={selectedJob.title}
+          companyName={selectedJob.company}
+          onSuccess={() => {
+             setAppliedJobIds(prev => [...prev, selectedJob.id]);
+             setSelectedJob(null);
+          }}
+        />
+      )}
     </div>
   );
 }

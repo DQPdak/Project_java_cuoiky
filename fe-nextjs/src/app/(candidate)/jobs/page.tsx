@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/Authcontext";
 import * as candidateService from "@/services/candidateService";
 import { useRouter, useSearchParams } from "next/navigation";
+import ApplyModal from "@/components/features/jobs/ApplyModal";
+import { getMyApplications } from "@/services/candidateService";
 import {
   Search,
   MapPin,
@@ -31,6 +33,9 @@ export default function JobsPage() {
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedJob, setSelectedJob] = useState<{id: number, title: string, company: string} | null>(null);
+  const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
+  
 
   // Logic bắt URL
   useEffect(() => {
@@ -143,8 +148,32 @@ export default function JobsPage() {
     }
   };
 
-  const handleApply = async (jobId: number) => {
-    router.push(`/jobs/${jobId}`);
+  const fetchAppliedStatus = async () => {
+    if (!user?.id) return;
+    try {
+      const myApps = await candidateService.getMyApplications();
+      // Map ra danh sách ID từ response
+      const ids = Array.isArray(myApps) ? myApps.map((app: any) => app.job?.id || app.jobId || app.id) : [];
+      setAppliedJobIds(ids);
+    } catch (error) {
+      console.error("Lỗi lấy trạng thái ứng tuyển", error);
+    }
+  };
+
+  // Gọi hàm này trong useEffect, cùng lúc với fetchJobs
+  useEffect(() => {
+    if (user?.id) {
+      fetchJobs();
+      fetchAppliedStatus(); 
+    }
+  }, [user, activeTab]);
+
+  const handleApply = (job: any) => {
+    setSelectedJob({
+      id: job.id,
+      title: job.title,
+      company: job.company || "Công ty ẩn danh"
+    });
   };
 
   const handleTabChange = (tab: "all" | "matching") => {
@@ -359,13 +388,27 @@ export default function JobsPage() {
                       <Building2 className="h-4 w-4" />
                       Phỏng vấn thử
                     </button>
-
+                    
                     <button
-                      onClick={() => handleApply(job.id)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm shadow-blue-200 transition-all"
+                      onClick={() => handleApply(job)}
+                      disabled={appliedJobIds.includes(job.id)}
+                      
+                      className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all shadow-sm
+                        ${
+                          appliedJobIds.includes(job.id)
+                            ? "bg-green-50 text-green-700 border border-green-200 cursor-not-allowed" // Style Đã nộp
+                            : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200"   // Style Chưa nộp
+                        }`}
                     >
-                      Ứng tuyển ngay
-                      <ArrowRight className="h-4 w-4" />
+                      {appliedJobIds.includes(job.id) ? (
+                        <>
+                          <ListChecks className="h-4 w-4" /> Đã ứng tuyển
+                        </>
+                      ) : (
+                        <>
+                          Ứng tuyển ngay <ArrowRight className="h-4 w-4" />
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -407,6 +450,19 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+      {selectedJob && (
+        <ApplyModal
+          isOpen={!!selectedJob}
+          onClose={() => setSelectedJob(null)}
+          jobId={selectedJob.id}
+          jobTitle={selectedJob.title}
+          companyName={selectedJob.company}
+          onSuccess={() => {
+              fetchAppliedStatus(); // Load lại danh sách appliedIds để nút chuyển sang màu xanh ngay lập tức
+              setSelectedJob(null); // Đóng modal
+          }}
+        />
+      )}
     </div>
   );
 }

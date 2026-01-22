@@ -15,4 +15,5 @@ public class ArticleResponse {
     private Long authorId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String status;
 }
