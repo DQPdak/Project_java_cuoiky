@@ -37,7 +37,7 @@ const ROLE_MENUS: Record<string, NavItem[]> = {
   // Menu cho NHÀ TUYỂN DỤNG
   RECRUITER: [
     { label: 'Tổng quan', href: '/dashboard-recruiter', icon: LayoutDashboard },
-    { label: 'Đăng tin', href: '/recruiter/post-job', icon: PlusCircle },
+    { label: 'Đăng tin', href: '/recruiter/manage-jobs', icon: PlusCircle },
     { label: 'Ứng viên', href: '/recruiter/candidates', icon: Users },
     { label: 'Công ty', href: '/recruiter/company', icon: Building },
   ],
