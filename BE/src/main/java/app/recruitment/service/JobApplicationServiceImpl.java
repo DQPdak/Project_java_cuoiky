@@ -30,32 +30,29 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     private final JobApplicationRepository appRepo;
     private final JobPostingRepository jobRepo;
     private final UserRepository userRepository;
-    private final CandidateProfileRepository profileRepository; // Inject thêm để lấy CV từ profile an toàn hơn
-    
+    private final CandidateProfileRepository profileRepository; 
+
+    // 1. Logic ứng viên nộp đơn
     @Override
     @Transactional
     public JobApplication apply(Long candidateId, JobApplicationRequest request) {
         User candidate = userRepository.findById(candidateId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + candidateId));
         
-        // Check role (nếu cần thiết)
-        // if (candidate.getUserRole() != UserRole.CANDIDATE) ...
-
         JobPosting job = jobRepo.findById(request.getJobId())
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + request.getJobId()));
 
+        // Check trùng đơn
         if (appRepo.existsByCandidateIdAndJobPostingId(candidateId, job.getId())) {
             throw new IllegalArgumentException("Bạn đã ứng tuyển công việc này rồi.");
         }
 
-        // --- LOGIC LẤY LINK CV ---
+        // Logic CV: Ưu tiên link gửi lên, nếu null thì lấy từ Profile
         String finalCvUrl = request.getCvUrl();
-        
-        // Nếu user không gửi link CV trong request, thử lấy từ Profile gốc
         if (finalCvUrl == null || finalCvUrl.isEmpty()) {
             CandidateProfile profile = profileRepository.findByUserId(candidateId).orElse(null);
             if (profile != null && profile.getCvFilePath() != null) {
-                finalCvUrl = profile.getCvFilePath(); // Lấy từ biến cvFilePath của Entity CandidateProfile
+                finalCvUrl = profile.getCvFilePath();
             } else {
                 throw new IllegalArgumentException("Vui lòng upload CV hoặc cập nhật hồ sơ trước khi ứng tuyển.");
             }
@@ -73,6 +70,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         return appRepo.save(a);
     }
 
+    // 2. Logic Recruiter duyệt đơn (Giữ nguyên: check quyền recruiter)
     @Override
     @Transactional
     public JobApplication updateStatus(Long recruiterId, Long applicationId, ApplicationStatus newStatus, String recruiterNote) {
@@ -88,18 +86,19 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         return appRepo.save(application);
     }
 
+    // 3. Helper: Lấy List Entity theo Job
     @Override
     public List<JobApplication> listByJob(Long jobId) {
         return appRepo.findByJobPostingId(jobId);
     }
 
-    // [FIX] Override đúng tên hàm trong Interface
+    // 4. Helper: Lấy List Entity theo Candidate
     @Override
     public List<JobApplication> listByCandidateId(Long candidateId) {
         return appRepo.findByCandidateId(candidateId);
     }
 
-    // [FIX] Override đúng tên hàm trong Interface
+    // 5. API: Lấy danh sách DTO cho Candidate (Giữ logic Map chi tiết của bạn)
     @Override
     @Transactional(readOnly = true)
     public List<JobApplicationResponse> getApplicationsByCandidateId(Long candidateId) {
@@ -117,10 +116,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                     .studentId(app.getCandidate().getId())
                     .studentName(app.getCandidate().getFullName())
                     .cvUrl(app.getCvUrl())
-                    
-                    // [FIX LỖI 2] Convert Enum sang String bằng .name()
                     .status(app.getStatus().name()) 
-                    
                     .appliedAt(app.getAppliedAt())
                     .recruiterNote(app.getRecruiterNote())
                     .matchScore(app.getMatchScore())
@@ -129,29 +125,62 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         }).collect(Collectors.toList());
     }
 
+    // 6. Helper: Lấy chi tiết
     @Override
     public Optional<JobApplication> getById(Long id) {
         return appRepo.findById(id);
     }
 
+
+    // 7. API: Lấy danh sách DTO cho Recruiter (Xem theo Job)
+    @Override
+    @Transactional(readOnly = true)
+    public List<JobApplicationResponse> getApplicationsByJobId(Long jobId) {
+        // Tái sử dụng logic map tương tự như Candidate
+        List<JobApplication> applications = appRepo.findByJobPostingId(jobId);
+        return applications.stream().map(app -> {
+            JobPosting job = app.getJobPosting();
+            String companyName = (job.getCompany() != null) ? job.getCompany().getName() : "Unknown";
+            
+            return JobApplicationResponse.builder()
+                    .id(app.getId())
+                    .jobId(job.getId())
+                    .jobTitle(job.getTitle())
+                    .companyName(companyName)
+                    .studentId(app.getCandidate().getId())
+                    .studentName(app.getCandidate().getFullName())
+                    .cvUrl(app.getCvUrl())
+                    .status(app.getStatus().name())
+                    .appliedAt(app.getAppliedAt())
+                    .matchScore(app.getMatchScore())
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    // 8. Update status đơn giản (dùng cho AI/System tool)
+    @Override
+    @Transactional
+    public void updateApplicationStatus(Long applicationId, ApplicationStatus newStatus) {
+        JobApplication app = appRepo.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+        app.setStatus(newStatus);
+        appRepo.save(app);
+    }
+
+    // 9. Xóa đơn (Candidate rút đơn)
     @Override
     @Transactional
     public void deleteApplication(Long candidateId, Long applicationId) {
-        // 1. Tìm đơn ứng tuyển (Sửa jobApplicationRepository -> appRepo)
-        JobApplication application = appRepo.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn ứng tuyển"));
-
-        // 2. Kiểm tra quyền: Chỉ chủ sở hữu mới được xóa
-        if (!application.getCandidate().getId().equals(candidateId)) {
-            throw new RuntimeException("Bạn không có quyền xóa đơn ứng tuyển này");
+        JobApplication app = appRepo.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+        
+        // Kiểm tra quyền sở hữu trước khi xóa
+        if (!app.getCandidate().getId().equals(candidateId)) {
+             throw new IllegalArgumentException("Bạn không có quyền xóa đơn ứng tuyển này.");
         }
-
-        // 3. Kiểm tra trạng thái: Chỉ cho xóa khi đang PENDING
-        if (application.getStatus() != ApplicationStatus.PENDING) {
-            throw new RuntimeException("Không thể hủy đơn khi đã được Duyệt hoặc Từ chối");
+        if (app.getStatus() != ApplicationStatus.PENDING) {
+             throw new IllegalArgumentException("Không thể hủy đơn khi đã được Duyệt hoặc Từ chối.");
         }
-
-        // 4. Xóa (Sửa jobApplicationRepository -> appRepo)
-        appRepo.delete(application);
+        appRepo.delete(app);
     }
 }

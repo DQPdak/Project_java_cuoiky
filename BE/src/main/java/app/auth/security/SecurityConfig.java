@@ -85,10 +85,11 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // tài liệu API
                 .requestMatchers("/api/admin/**").hasRole("ADMIN") // yêu cầu ROLE_ADMIN
                 .requestMatchers("/api/recruiter/**").hasRole("RECRUITER") // yêu cầu ROLE_RECRUITER
+                .requestMatchers("/api/recruitment/**").hasAnyAuthority("RECRUITER", "ADMIN")
                 .requestMatchers("/api/interview/**").permitAll()
                 .requestMatchers("/api/cv/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()
-                .requestMatchers("api/candidate/**").permitAll()
+                .requestMatchers("/api/candidate/**").permitAll()
                 .anyRequest().authenticated() // còn lại cần xác thực
             )
             // Provider xác thực sử dụng UserDetailsService

@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-
 import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,10 +26,9 @@ public class JobPostingController {
     private final JobPostingService jobPostingService;
     private final RecruitmentMapper mapper;
     private final SecurityUtils securityUtils;
+
     @PostMapping
-    public ResponseEntity<JobPostingResponse> create(
-            @Valid @RequestBody JobPostingRequest request
-    ) {
+    public ResponseEntity<JobPostingResponse> create(@Valid @RequestBody JobPostingRequest request) {
         Long recruiterId = securityUtils.getCurrentUserId();
         JobPosting created = jobPostingService.create(recruiterId, request);
         JobPostingResponse resp = mapper.toJobPostingResponse(created);
@@ -38,20 +36,15 @@ public class JobPostingController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<JobPostingResponse> update(
-            @PathVariable Long id,
-            @Valid @RequestBody JobPostingRequest request
-    ) {
-        Long recruiterId = getCurrentUserId();
+    public ResponseEntity<JobPostingResponse> update(@PathVariable Long id, @Valid @RequestBody JobPostingRequest request) {
+        Long recruiterId = securityUtils.getCurrentUserId(); // Dùng securityUtils thay vì hàm fake
         JobPosting updated = jobPostingService.update(recruiterId, id, request);
         return ResponseEntity.ok(mapper.toJobPostingResponse(updated));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @PathVariable Long id
-    ) {
-        Long recruiterId = getCurrentUserId();
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        Long recruiterId = securityUtils.getCurrentUserId();
         jobPostingService.delete(recruiterId, id);
         return ResponseEntity.noContent().build();
     }
@@ -65,7 +58,7 @@ public class JobPostingController {
 
     @GetMapping("/me")
     public ResponseEntity<List<JobPostingResponse>> listByRecruiter() {
-        Long recruiterId = getCurrentUserId();
+        Long recruiterId = securityUtils.getCurrentUserId();
         List<JobPostingResponse> list = jobPostingService.listByRecruiter(recruiterId)
                 .stream().map(mapper::toJobPostingResponse).collect(Collectors.toList());
         return ResponseEntity.ok(list);
@@ -74,10 +67,5 @@ public class JobPostingController {
     @GetMapping("/search")
     public ResponseEntity<?> searchJobs(@RequestParam(value = "keyword", required = false) String keyword) {
         return ResponseEntity.ok(MessageResponse.success("Tìm kiếm thành công", jobPostingService.searchJobs(keyword)));
-    }
-
-    // Mock current user id (temporary). Replace with SecurityContext lookup.
-    private Long getCurrentUserId() {
-        return 1L;
     }
 }
