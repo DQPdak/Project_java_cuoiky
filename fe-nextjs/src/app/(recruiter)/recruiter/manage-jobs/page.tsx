@@ -11,9 +11,14 @@ export default function ManageJobsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State cho form tạo mới
+  // 1. Đổi tên trường 'deadline' thành 'expiryDate' cho khớp Backend
   const [newJob, setNewJob] = useState({
-    title: "", location: "", salaryRange: "", deadline: "", description: "", requirements: ""
+    title: "",
+    location: "",
+    salaryRange: "",
+    expiryDate: "", // Đổi từ deadline -> expiryDate
+    description: "",
+    requirements: ""
   });
 
   useEffect(() => {
@@ -38,9 +43,18 @@ export default function ManageJobsPage() {
       toast.success("Đăng tin thành công!");
       setShowCreateModal(false);
       loadJobs(); // Reload lại list
-      setNewJob({ title: "", location: "", salaryRange: "", deadline: "", description: "", requirements: "" });
-    } catch (error) {
-      toast.error("Lỗi khi tạo tin tuyển dụng");
+      
+      // Reset form với expiryDate
+      setNewJob({ 
+        title: "", location: "", salaryRange: "", 
+        expiryDate: "", 
+        description: "", requirements: "" 
+      });
+    } catch (error: any) {
+      // 2. Hiển thị lỗi chi tiết từ Backend (nếu có)
+      const message = error?.response?.data?.message || "Lỗi khi tạo tin tuyển dụng";
+      toast.error(message);
+      console.error(error);
     }
   };
 
@@ -72,12 +86,17 @@ export default function ManageJobsPage() {
                   <div className="flex gap-4 text-sm text-gray-500 mb-3">
                     <span className="flex items-center gap-1"><MapPin size={16}/> {job.location}</span>
                     <span className="flex items-center gap-1"><DollarSign size={16}/> {job.salaryRange}</span>
-                    <span className="flex items-center gap-1"><Calendar size={16}/> {new Date(job.deadline).toLocaleDateString('vi-VN')}</span>
+                    {/* 3. Cập nhật hiển thị từ deadline sang expiryDate */}
+                    <span className="flex items-center gap-1">
+                        <Calendar size={16}/> 
+                        {job.expiryDate ? new Date(job.expiryDate).toLocaleDateString('vi-VN') : 'N/A'}
+                    </span>
                   </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-xs font-semibold
-                  ${job.status === JobStatus.OPEN ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {job.status === JobStatus.OPEN ? 'Đang tuyển' : 'Đã đóng'}
+                  ${job.status === JobStatus.PUBLISHED ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {/* Lưu ý: Backend dùng PUBLISHED, frontend cần map enum tương ứng */}
+                  {job.status === JobStatus.PUBLISHED ? 'Đang tuyển' : job.status}
                 </div>
               </div>
               
@@ -111,8 +130,15 @@ export default function ManageJobsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <input placeholder="Mức lương (VD: 10-15 triệu)" className="border p-2 rounded"
                   value={newJob.salaryRange} onChange={e => setNewJob({...newJob, salaryRange: e.target.value})} />
-                <input type="date" className="border p-2 rounded" required
-                  value={newJob.deadline} onChange={e => setNewJob({...newJob, deadline: e.target.value})} />
+                
+                {/* 4. Input date đã được sửa để bind vào expiryDate */}
+                <input 
+                  type="date" 
+                  className="border p-2 rounded" 
+                  required
+                  value={newJob.expiryDate} 
+                  onChange={e => setNewJob({...newJob, expiryDate: e.target.value})} 
+                />
               </div>
               <textarea placeholder="Mô tả công việc..." className="border p-2 rounded w-full h-24" required
                 value={newJob.description} onChange={e => setNewJob({...newJob, description: e.target.value})} />
