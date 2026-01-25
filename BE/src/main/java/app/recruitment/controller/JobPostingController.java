@@ -20,6 +20,7 @@ import app.recruitment.entity.JobPosting;
 @RestController
 @RequestMapping("/api/recruiter/jobs")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 @Slf4j
 public class JobPostingController {
 

@@ -1,28 +1,34 @@
 package app.recruitment.dto.request;
 
-import lombok.Data;
-import jakarta.validation.constraints.NotBlank;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Future;
-import java.time.LocalDateTime;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+import java.time.LocalDate; // Dùng LocalDate thay vì LocalDateTime cho input
 
 @Data
 public class JobPostingRequest {
-    @NotBlank(message = "Title is required")
+    @NotBlank(message = "Tiêu đề không được để trống")
     private String title;
 
-    @NotBlank(message = "Description is required")
+    @NotBlank(message = "Mô tả không được để trống")
     private String description;
 
+    @NotBlank(message = "Yêu cầu không được để trống")
     private String requirements;
 
-    @NotBlank(message = "SalaryRange is required")
     private String salaryRange;
 
-    @NotBlank(message = "Location is required")
+    @NotBlank(message = "Địa điểm không được để trống")
     private String location;
 
-    @Future(message = "ExpiryDate must be in the future")
-    private LocalDateTime expiryDate;
+    // Frontend gửi "yyyy-MM-dd", Backend cần parse đúng
+    @NotNull(message = "Hạn nộp hồ sơ không được để trống")
+    @Future(message = "Hạn nộp hồ sơ phải ở tương lai")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private LocalDate expiryDate; 
     
-    private String status; // DRAFT | PUBLISHED | CLOSED
+    private String status; // Optional
 }

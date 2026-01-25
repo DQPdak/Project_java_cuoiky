@@ -1,17 +1,20 @@
 // Đường dẫn: fe-nextjs/src/types/recruitment.ts
 
 export enum JobStatus {
-  OPEN = "OPEN",
+  PUBLISHED = "PUBLISHED", 
   CLOSED = "CLOSED",
-  DRAFT = "DRAFT"
+  DRAFT = "DRAFT",
+  OPEN = "OPEN" 
 }
 
 export enum ApplicationStatus {
   APPLIED = "APPLIED",
+  PENDING = "PENDING",    
   SCREENING = "SCREENING",
   INTERVIEW = "INTERVIEW",
   OFFERED = "OFFERED",
-  REJECTED = "REJECTED"
+  REJECTED = "REJECTED",
+  HIRED = "HIRED"
 }
 
 export interface JobPosting {
@@ -19,21 +22,24 @@ export interface JobPosting {
   title: string;
   location: string;
   salaryRange: string;
-  deadline: string;
+  expiryDate: string;    
   status: JobStatus;
   applicationCount?: number;
   description?: string;
   requirements?: string;
   createdAt?: string;
+  extractedSkills?: string[]; 
 }
 
 export interface CandidateApplication {
   id: number;
-  candidateName: string;
-  email: string;
+  studentName?: string;  
+  candidateName?: string; 
   matchScore: number;
   status: ApplicationStatus;
   cvUrl: string;
+  jobTitle?: string;
+  appliedAt?: string;
 }
 
 export interface JobCreateRequest {
@@ -42,5 +48,5 @@ export interface JobCreateRequest {
   requirements: string;
   location: string;
   salaryRange: string;
-  deadline: string;
+  expiryDate: string;
 }

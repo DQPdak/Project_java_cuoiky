@@ -11,11 +11,14 @@ import app.recruitment.entity.enums.JobStatus;
 import app.recruitment.mapper.RecruitmentMapper;
 import app.recruitment.repository.JobPostingRepository;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;             // Import Logger
-import org.slf4j.LoggerFactory;      // Import LoggerFactory
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,7 +27,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JobPostingServiceImpl implements JobPostingService {
 
-    // KHAI BÁO LOG THỦ CÔNG (Sửa lỗi cannot find symbol log)
     private static final Logger log = LoggerFactory.getLogger(JobPostingServiceImpl.class);
 
     private final JobPostingRepository jobPostingRepository;
@@ -37,22 +39,37 @@ public class JobPostingServiceImpl implements JobPostingService {
     public JobPosting create(Long recruiterId, JobPostingRequest request) {
         User recruiter = userRepository.findById(recruiterId)
                 .orElseThrow(() -> new IllegalArgumentException("Recruiter not found: " + recruiterId));
+        
+        // 1. Kiểm tra quyền
         if (recruiter.getUserRole() != UserRole.RECRUITER) {
             throw new IllegalArgumentException("Only recruiter can create job postings");
         }
-        List<String> skills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
 
+        // 2. Xử lý AI an toàn (Safe AI call) - Logic từ Gemini
+        List<String> skills = new ArrayList<>();
+        try {
+            skills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
+        } catch (Exception e) {
+            // Log lỗi nhưng không chặn quy trình tạo Job
+            log.error("Lỗi khi trích xuất kỹ năng bằng AI (Vẫn tiếp tục tạo Job): {}", e.getMessage());
+        }
+
+        // 3. Convert LocalDate -> LocalDateTime (Hết hạn vào cuối ngày đó: 23:59:59)
+        LocalDateTime expiryDateTime = request.getExpiryDate().atTime(LocalTime.MAX);
+
+        // 4. Tạo Entity
         JobPosting j = JobPosting.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .requirements(request.getRequirements())
                 .salaryRange(request.getSalaryRange())
                 .location(request.getLocation())
-                .expiryDate(request.getExpiryDate())
+                .expiryDate(expiryDateTime) // Lưu LocalDateTime đã convert
                 .extractedSkills(skills)
                 .recruiter(recruiter)
                 .status(JobStatus.PUBLISHED)
                 .build();
+
         return jobPostingRepository.save(j);
     }
 
@@ -65,16 +82,29 @@ public class JobPostingServiceImpl implements JobPostingService {
         if (!job.getRecruiter().getId().equals(recruiterId)) {
             throw new IllegalArgumentException("Unauthorized: cannot edit job of another recruiter");
         }
-        List<String> newSkills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
 
+        // Cập nhật các trường thông tin cơ bản
         job.setTitle(request.getTitle());
         job.setDescription(request.getDescription());
         job.setRequirements(request.getRequirements());
         job.setSalaryRange(request.getSalaryRange());
         job.setLocation(request.getLocation());
-        job.setExtractedSkills(newSkills);
-        job.setExpiryDate(request.getExpiryDate());
 
+        // Cập nhật ExpiryDate (Nếu có thay đổi)
+        if (request.getExpiryDate() != null) {
+            job.setExpiryDate(request.getExpiryDate().atTime(LocalTime.MAX));
+        }
+
+        // Cập nhật kỹ năng qua AI an toàn (Safe AI call cho Update)
+        try {
+            List<String> newSkills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
+            job.setExtractedSkills(newSkills);
+        } catch (Exception e) {
+            log.error("Lỗi khi cập nhật kỹ năng bằng AI (Giữ nguyên kỹ năng cũ): {}", e.getMessage());
+            // Không set lại skills để giữ nguyên dữ liệu cũ nếu AI lỗi
+        }
+
+        // Cập nhật trạng thái
         if (request.getStatus() != null) {
             try {
                 job.setStatus(JobStatus.valueOf(request.getStatus()));
