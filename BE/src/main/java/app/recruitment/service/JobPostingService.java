@@ -12,7 +12,7 @@ public interface JobPostingService {
     JobPosting update(Long recruiterId, Long jobId, JobPostingRequest request);
     void delete(Long recruiterId, Long jobId);
     Optional<JobPosting> getById(Long id);
-    List<JobPosting> listByRecruiter(Long recruiterId);
+    List<JobPostingResponse> listByRecruiter(Long recruiterId);
     List<JobPosting> searchByTitle(String keyword);
 
     // Các hàm phục vụ Candidate

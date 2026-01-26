@@ -14,7 +14,7 @@ public interface JobApplicationService {
     
     JobApplication updateStatus(Long recruiterId, Long applicationId, ApplicationStatus newStatus, String recruiterNote);
     
-    List<JobApplication> listByJob(Long jobId);
+    List<JobApplicationResponse> listByJob(Long jobId);
     
     // [QUAN TRỌNG] Đổi listByStudent -> listByCandidateId để khớp với Service Impl
     List<JobApplication> listByCandidateId(Long candidateId);
@@ -23,4 +23,6 @@ public interface JobApplicationService {
     List<JobApplicationResponse> getApplicationsByCandidateId(Long candidateId);
     
     Optional<JobApplication> getById(Long id);
+    
+    JobApplicationResponse getDetail(Long id);
 }

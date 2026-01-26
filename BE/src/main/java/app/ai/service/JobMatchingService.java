@@ -12,7 +12,6 @@ import app.recruitment.entity.JobPosting;
 import app.recruitment.repository.CVAnalysisResultRepository;
 import app.recruitment.repository.JobApplicationRepository;
 import app.recruitment.repository.JobPostingRepository;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,31 +35,29 @@ public class JobMatchingService {
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
     private final CVAnalysisResultRepository analysisRepository;
+
     /**
-     * LUỒNG 1: Preview cho ứng viên (Cache -> AI -> Save Cache)
+     * LUỒNG 1: Preview cho ứng viên (Giữ nguyên logic dùng Cache CVAnalysisResult)
+     * Vì CVAnalysisResult vẫn giữ cấu trúc cũ (AnalysisDetails JSON) nên hàm này không đổi.
      */
     @Transactional
     public MatchResult matchCandidateWithJobAI(Long userId, String cvContent, Long jobId, String cvUrl) {
         // 1. Kiểm tra Cache
         Optional<CVAnalysisResult> existing = analysisRepository.findByUserIdAndJobPostingId(userId, jobId);
         
-        // [CHUẨN BỊ DỮ LIỆU CANDIDATE ĐỂ GÁN VÀO KẾT QUẢ]
+        // Chuẩn bị thông tin ứng viên
         CandidateProfile profile = profileRepository.findByUserId(userId).orElse(null);
         String cName = (profile != null) ? profile.getFullName() : "Ứng viên";
-        // Convert Experience entity sang DTO nếu cần (để hiển thị bên FE)
-        // List<ExperienceDTO> cExps = ... (như code mẫu trước)
 
         if (existing.isPresent()) {
             try {
                 MatchResult cachedResult = objectMapper.readValue(existing.get().getAnalysisDetails(), MatchResult.class);
                 
-                // [FIX 1] GÁN JOB TITLE KHI LẤY TỪ CACHE
+                // Gán thông tin bổ sung
                 if (existing.get().getJobPosting() != null) {
                     cachedResult.setJobTitle(existing.get().getJobPosting().getTitle());
-                    cachedResult.setCompany(existing.get().getJobPosting().getCompany().getName()); // Nếu có trường này
+                    cachedResult.setCompany(existing.get().getJobPosting().getCompany().getName());
                 }
-                
-                // [FIX 2] GÁN TÊN ỨNG VIÊN
                 cachedResult.setCandidateName(cName);
                 
                 return cachedResult;
@@ -72,7 +66,7 @@ public class JobMatchingService {
             }
         }
 
-        // 2. Chuẩn bị dữ liệu
+        // 2. Chuẩn bị dữ liệu nếu chưa có Cache
         JobPosting job = jobPostingRepository.findById(jobId)
                 .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
         User user = userRepository.findById(userId)
@@ -85,17 +79,14 @@ public class JobMatchingService {
             StringUtils.hasText(job.getRequirements()) ? job.getRequirements() : ""
         );
 
-        // [FIX 3] GÁN JOB TITLE VÀO KẾT QUẢ MỚI TỪ AI (QUAN TRỌNG NHẤT)
-        // Nếu thiếu dòng này, FE sẽ nhận jobTitle = null
+        // Gán thông tin bổ sung cho Result trả về
         result.setJobTitle(job.getTitle());
         if (job.getCompany() != null) {
             result.setCompany(job.getCompany().getName());
         }
-        
-        // [FIX 4] GÁN TÊN ỨNG VIÊN
         result.setCandidateName(cName);
 
-        // 4. Lưu Cache
+        // 4. Lưu Cache vào CVAnalysisResult (Vẫn lưu Full JSON để ứng viên xem chi tiết)
         try {
             CVAnalysisResult entity = existing.orElse(new CVAnalysisResult());
             entity.setUser(user);
@@ -107,7 +98,7 @@ public class JobMatchingService {
 
             analysisRepository.save(entity);
         } catch (Exception e) {
-            log.error("Không lưu được kết quả AI: {}", e.getMessage());
+            log.error("Không lưu được kết quả AI vào Cache: {}", e.getMessage());
         }
 
         return result;
@@ -115,6 +106,7 @@ public class JobMatchingService {
 
     /**
      * LUỒNG 2: Sàng lọc hồ sơ (Bulk Screening)
+     * [CẬP NHẬT] Map đúng vào Entity JobApplication mới (Bỏ LearningPath)
      */
     @Async
     @Transactional
@@ -129,6 +121,7 @@ public class JobMatchingService {
         String jobReq = StringUtils.hasText(job.getRequirements()) ? job.getRequirements() : "";
 
         for (JobApplication app : applications) {
+            // Chỉ chạy nếu chưa có điểm
             if (app.getMatchScore() == null || app.getMatchScore() == 0) {
                 try {
                     CandidateProfile profile = profileRepository.findByUserId(app.getCandidate().getId()).orElse(null);
@@ -139,36 +132,21 @@ public class JobMatchingService {
                         // Gọi AI
                         MatchResult result = geminiService.matchCVWithJob(candidateData, jobDesc, jobReq);
 
-                        // Map dữ liệu vào Entity
+                        // --- [FIX] MAP DỮ LIỆU VÀO ENTITY MỚI ---
                         app.setMatchScore(result.getMatchPercentage());
-                        app.setAiEvaluation(result.getEvaluation());
+                        app.setAiEvaluation(result.getEvaluation()); // Nhận xét ngắn gọn
                         app.setMatchedSkillsCount(result.getMatchedSkillsCount());
                         app.setMissingSkillsCount(result.getMissingSkillsCount());
-                        
-                        // [FIX] Tính tổng 2 cột con để lưu vào trường Extra cũ của DB (nếu DB chưa tách cột)
-                        int totalExtra = result.getOtherHardSkillsCount() + result.getOtherSoftSkillsCount();
-                        app.setExtraSkillsCount(totalExtra); 
-                        
-                        app.setTotalRequiredSkills(result.getTotalRequiredSkills());
 
-                        // [FIX] Lưu FULL dữ liệu 5 cột vào JSON Map
-                        Map<String, Object> fullDataMap = new HashMap<>();
-                        fullDataMap.put("learningPath", result.getLearningPath());
-                        fullDataMap.put("careerAdvice", result.getCareerAdvice());
-                        fullDataMap.put("matchedSkillsList", result.getMatchedSkillsList());
-                        fullDataMap.put("missingSkillsList", result.getMissingSkillsList());
-                        // 3 cột mới
-                        fullDataMap.put("otherHardSkillsList", result.getOtherHardSkillsList());
-                        fullDataMap.put("otherSoftSkillsList", result.getOtherSoftSkillsList());
-                        fullDataMap.put("recommendedSkillsList", result.getRecommendedSkillsList());
-                        
-                        app.setLearningPath(objectMapper.writeValueAsString(fullDataMap));
-
-                        // Lưu list missing riêng (nếu cần query)
-                        if (result.getMissingSkillsList() != null) {
-                            app.setMissingSkillsList(objectMapper.writeValueAsString(result.getMissingSkillsList()));
+                        // Lưu danh sách skill thiếu dạng chuỗi "A, B, C"
+                        if (result.getMissingSkillsList() != null && !result.getMissingSkillsList().isEmpty()) {
+                            app.setMissingSkillsList(String.join(", ", result.getMissingSkillsList()));
+                        } else {
+                            app.setMissingSkillsList("");
                         }
-
+                        
+                        // [ĐÃ BỎ] Không setLearningPath, ExtraSkillsCount nữa
+                        
                         applicationRepository.save(app);
                         log.info("Đã chấm điểm xong đơn ID: {}", app.getId());
                     }
@@ -191,99 +169,34 @@ public class JobMatchingService {
     }
 
     /**
-     * LUỒNG 4: Xem chi tiết (Reconstruct MatchResult từ DB)
+     * LUỒNG 4: Xem chi tiết (Recruiter View)
+     * [CẬP NHẬT] Reconstruct từ các cột có sẵn, không parse JSON nữa
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public MatchResult getApplicationAnalysis(Long applicationId) {
         JobApplication app = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found: " + applicationId));
 
-        // 1. Kiểm tra DB
-        if (StringUtils.hasText(app.getLearningPath())) {
-            try {
-                Map<String, Object> dataMap = objectMapper.readValue(app.getLearningPath(), new TypeReference<Map<String, Object>>(){});
-                
-                // [FIX] Builder khớp với DTO 5 cột mới
-                return MatchResult.builder()
-                        .matchPercentage(app.getMatchScore())
-                        .evaluation(app.getAiEvaluation())
-                        .totalRequiredSkills(app.getTotalRequiredSkills() != null ? app.getTotalRequiredSkills() : 0)
-                        
-                        .matchedSkillsList(objectMapper.convertValue(dataMap.get("matchedSkillsList"), new TypeReference<List<String>>(){}))
-                        .missingSkillsList(objectMapper.convertValue(dataMap.get("missingSkillsList"), new TypeReference<List<String>>(){}))
-                        
-                        // Mapping 3 cột mới
-                        .otherHardSkillsList(objectMapper.convertValue(dataMap.get("otherHardSkillsList"), new TypeReference<List<String>>(){}))
-                        .otherSoftSkillsList(objectMapper.convertValue(dataMap.get("otherSoftSkillsList"), new TypeReference<List<String>>(){}))
-                        .recommendedSkillsList(objectMapper.convertValue(dataMap.get("recommendedSkillsList"), new TypeReference<List<String>>(){}))
-                        
-                        .learningPath((String) dataMap.get("learningPath"))
-                        .careerAdvice((String) dataMap.get("careerAdvice"))
-                        
-                        .matchedSkillsCount(app.getMatchedSkillsCount())
-                        .missingSkillsCount(app.getMissingSkillsCount())
-                        // Fix count
-                        .otherHardSkillsCount(getListSize(dataMap.get("otherHardSkillsList")))
-                        .otherSoftSkillsCount(getListSize(dataMap.get("otherSoftSkillsList")))
-                        .recommendedSkillsCount(getListSize(dataMap.get("recommendedSkillsList")))
-                        .build();
-
-            } catch (Exception e) {
-                log.warn("Dữ liệu cũ lỗi format, gọi AI phân tích lại...", e);
-            }
+        // Reconstruct MatchResult từ dữ liệu đơn giản trong DB
+        List<String> missingSkills = new ArrayList<>();
+        if (StringUtils.hasText(app.getMissingSkillsList())) {
+            // Tách chuỗi "A, B, C" thành List
+            missingSkills = Arrays.asList(app.getMissingSkillsList().split(",\\s*"));
         }
 
-        // 2. Nếu chưa có, gọi AI
-        try {
-            CandidateProfile profile = profileRepository.findByUserId(app.getCandidate().getId())
-                    .orElseThrow(() -> new RuntimeException("Ứng viên chưa cập nhật hồ sơ."));
-
-            JobPosting job = app.getJobPosting();
-            String candidateData = buildCandidateDataForAI(profile);
-
-            MatchResult result = geminiService.matchCVWithJob(
-                candidateData,
-                StringUtils.hasText(job.getDescription()) ? job.getDescription() : "",
-                StringUtils.hasText(job.getRequirements()) ? job.getRequirements() : ""
-            );
-
-            // Lưu DB
-            app.setMatchScore(result.getMatchPercentage());
-            app.setAiEvaluation(result.getEvaluation());
-            app.setMatchedSkillsCount(result.getMatchedSkillsCount());
-            app.setMissingSkillsCount(result.getMissingSkillsCount());
-            app.setExtraSkillsCount(result.getOtherHardSkillsCount() + result.getOtherSoftSkillsCount()); // Gộp tạm
-            app.setTotalRequiredSkills(result.getTotalRequiredSkills());
-
-            // Lưu full JSON
-            Map<String, Object> fullDataMap = new HashMap<>();
-            fullDataMap.put("learningPath", result.getLearningPath());
-            fullDataMap.put("careerAdvice", result.getCareerAdvice());
-            fullDataMap.put("matchedSkillsList", result.getMatchedSkillsList());
-            fullDataMap.put("missingSkillsList", result.getMissingSkillsList());
-            fullDataMap.put("otherHardSkillsList", result.getOtherHardSkillsList());
-            fullDataMap.put("otherSoftSkillsList", result.getOtherSoftSkillsList());
-            fullDataMap.put("recommendedSkillsList", result.getRecommendedSkillsList());
-            
-            app.setLearningPath(objectMapper.writeValueAsString(fullDataMap));
-            applicationRepository.save(app);
-
-            return result;
-
-        } catch (Exception e) {
-            log.error("Lỗi phân tích đơn ID {}: ", applicationId, e);
-            throw new RuntimeException("Lỗi phân tích: " + e.getMessage());
-        }
+        return MatchResult.builder()
+                .matchPercentage(app.getMatchScore() != null ? app.getMatchScore() : 0)
+                .evaluation(app.getAiEvaluation())
+                .matchedSkillsCount(app.getMatchedSkillsCount())
+                .missingSkillsCount(app.getMissingSkillsCount())
+                .missingSkillsList(missingSkills)
+                // Các trường khác Recruiter không cần xem (LearningPath...) để null hoặc rỗng
+                .learningPath(null) 
+                .careerAdvice(null)
+                .build();
     }
 
-    // --- PRIVATE HELPER ---
-    private int getListSize(Object listObj) {
-        if (listObj instanceof List) {
-            return ((List<?>) listObj).size();
-        }
-        return 0;
-    }
-
+    // --- PRIVATE HELPER (Giữ nguyên) ---
     private String buildCandidateDataForAI(CandidateProfile profile) throws Exception {
         Map<String, Object> aiInputMap = new HashMap<>();
         aiInputMap.put("fullName", profile.getFullName());

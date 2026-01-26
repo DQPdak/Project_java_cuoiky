@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import app.recruitment.service.JobApplicationService;
 import app.auth.dto.response.MessageResponse;
@@ -85,10 +84,18 @@ public class JobApplicationController {
         ));
     }
 
+    // Trong file JobApplicationController.java
+
     @GetMapping("/job/{jobId}")
     public ResponseEntity<List<JobApplicationResponse>> listByJob(@PathVariable Long jobId) {
-        List<JobApplicationResponse> list = applicationService.listByJob(jobId)
-                .stream().map(mapper::toJobApplicationResponse).collect(Collectors.toList());
+        // Service đã xử lý transaction và mapping, Controller chỉ việc trả về
+        List<JobApplicationResponse> list = applicationService.listByJob(jobId);
         return ResponseEntity.ok(list);
     }
+
+   @GetMapping("/{id}/analysis")
+    public ResponseEntity<JobApplicationResponse> getApplicationAnalysis(@PathVariable Long id) {
+        return ResponseEntity.ok(applicationService.getDetail(id));
+    }
+            
 }

@@ -46,7 +46,7 @@ export const getMatchingJobs = async () => {
 
 export const applyJob = async (jobId: number) => {
   // Gửi request POST, body có thể cần thêm coverLetter nếu muốn
-  const response = await api.post("/recruitment/applications", {
+  const response = await api.post("/applications/apply", {
     jobId: jobId,
   });
   return response.data;

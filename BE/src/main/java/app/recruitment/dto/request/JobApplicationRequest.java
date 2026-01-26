@@ -13,4 +13,10 @@ public class JobApplicationRequest {
 
     // [FIX LỖI 1] Thêm trường này để Service gọi được getCoverLetter()
     private String coverLetter; 
+    private Integer matchScore;
+    private String aiEvaluation;
+    private Integer matchedSkillsCount;
+    private Integer missingSkillsCount;
+    private Integer extraSkillsCount;
+    private String missingSkillsList;
 }
