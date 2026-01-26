@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface AdminDashboardSummaryRepository extends JpaRepository<User, Long> {
+public interface SummaryRepository extends JpaRepository<User, Long> {
 
     @Query(value = """
         select

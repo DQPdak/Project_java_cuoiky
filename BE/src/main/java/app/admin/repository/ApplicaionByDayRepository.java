@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.List;
 
 @Repository
-public interface AdminDashboardApplicaionByDayRepository extends JpaRepository<User, Long> {
+public interface ApplicaionByDayRepository extends JpaRepository<User, Long> {
 
     @Query(value = """
         select date(a.applied_at) as d, count(*) as c
