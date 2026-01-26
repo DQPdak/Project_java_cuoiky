@@ -127,21 +127,30 @@ public class JobPostingServiceImpl implements JobPostingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<JobPosting> getById(Long id) {
         return jobPostingRepository.findById(id);
     }
 
     @Override
-    public List<JobPosting> listByRecruiter(Long recruiterId) {
-        return jobPostingRepository.findByRecruiterId(recruiterId);
+    @Transactional(readOnly = true) // Transaction bao trọn cả quá trình lấy và map
+    public List<JobPostingResponse> listByRecruiter(Long recruiterId) {
+        List<JobPosting> jobs = jobPostingRepository.findByRecruiterId(recruiterId);
+        
+        // Map sang DTO ngay tại đây, khi kết nối DB vẫn còn sống
+        return jobs.stream()
+                .map(recruitmentMapper::toJobPostingResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<JobPosting> searchByTitle(String keyword) {
         return jobPostingRepository.findByTitleContainingIgnoreCase(keyword);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<JobPostingResponse> getAllJobPostings() {
         return jobPostingRepository.findAll().stream()
                 .map(recruitmentMapper::toJobPostingResponse)
@@ -149,6 +158,7 @@ public class JobPostingServiceImpl implements JobPostingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<JobPostingResponse> searchJobs(String keyword) {
         List<JobPosting> jobs;
         if (keyword == null || keyword.trim().isEmpty()) {

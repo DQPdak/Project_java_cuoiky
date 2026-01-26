@@ -13,7 +13,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
+
+import app.recruitment.service.JobApplicationService;
+import app.auth.dto.response.MessageResponse;
+import app.recruitment.dto.request.JobApplicationRequest;
+import app.recruitment.dto.response.JobApplicationResponse;
+import app.recruitment.mapper.RecruitmentMapper;
+import app.recruitment.entity.JobApplication;
+import app.recruitment.entity.enums.ApplicationStatus;
+import app.auth.repository.UserRepository;
 
 @RestController
 @RequestMapping("/api/recruitment/applications")
@@ -55,7 +63,18 @@ public class JobApplicationController {
         // Gọi đúng tên biến jobApplicationService (thay vì applicationService)
         jobApplicationService.deleteApplication(candidateId, id);
 
-        // Trả về MessageResponse (đã import ở trên)
-        return ResponseEntity.ok(MessageResponse.success("Hủy ứng tuyển thành công", null));
+    // Trong file JobApplicationController.java
+
+    @GetMapping("/job/{jobId}")
+    public ResponseEntity<List<JobApplicationResponse>> listByJob(@PathVariable Long jobId) {
+        // Service đã xử lý transaction và mapping, Controller chỉ việc trả về
+        List<JobApplicationResponse> list = applicationService.listByJob(jobId);
+        return ResponseEntity.ok(list);
     }
+
+   @GetMapping("/{id}/analysis")
+    public ResponseEntity<JobApplicationResponse> getApplicationAnalysis(@PathVariable Long id) {
+        return ResponseEntity.ok(applicationService.getDetail(id));
+    }
+            
 }

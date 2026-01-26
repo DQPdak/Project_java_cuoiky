@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import app.recruitment.service.JobPostingService;
 import app.util.SecurityUtils;
@@ -37,14 +36,19 @@ public class JobPostingController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<JobPostingResponse> update(@PathVariable Long id, @Valid @RequestBody JobPostingRequest request) {
-        Long recruiterId = securityUtils.getCurrentUserId(); // Dùng securityUtils thay vì hàm fake
+    public ResponseEntity<JobPostingResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody JobPostingRequest request
+    ) {
+        Long recruiterId = securityUtils.getCurrentUserId();
         JobPosting updated = jobPostingService.update(recruiterId, id, request);
         return ResponseEntity.ok(mapper.toJobPostingResponse(updated));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id
+    ) {
         Long recruiterId = securityUtils.getCurrentUserId();
         jobPostingService.delete(recruiterId, id);
         return ResponseEntity.noContent().build();
@@ -57,16 +61,19 @@ public class JobPostingController {
         return ResponseEntity.ok(mapper.toJobPostingResponse(job));
     }
 
+    // Trong file JobPostingController.java
     @GetMapping("/me")
     public ResponseEntity<List<JobPostingResponse>> listByRecruiter() {
         Long recruiterId = securityUtils.getCurrentUserId();
-        List<JobPostingResponse> list = jobPostingService.listByRecruiter(recruiterId)
-                .stream().map(mapper::toJobPostingResponse).collect(Collectors.toList());
-        return ResponseEntity.ok(list);
+        
+        // Service đã trả về DTO rồi, không cần stream().map(...) nữa
+        return ResponseEntity.ok(jobPostingService.listByRecruiter(recruiterId));
     }
 
     @GetMapping("/search")
     public ResponseEntity<?> searchJobs(@RequestParam(value = "keyword", required = false) String keyword) {
         return ResponseEntity.ok(MessageResponse.success("Tìm kiếm thành công", jobPostingService.searchJobs(keyword)));
     }
+
+    
 }
