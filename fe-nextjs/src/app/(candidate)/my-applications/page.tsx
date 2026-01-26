@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { getMyApplications } from '@/services/candidateService';
-import { Briefcase, Calendar, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { getMyApplications, cancelApplication } from '@/services/candidateService';
+import { Briefcase, Calendar, CheckCircle, Clock, XCircle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function MyApplicationsPage() {
   const [applications, setApplications] = useState<any[]>([]);
@@ -21,6 +22,7 @@ export default function MyApplicationsPage() {
     };
     fetchApps();
   }, []);
+  
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -28,6 +30,21 @@ export default function MyApplicationsPage() {
       case 'APPROVED': return <span className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full text-sm"><CheckCircle size={14} className="mr-1"/> Đã duyệt hồ sơ</span>;
       case 'REJECTED': return <span className="flex items-center text-red-600 bg-red-50 px-3 py-1 rounded-full text-sm"><XCircle size={14} className="mr-1"/> Từ chối</span>;
       default: return <span className="text-gray-500 bg-gray-100 px-3 py-1 rounded-full text-sm">{status}</span>;
+    }
+  };
+
+  const handleDelete = async (appId: number) => {
+    if (!confirm("Bạn có chắc chắn muốn hủy đơn ứng tuyển này không?")) return;
+
+    try {
+      await cancelApplication(appId);
+      
+      setApplications((prev) => prev.filter((app) => app.id !== appId));
+      
+      toast.success("Đã hủy đơn ứng tuyển thành công");
+    } catch (error: any) {
+      console.error("Lỗi khi hủy đơn:", error);
+      toast.error(error.response?.data?.message || "Không thể hủy đơn lúc này");
     }
   };
 
@@ -55,6 +72,7 @@ export default function MyApplicationsPage() {
                 <th className="p-4 font-semibold text-gray-600">Công ty</th>
                 <th className="p-4 font-semibold text-gray-600">Ngày nộp</th>
                 <th className="p-4 font-semibold text-gray-600">Trạng thái</th>
+                <th className="p-4 font-semibold text-gray-600">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -64,6 +82,20 @@ export default function MyApplicationsPage() {
                   <td className="p-4 text-gray-700">{app.companyName}</td>
                   <td className="p-4 text-gray-500 text-sm">{new Date(app.appliedAt).toLocaleDateString('vi-VN')}</td>
                   <td className="p-4">{getStatusBadge(app.status)}</td>
+                  
+                  <td className="p-4">
+                    {app.status === 'PENDING' ? (
+                      <button 
+                        onClick={() => handleDelete(app.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                        title="Hủy ứng tuyển"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">Không thể hủy</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

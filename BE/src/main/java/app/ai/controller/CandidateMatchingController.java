@@ -34,9 +34,10 @@ public class CandidateMatchingController {
         try {
             Long userId = securityUtils.getCurrentUserId();
             CandidateProfile profile = candidateService.getProfileForMatching(userId);
-            
-            if (profile == null) return ResponseEntity.badRequest().build();
 
+            if (profile == null) {
+                return ResponseEntity.ok(Map.of());
+            }
             // Lấy List Skill từ DB (Logic mới tối ưu)
             List<String> candidateSkills = profile.getSkills();
             

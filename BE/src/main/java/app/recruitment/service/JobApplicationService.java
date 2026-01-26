@@ -9,19 +9,23 @@ import java.util.List;
 import java.util.Optional;
 
 public interface JobApplicationService {
-    // Đổi studentId -> candidateId
-    JobApplication apply(Long candidateId, JobApplicationRequest request);
     
+    // 1. Ứng viên nộp đơn
+    JobApplication apply(Long candidateId, JobApplicationRequest request);
+
+    // 2. Recruiter cập nhật trạng thái (đầy đủ thông tin người duyệt + ghi chú)
+    // Hàm này đang được Controller sử dụng chính
     JobApplication updateStatus(Long recruiterId, Long applicationId, ApplicationStatus newStatus, String recruiterNote);
     
     List<JobApplicationResponse> listByJob(Long jobId);
     
     // [QUAN TRỌNG] Đổi listByStudent -> listByCandidateId để khớp với Service Impl
     List<JobApplication> listByCandidateId(Long candidateId);
-    
-    // Đổi tham số studentId -> candidateId
+
+    // 5. Lấy danh sách DTO theo Candidate (trả về thẳng cho Frontend)
     List<JobApplicationResponse> getApplicationsByCandidateId(Long candidateId);
-    
+
+    // 6. Lấy chi tiết đơn
     Optional<JobApplication> getById(Long id);
     
     JobApplicationResponse getDetail(Long id);

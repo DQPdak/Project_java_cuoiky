@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface ContentArticleRepository extends JpaRepository<Article, Long> {
     List<Article> findByIsPublishedTrueOrderByCreatedAtDesc();
+    List<Article> findByStatusOrderByCreatedAtDesc(String status);
 
 }

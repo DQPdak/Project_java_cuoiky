@@ -21,23 +21,50 @@ public class AdminArticleController {
 
     private final ArticleService service;
 
-    // ✅ GET /api/admin/articles (admin) -> all
+    // =========================
+    // 📌 DANH SÁCH BÀI VIẾT
+    // =========================
+
+    // ✅ GET /api/admin/articles  -> tất cả bài viết (admin)
     @GetMapping
     public ResponseEntity<MessageResponse> listAll() {
         List<ArticleResponse> data = service.listAdmin();
-        return ResponseEntity.ok(MessageResponse.success("Danh sách bài viết (admin)", data));
+        return ResponseEntity.ok(
+                MessageResponse.success("Danh sách bài viết (admin)", data)
+        );
     }
+
+    // ✅ GET /api/admin/articles/pending -> bài viết chờ duyệt
+    @GetMapping("/pending")
+    public ResponseEntity<MessageResponse> listPending() {
+        List<ArticleResponse> data = service.listPendingAdmin();
+        return ResponseEntity.ok(
+                MessageResponse.success("Danh sách bài viết chờ duyệt", data)
+        );
+    }
+
+    // =========================
+    // 📌 CHI TIẾT BÀI VIẾT
+    // =========================
 
     // ✅ GET /api/admin/articles/{id}
     @GetMapping("/{id}")
     public ResponseEntity<MessageResponse> getById(@PathVariable Long id) {
         ArticleResponse data = service.getAdminById(id);
-        return ResponseEntity.ok(MessageResponse.success("Chi tiết bài viết (admin)", data));
+        return ResponseEntity.ok(
+                MessageResponse.success("Chi tiết bài viết (admin)", data)
+        );
     }
 
-    // ✅ POST /api/admin/articles
+    // =========================
+    // ✍️ CRUD BÀI VIẾT
+    // =========================
+
+    // ✅ POST /api/admin/articles/create
     @PostMapping("/create")
-    public ResponseEntity<MessageResponse> create(@Valid @RequestBody ArticleCreateRequest req) {
+    public ResponseEntity<MessageResponse> create(
+            @Valid @RequestBody ArticleCreateRequest req
+    ) {
         ArticleResponse data = service.create(req);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(MessageResponse.success("Tạo bài viết thành công", data));
@@ -50,23 +77,55 @@ public class AdminArticleController {
             @Valid @RequestBody ArticleUpdateRequest req
     ) {
         ArticleResponse data = service.update(id, req);
-        return ResponseEntity.ok(MessageResponse.success("Cập nhật bài viết thành công", data));
+        return ResponseEntity.ok(
+                MessageResponse.success("Cập nhật bài viết thành công", data)
+        );
     }
 
-    // ✅ PATCH /api/admin/articles/{id}/publish  (publish/unpublish)
+    // =========================
+    // 🚦 DUYỆT / TỪ CHỐI / PUBLISH
+    // =========================
+
+    // ✅ PATCH /api/admin/articles/{id}/approve  -> duyệt bài
+    @PatchMapping("/{id}/approve")
+    public ResponseEntity<MessageResponse> approve(@PathVariable Long id) {
+        ArticleResponse data = service.approve(id);
+        return ResponseEntity.ok(
+                MessageResponse.success("Duyệt bài viết thành công", data)
+        );
+    }
+
+    // ✅ PATCH /api/admin/articles/{id}/reject -> từ chối bài
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<MessageResponse> reject(@PathVariable Long id) {
+        ArticleResponse data = service.reject(id);
+        return ResponseEntity.ok(
+                MessageResponse.success("Từ chối bài viết thành công", data)
+        );
+    }
+
+    // ✅ PATCH /api/admin/articles/{id}/publish  (publish / unpublish)
     @PatchMapping("/{id}/publish")
     public ResponseEntity<MessageResponse> publish(
             @PathVariable Long id,
             @RequestBody ArticlePublishRequest req
     ) {
         ArticleResponse data = service.setPublish(id, req);
-        return ResponseEntity.ok(MessageResponse.success("Cập nhật trạng thái publish", data));
+        return ResponseEntity.ok(
+                MessageResponse.success("Cập nhật trạng thái publish", data)
+        );
     }
+
+    // =========================
+    // 🗑️ XÓA
+    // =========================
 
     // ✅ DELETE /api/admin/articles/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<MessageResponse> delete(@PathVariable Long id) {
         service.delete(id);
-        return ResponseEntity.ok(MessageResponse.success("Xóa bài viết thành công"));
+        return ResponseEntity.ok(
+                MessageResponse.success("Xóa bài viết thành công")
+        );
     }
 }

@@ -85,3 +85,8 @@ export const getJobAnalysisResult = async (jobId: number) => {
     throw error;
   }
 };
+
+export const cancelApplication = async (applicationId: number) => {
+  const response = await api.delete(`/applications/${applicationId}`);
+  return response.data;
+};

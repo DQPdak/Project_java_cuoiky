@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-
 import java.net.URI;
 import java.util.List;
 
@@ -20,16 +19,16 @@ import app.recruitment.entity.JobPosting;
 @RestController
 @RequestMapping("/api/recruiter/jobs")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 @Slf4j
 public class JobPostingController {
 
     private final JobPostingService jobPostingService;
     private final RecruitmentMapper mapper;
     private final SecurityUtils securityUtils;
+
     @PostMapping
-    public ResponseEntity<JobPostingResponse> create(
-            @Valid @RequestBody JobPostingRequest request
-    ) {
+    public ResponseEntity<JobPostingResponse> create(@Valid @RequestBody JobPostingRequest request) {
         Long recruiterId = securityUtils.getCurrentUserId();
         JobPosting created = jobPostingService.create(recruiterId, request);
         JobPostingResponse resp = mapper.toJobPostingResponse(created);

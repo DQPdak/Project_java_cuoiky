@@ -4,7 +4,10 @@ package app.auth.repository;
 // Spring Data JPA: cung cấp interface JpaRepository và annotation hỗ trợ
 import org.springframework.data.jpa.repository.JpaRepository; // Interface cho CRUD và query mặc định
 import org.springframework.data.jpa.repository.Query;          // Cho phép viết JPQL hoặc native query tùy chỉnh
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;             // Đánh dấu interface là Repository (thành phần DAO)
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import app.auth.model.User;
 import app.auth.model.enums.UserStatus;
@@ -53,4 +56,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @Query("SELECT u FROM User u WHERE u.email = :email AND u.status = 'ACTIVE'")
     Optional<User> findActiveUserByEmail(String email);
+
+        // ===== SEARCH (dùng chung) =====
+    Page<User> findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(String fullName,String email,Pageable pageable);
+
+    // ===== ADMIN: search + exclude current admin id =====
+    @Query("""
+        SELECT u FROM User u
+        WHERE u.id <> :excludeId
+          AND (
+            :keyword IS NULL OR :keyword = '' OR
+            LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+            LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+          )
+    """)
+    Page<User> searchUsersExcludeId(
+            @Param("excludeId") Long excludeId,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
 }

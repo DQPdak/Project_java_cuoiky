@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import app.recruitment.repository.JobApplicationRepository;
+import app.auth.exception.UnauthorizedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,14 +51,13 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         JobPosting job = jobRepo.findById(request.getJobId())
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + request.getJobId()));
 
+        // Check trùng đơn
         if (appRepo.existsByCandidateIdAndJobPostingId(candidateId, job.getId())) {
             throw new IllegalArgumentException("Bạn đã ứng tuyển công việc này rồi.");
         }
 
-        // --- LOGIC LẤY LINK CV ---
+        // Logic CV: Ưu tiên link gửi lên, nếu null thì lấy từ Profile
         String finalCvUrl = request.getCvUrl();
-        
-        // Nếu user không gửi link CV trong request, thử lấy từ Profile gốc
         if (finalCvUrl == null || finalCvUrl.isEmpty()) {
             CandidateProfile profile = profileRepository.findByUserId(candidateId).orElse(null);
             if (profile != null && profile.getCvFilePath() != null) {
@@ -135,6 +136,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         return appRepo.save(appBuilder.build());
     }
 
+    // 2. Logic Recruiter duyệt đơn (Giữ nguyên: check quyền recruiter)
     @Override
     @Transactional
     public JobApplication updateStatus(Long recruiterId, Long applicationId, ApplicationStatus newStatus, String recruiterNote) {
@@ -212,6 +214,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         }).collect(Collectors.toList());
     }
 
+    // 6. Helper: Lấy chi tiết
     @Override
     public Optional<JobApplication> getById(Long id) {
         return appRepo.findById(id);

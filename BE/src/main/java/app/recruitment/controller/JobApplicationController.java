@@ -1,12 +1,16 @@
 package app.recruitment.controller;
 
+// 1. Import MessageResponse từ module Auth
+import app.auth.dto.response.MessageResponse;
+import app.recruitment.dto.response.JobApplicationResponse;
+import app.recruitment.entity.enums.ApplicationStatus;
+import app.recruitment.service.JobApplicationService;
+// 2. Import SecurityUtils để lấy ID người dùng
+import app.util.SecurityUtils;
+
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -20,69 +24,44 @@ import app.recruitment.entity.enums.ApplicationStatus;
 import app.auth.repository.UserRepository;
 
 @RestController
-@RequestMapping("/api/applications") // Để chung là applications
+@RequestMapping("/api/recruitment/applications")
 @RequiredArgsConstructor
-@Slf4j
 public class JobApplicationController {
 
-    private final JobApplicationService applicationService;
-    private final UserRepository userRepository;
-    private final RecruitmentMapper mapper;
+    private final JobApplicationService jobApplicationService;
+    // 3. Inject SecurityUtils vào Controller
+    private final SecurityUtils securityUtils;
 
-    /**
-     * ỨNG VIÊN NỘP ĐƠN
-     */
-    @PostMapping("/apply")
-    public ResponseEntity<?> apply(@Valid @RequestBody JobApplicationRequest request) {
-        Long candidateId = getCurrentUserId();
-        JobApplication created = applicationService.apply(candidateId, request);
+    // 1. Xem luồng ứng viên cho một Job cụ thể (kèm điểm phù hợp)
+    @GetMapping("/job/{jobId}")
+    public ResponseEntity<List<JobApplicationResponse>> getApplicationsByJob(@PathVariable Long jobId) {
+        return ResponseEntity.ok(jobApplicationService.getApplicationsByJobId(jobId));
+    }
+
+    // 2. Cập nhật trạng thái (Sơ tuyển, Phỏng vấn, Offer)
+    @PatchMapping("/{applicationId}/status")
+    public ResponseEntity<?> updateStatus(
+            @PathVariable Long applicationId,
+            @RequestBody Map<String, String> statusUpdate) {
         
-        return ResponseEntity.status(201).body(MessageResponse.success(
-            "Ứng tuyển thành công!", 
-            mapper.toJobApplicationResponse(created)
-        ));
-    }
-
-    /**
-     * RECRUITER CẬP NHẬT TRẠNG THÁI (DUYỆT/LOẠI)
-     */
-    @PutMapping("/{id}/status")
-    public ResponseEntity<JobApplicationResponse> updateStatus(
-            @PathVariable Long id,
-            @RequestParam ApplicationStatus newStatus,
-            @RequestParam(required = false) String recruiterNote
-    ) {
-        Long recruiterId = getCurrentUserId();
-        JobApplication updated = applicationService.updateStatus(recruiterId, id, newStatus, recruiterNote);
-        return ResponseEntity.ok(mapper.toJobApplicationResponse(updated));
-    }
-
-    /**
-     * CƠ CHẾ LẤY ID TỪ TOKEN (ĐÃ FIX LỖI 1L)
-     */
-    private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-        var user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return user.getId();
-    }
-
-    /**
-     * LẤY DANH SÁCH ĐƠN ĐÃ NỘP CỦA TÔI (DÀNH CHO CANDIDATE)
-     * API này cực kỳ quan trọng để Frontend lấy được applicationId gọi sang AI
-     */
-    @GetMapping("/me")
-    public ResponseEntity<?> getMyApplications() {
-        Long candidateId = getCurrentUserId();
-        // Gọi hàm trả về DTO trực tiếp đã viết ở Service
-        List<JobApplicationResponse> list = applicationService.getApplicationsByCandidateId(candidateId);
+        String newStatus = statusUpdate.get("status");
+        jobApplicationService.updateApplicationStatus(applicationId, ApplicationStatus.valueOf(newStatus));
         
-        return ResponseEntity.ok(MessageResponse.success(
-            "Lấy danh sách ứng tuyển thành công", 
-            list
-        ));
+        if ("OFFERED".equals(newStatus)) {
+            // Logic gửi mail (để sau)
+        }
+        
+        return ResponseEntity.ok("Cập nhật trạng thái thành công");
     }
+
+    // 3. Hủy đơn ứng tuyển
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> cancelApplication(@PathVariable Long id) {
+        // Sử dụng SecurityUtils đã inject để lấy ID (thay vì tự viết hàm)
+        Long candidateId = securityUtils.getCurrentUserId();
+        
+        // Gọi đúng tên biến jobApplicationService (thay vì applicationService)
+        jobApplicationService.deleteApplication(candidateId, id);
 
     // Trong file JobApplicationController.java
 
