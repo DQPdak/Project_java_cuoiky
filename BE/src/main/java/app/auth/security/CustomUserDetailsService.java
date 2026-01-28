@@ -1,86 +1,47 @@
-
 package app.auth.security;
 
-// Lombok: @RequiredArgsConstructor tự động tạo constructor với các field final (userRepository)
-import lombok.RequiredArgsConstructor;
-
-// Spring Security: các interface và class phục vụ xác thực người dùng
-import org.springframework.security.core.authority.SimpleGrantedAuthority; // Đại diện cho quyền (authority) đơn giản theo chuỗi
-import org.springframework.security.core.userdetails.UserDetails;         // Interface mô tả thông tin người dùng cho Spring Security
-import org.springframework.security.core.userdetails.UserDetailsService; // Interface để tải thông tin người dùng theo username
-import org.springframework.security.core.userdetails.UsernameNotFoundException; // Ngoại lệ khi không tìm thấy người dùng
-
-// Spring: @Service đánh dấu class là bean tầng service
-import org.springframework.stereotype.Service;
-
 import app.auth.model.User;
-import app.auth.model.enums.UserStatus;
+import app.auth.model.enums.UserRole;
 import app.auth.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // Import Transactional
 
-import java.util.Collections;
+import java.time.LocalDateTime;
 
-/**
- * CustomUserDetailsService: Triển khai UserDetailsService để cung cấp thông tin người dùng cho Spring Security.
- * - @Service: đăng ký bean trong Spring context.
- * - @RequiredArgsConstructor: Lombok tạo constructor nhận các field final (userRepository).
- * 
- * Nhiệm vụ:
- * - Tải người dùng từ DB theo email (username).
- * - Chuyển đổi User (entity) sang UserDetails (đối tượng mà Spring Security sử dụng).
- * - Ánh xạ vai trò (UserRole) thành GrantedAuthority theo chuẩn "ROLE_<ROLE_NAME>".
- * - Thiết lập trạng thái tài khoản (locked/disabled) dựa vào UserStatus.
- */
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
-    
-    // Repository thao tác DB cho entity User (được inject qua constructor do Lombok sinh)
+
     private final UserRepository userRepository;
-    
-    /**
-     * loadUserByUsername: Tải thông tin người dùng theo email (được dùng như username).
-     * - Nếu không tìm thấy, ném UsernameNotFoundException với thông báo tiếng Việt.
-     * - Nếu tìm thấy, xây dựng đối tượng UserDetails của Spring Security:
-     *   + username: dùng email.
-     *   + password: mật khẩu (đã hash) từ DB.
-     *   + authorities: danh sách quyền, ánh xạ từ vai trò người dùng (ROLE_<USER_ROLE_NAME>).
-     *   + accountExpired: cố định false (không kiểm tra hết hạn tài khoản).
-     *   + accountLocked: true nếu status == BANNED (bị cấm).
-     *   + credentialsExpired: cố định false (không kiểm tra hết hạn mật khẩu).
-     *   + disabled: true nếu status != ACTIVE (không hoạt động).
-     */
+
     @Override
+    @Transactional // Quan trọng: Để update DB nếu hết hạn
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                    new UsernameNotFoundException("Không tìm thấy người dùng với email: " + email)
-                );
-        
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .authorities(Collections.singletonList(
-                    new SimpleGrantedAuthority("ROLE_" + user.getUserRole().name())
-                ))
-                .accountExpired(false)
-                .accountLocked(user.getStatus() == UserStatus.BANNED)
-                .credentialsExpired(false)
-                .disabled(user.getStatus() != UserStatus.ACTIVE)
-                .build();
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        // --- LOGIC KIỂM TRA HẾT HẠN VIP ---
+        if (user.getVipExpirationDate() != null && user.getVipExpirationDate().isBefore(LocalDateTime.now())) {
+            String roleName = user.getUserRole().name();
+            
+            // Nếu role hiện tại có đuôi _VIP thì cắt bỏ để về role thường
+            if (roleName.endsWith("_VIP")) {
+                String normalRoleName = roleName.replace("_VIP", "");
+                try {
+                    user.setUserRole(UserRole.valueOf(normalRoleName));
+                    user.setVipExpirationDate(null); // Reset ngày hết hạn
+                    userRepository.save(user);       // Lưu xuống DB ngay lập tức
+                } catch (IllegalArgumentException e) {
+                    // Log error nếu cần, giữ nguyên role nếu không map được
+                }
+            }
+        }
+        // ----------------------------------
+
+        return UserPrincipal.create(user);
     }
-    
-    /**
-     * loadUserById: Tải thông tin người dùng theo id.
-     * - Tìm user theo id; nếu không có, ném UsernameNotFoundException.
-     * - Sau đó tái sử dụng logic loadUserByUsername để tạo UserDetails thống nhất.
-     */
-    public UserDetails loadUserById(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                    new UsernameNotFoundException("Không tìm thấy người dùng với id: " + userId)
-                );
-        
-        return loadUserByUsername(user.getEmail());
-    }
-    
-}    
+}

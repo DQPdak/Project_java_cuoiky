@@ -4,6 +4,7 @@ import { AuthProvider } from "@/context/Authcontext";
 import GoogleOAuthWrapper from "@/components/providers/GoogleOAuthWrapper";
 import AIChatWidget from "@/components/features/chat/AIChatWidget";
 import { Toaster } from "react-hot-toast";
+import { ConfirmDialogProvider } from "@/context/ConfirmDialogContext";
 
 export const metadata: Metadata = {
   title: "CareerMate",
@@ -20,7 +21,8 @@ export default function RootLayout({
       <body>
         <GoogleOAuthWrapper>
           <AuthProvider>
-            <Toaster 
+            <ConfirmDialogProvider> 
+              <Toaster 
               position="top-right" 
               reverseOrder={false} 
               containerStyle={{
@@ -29,6 +31,7 @@ export default function RootLayout({
             />
             
             {children}
+           </ConfirmDialogProvider>
             <AIChatWidget />
           </AuthProvider>
         </GoogleOAuthWrapper>

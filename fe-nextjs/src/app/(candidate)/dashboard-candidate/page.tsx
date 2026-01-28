@@ -7,10 +7,11 @@ import {
   getRecentJobs,
   applyJob,
   getBatchScores,
+  getMyApplications,
 } from "@/services/candidateService";
 import toast from "react-hot-toast";
 import ApplyModal from "@/components/features/jobs/ApplyModal";
-import { getMyApplications } from "@/services/candidateService";
+import { useAuth } from "@/context/Authcontext"; // [THÊM] Import useAuth
 import {
   Search,
   MapPin,
@@ -20,13 +21,19 @@ import {
   ArrowRight,
   Sparkles,
   Briefcase,
-  FileText, // Icon cho mô tả
+  FileText,
   ListChecks,
-  User, // Icon cho yêu cầu
+  User,
+  Lock
 } from "lucide-react";
-
+import PremiumFeatureLock from "@/components/common/PremiumFeatureLock";
 
 export default function CandidateDashboard() {
+  const { user } = useAuth(); // [THÊM] Lấy thông tin user từ Context
+  
+  // [THÊM] Định nghĩa biến isVip để code phía dưới không bị lỗi "isVip is not defined"
+  const isVip = user?.userRole === 'ADMIN' || user?.userRole?.includes('_VIP');
+
   const formatTimeAgo = (dateString: string) => {
     if (!dateString) return "Mới đăng";
     const date = new Date(dateString);
@@ -35,19 +42,17 @@ export default function CandidateDashboard() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays <= 1 ? "Vừa xong" : `${diffDays} ngày trước`;
   };
+
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [applyingId, setApplyingId] = useState<number | null>(null);
   const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
   const [selectedJob, setSelectedJob] = useState<any>(null);
-
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
 
   const fetchAppliedStatus = async () => {
     try {
       const myApps = await getMyApplications();
-      // Map ra mảng ID. Kiểm tra cấu trúc response của bạn (app.job.id hoặc app.jobId)
       const ids = Array.isArray(myApps) ? myApps.map((app: any) => app.job?.id || app.jobId) : [];
       setAppliedJobIds(ids);
     } catch (error) {
@@ -70,41 +75,16 @@ export default function CandidateDashboard() {
   };
 
   useEffect(() => {
-    // Hàm lấy danh sách các job đã nộp
-    const fetchAppliedStatus = async () => {
-      try {
-        const myApps = await getMyApplications(); 
-        const ids = Array.isArray(myApps) ? myApps.map((app: any) => app.job?.id || app.jobId) : [];
-        setAppliedJobIds(ids);
-      } catch (error) {
-        console.error("Lỗi lấy trạng thái ứng tuyển:", error);
-      }
-    };
-    fetchAppliedStatus();
-  }, []);
-
-  useEffect(() => {
-    fetchAppliedStatus();
-  }, []);
-
-  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const jobsData = await getRecentJobs();
-
         if (jobsData && jobsData.length > 0) {
           const jobIds = jobsData.map((job: any) => job.id);
-
           try {
             const scoresMap = await getBatchScores(jobIds);
             const mergedJobs = jobsData.map((job: any) => {
-              const result = scoresMap[job.id] || {
-                matchScore: 0,
-                matchedSkills: [],
-                missingSkills: [],
-              };
-
+              const result = scoresMap[job.id] || { matchScore: 0, matchedSkills: [], missingSkills: [] };
               return {
                 ...job,
                 matchScore: result.matchScore,
@@ -115,14 +95,7 @@ export default function CandidateDashboard() {
             mergedJobs.sort((a: any, b: any) => b.matchScore - a.matchScore);
             setJobs(mergedJobs);
           } catch (err) {
-            console.error("Lỗi tính điểm batch:", err);
-            setJobs(
-              jobsData.map((j: any) => ({
-                ...j,
-                matchScore: 0,
-                skillsFound: [],
-              })),
-            );
+            setJobs(jobsData.map((j: any) => ({ ...j, matchScore: 0, skillsFound: [] })));
           }
         } else {
           setJobs([]);
@@ -142,12 +115,10 @@ export default function CandidateDashboard() {
     <div className="space-y-8 pb-10">
       {/* 1. SECTION: WELCOME & SEARCH */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-xl">
-        <h1 className="text-3xl font-bold mb-2">Xin chào, Ứng viên! 👋</h1>
+        <h1 className="text-3xl font-bold mb-2">Xin chào, {user?.fullName || "Ứng viên"}! 👋</h1>
         <p className="opacity-90 mb-6 text-blue-100">
-          Hệ thống AI đã tìm thấy những cơ hội phù hợp nhất với hồ sơ của bạn
-          hôm nay.
+          Hệ thống AI đã tìm thấy những cơ hội phù hợp nhất với hồ sơ của bạn hôm nay.
         </p>
-
         <div className="bg-white/10 backdrop-blur-md p-1.5 rounded-xl flex gap-2 max-w-2xl shadow-inner">
           <div className="flex-1 flex items-center bg-white rounded-lg px-4 py-2.5">
             <Search className="text-gray-400 mr-3" size={20} />
@@ -160,10 +131,7 @@ export default function CandidateDashboard() {
               className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-500"
             />
           </div>
-          <button
-            onClick={handleSearch}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-2.5 rounded-lg font-semibold shadow-lg transition-transform active:scale-95"
-          >
+          <button onClick={handleSearch} className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-2.5 rounded-lg font-semibold transition-transform active:scale-95">
             Tìm kiếm
           </button>
         </div>
@@ -174,27 +142,13 @@ export default function CandidateDashboard() {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-center justify-between mb-4">
             <div className="relative w-16 h-16">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="transparent"
-                  className="text-blue-600"
-                />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-blue-700">
-                {/* Nếu có CV thì hiện hình File, chưa có thì hiện hình Người */}
+              <span className="absolute inset-0 flex items-center justify-center text-blue-700 bg-blue-50 rounded-full">
                 <FileText size={24} strokeWidth={2.5} />
               </span>
             </div>
             <div className="text-right">
               <p className="font-bold text-gray-800 text-lg">CV Của Bạn</p>
-              <p className="text-gray-500 text-sm">
-                Xem và cập nhật CV của bạn
-              </p>
+              <p className="text-gray-500 text-sm">Xem và cập nhật hồ sơ</p>
             </div>
           </div>
           <Link href="/upload-cv">
@@ -204,23 +158,48 @@ export default function CandidateDashboard() {
           </Link>
         </div>
 
-        <div className="md:col-span-2 bg-gradient-to-br from-purple-600 to-indigo-600 p-6 rounded-xl shadow-md text-white flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="text-yellow-300" />
-              <h3 className="font-bold text-xl">AI Career Coach</h3>
+        {/* KHỐI AI CAREER COACH - ĐÃ SỬA LOGIC KHÓA */}
+        <div className="md:col-span-2">
+          {!isVip ? (
+            <PremiumFeatureLock 
+              title="Mở khóa AI Career Coach" 
+              description="Nâng cấp VIP để nhận lời khuyên sự nghiệp và lộ trình thăng tiến từ AI."
+            >
+              <div className="bg-gray-200 p-6 rounded-xl shadow-md text-gray-500 flex flex-col justify-between relative overflow-hidden border border-gray-300 h-full">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gray-400/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="text-gray-400" />
+                    <h3 className="font-bold text-xl text-gray-600">AI Career Coach</h3>
+                  </div>
+                  <p className="text-gray-500 mb-4 max-w-lg">
+                    Bạn muốn biết lộ trình thăng tiến cho vị trí Tech Lead? AI có thể phân tích xu hướng thị trường.
+                  </p>
+                </div>
+                <button className="w-fit bg-gray-300 text-gray-600 py-2 px-6 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 cursor-not-allowed">
+                  <Lock size={16} /> Chat với AI Coach
+                </button>
+              </div>
+            </PremiumFeatureLock>
+          ) : (
+            <div className="bg-gradient-to-br from-purple-600 to-indigo-600 p-6 rounded-xl shadow-md text-white flex flex-col justify-between relative overflow-hidden h-full">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="text-yellow-300" />
+                  <h3 className="font-bold text-xl">AI Career Coach</h3>
+                </div>
+                <p className="text-purple-100 mb-4 max-w-lg">
+                  Bạn muốn biết lộ trình thăng tiến cho vị trí Tech Lead? AI có thể đưa ra lời khuyên hữu ích.
+                </p>
+              </div>
+              <Link href="/interview">
+                <button className="w-fit bg-white text-purple-700 py-2 px-6 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 transition relative z-10">
+                  Chat với AI Coach
+                </button>
+              </Link>
             </div>
-            <p className="text-purple-100 mb-4 max-w-lg">
-              Bạn muốn biết lộ trình thăng tiến cho vị trí Tech Lead? AI có thể
-              phân tích xu hướng thị trường và đưa ra lời khuyên.
-            </p>
-          </div>
-          <Link href={`/interview/`}>
-            <button className="w-fit bg-white text-purple-700 py-2 px-6 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 transition relative z-10">
-              Chat với AI Coach
-            </button>
-          </Link>
+          )}
         </div>
       </div>
 
@@ -231,220 +210,70 @@ export default function CandidateDashboard() {
             <Star className="text-yellow-500 fill-yellow-500" size={24} />
             Danh Sách công việc mới nhất
           </h2>
-          <Link
-            href="/jobs?mode=all" // [QUAN TRỌNG] Thêm query param
-            className="text-sm text-blue-600 hover:underline font-medium flex items-center"
-          >
+          <Link href="/jobs?mode=all" className="text-sm text-blue-600 hover:underline font-medium flex items-center">
             Xem tất cả <ArrowRight size={16} className="ml-1" />
           </Link>
         </div>
 
-        {loading && (
+        {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-48 bg-gray-100 rounded-xl animate-pulse"
-              ></div>
-            ))}
+            {[1, 2, 3].map((i) => <div key={i} className="h-48 bg-gray-100 rounded-xl animate-pulse"></div>)}
           </div>
-        )}
-
-        {!loading && jobs.length === 0 && (
+        ) : jobs.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
-            <div className="text-gray-300 text-5xl mb-3">📭</div>
             <p className="text-gray-500">Chưa tìm thấy công việc phù hợp.</p>
           </div>
-        )}
-
-        {/* LƯỚI CARD */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 auto-rows-fr">
-          {/* auto-rows-fr giúp các card trong cùng hàng có chiều cao bằng nhau */}
-
-          {jobs.map((job: any) => (
-            <div
-              key={job.id}
-              // [FIX] Thêm flex flex-col h-full để card kéo dãn hết chiều cao ô lưới
-              className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300 relative overflow-hidden flex flex-col h-full"
-            >
-              {/* HEADER */}
-              <div className="flex justify-between items-start p-5 pb-2">
-                <div className="flex gap-4">
-                  <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:shadow-sm transition font-bold text-xl text-blue-600 flex-shrink-0">
-                    {job.company ? job.company.charAt(0).toUpperCase() : "C"}
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {jobs.map((job: any) => (
+              <div key={job.id} className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all flex flex-col h-full">
+                <div className="flex justify-between items-start p-5 pb-2">
+                  <div className="flex gap-4">
+                    <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center border font-bold text-xl text-blue-600">
+                      {job.company?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-800 line-clamp-1">{job.title}</h3>
+                      <p className="text-sm text-gray-500">{job.company}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-1">
-                      {job.title}
-                    </h3>
-                    <p className="text-sm text-gray-500 font-medium line-clamp-1">
-                      {job.company}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end gap-1 flex-shrink-0 pl-2">
                   <div className="bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
                     <span className="text-sm font-bold text-blue-700 flex items-center gap-1">
                       <Sparkles size={12} /> {job.matchScore}%
                     </span>
                   </div>
-                  <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
-                    {formatTimeAgo(job.createdAt || job.postedAt)}
-                  </span>
-                </div>
-              </div>
-
-              {/* BODY: [FIX] Thêm flex-1 để phần này chiếm hết khoảng trống, đẩy Footer xuống đáy */}
-              <div className="px-5 py-2 flex-1 flex flex-col gap-4">
-                {/* TAGS */}
-                <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-                  <span className="flex items-center bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                    <MapPin size={12} className="mr-1 text-gray-400" />{" "}
-                    {job.location}
-                  </span>
-                  <span className="flex items-center bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100 font-medium">
-                    <DollarSign size={12} className="mr-1" /> {job.salary}
-                  </span>
-                  <span className="flex items-center bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100">
-                    <Briefcase size={12} className="mr-1" />
-                    {job.jobType || "Full-time"}
-                  </span>
                 </div>
 
-                {/* [MỚI] MÔ TẢ & YÊU CẦU */}
-                <div className="space-y-2">
-                  {job.description && (
-                    <div className="flex gap-2 items-start">
-                      <FileText
-                        size={14}
-                        className="mt-1 text-blue-500 shrink-0"
-                      />
-                      <div>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">
-                          Mô tả:
-                        </span>
-                        <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                          {job.description}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {job.requirements && (
-                    <div className="flex gap-2 items-start">
-                      <ListChecks
-                        size={14}
-                        className="mt-1 text-orange-500 shrink-0"
-                      />
-                      <div>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">
-                          Yêu cầu:
-                        </span>
-                        <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                          {job.requirements}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                <div className="px-5 py-2 flex-1 flex flex-col gap-4">
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="bg-gray-50 px-2 py-1 rounded border">{job.location}</span>
+                    <span className="bg-green-50 text-green-700 px-2 py-1 rounded border font-medium">{job.salary}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-2">{job.description}</p>
                 </div>
 
-                {/* SKILLS SECTION (Đẩy xuống dưới cùng của body) */}
-                <div className="mt-auto space-y-2 pt-2">
-                  {/* Kỹ năng phù hợp */}
-                  {job.skillsFound && job.skillsFound.length > 0 && (
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                          Kỹ năng phù hợp
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {job.skillsFound
-                          .slice(0, 4)
-                          .map((skill: string, idx: number) => (
-                            <span
-                              key={idx}
-                              className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100 whitespace-nowrap"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        {job.skillsFound.length > 4 && (
-                          <span className="text-xs px-2 py-0.5 bg-gray-50 text-gray-500 rounded border border-gray-200">
-                            +{job.skillsFound.length - 4}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Kỹ năng thiếu */}
-                  {job.skillsMissing && job.skillsMissing.length > 0 && (
-                    <div className="flex flex-col gap-1 mt-1">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                          Cần bổ sung
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {job.skillsMissing
-                          .slice(0, 3)
-                          .map((skill: string, idx: number) => (
-                            <span
-                              key={idx}
-                              className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 whitespace-nowrap"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        {job.skillsMissing.length > 3 && (
-                          <span className="text-xs px-2 py-0.5 bg-gray-50 text-gray-500 rounded border border-gray-200">
-                            +{job.skillsMissing.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* FOOTER: BUTTONS */}
-              {/* [FIX] mt-auto đảm bảo footer luôn nằm dưới cùng card */}
-              <div className="p-5 pt-2 mt-auto border-t border-gray-50">
-                <div className="flex gap-3 mt-3">
+                <div className="p-5 pt-2 mt-auto border-t border-gray-50 flex gap-3">
                   <Link href={`/cv-analysis/${job.id}`} className="flex-1">
-                    <button className="w-full py-2.5 rounded-lg bg-purple-50 text-purple-700 font-semibold text-sm hover:bg-purple-100 transition-colors flex items-center justify-center gap-2 group-hover:shadow-sm">
-                      <Sparkles size={16} />
-                      AI Phân tích
+                    <button className="w-full py-2.5 rounded-lg bg-purple-50 text-purple-700 font-semibold text-sm hover:bg-purple-100 flex items-center justify-center gap-2">
+                      <Sparkles size={16} /> AI Phân tích
                     </button>
                   </Link>
-
                   <button
                     onClick={() => handleApply(job)}
-                    disabled={appliedJobIds.includes(job.id)} 
-                    
-                    className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-sm flex items-center justify-center
-                      ${
-                        appliedJobIds.includes(job.id)
-                          ? "bg-green-50 text-green-700 border border-green-200 cursor-not-allowed"
-                          : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md"
-                      }`}
+                    disabled={appliedJobIds.includes(job.id)}
+                    className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                      appliedJobIds.includes(job.id) ? "bg-green-50 text-green-700 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
                   >
-                    {appliedJobIds.includes(job.id) ? (
-                      <>
-                        <ListChecks className="mr-2 h-4 w-4"/> Đã ứng tuyển
-                      </>
-                    ) : (
-                      "Ứng tuyển ngay"
-                    )}
+                    {appliedJobIds.includes(job.id) ? "Đã ứng tuyển" : "Ứng tuyển ngay"}
                   </button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
+
       {selectedJob && (
         <ApplyModal
           isOpen={!!selectedJob}

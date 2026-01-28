@@ -3,27 +3,29 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import CVAnalysisResult from "@/components/features/cv/CVAnalysisResult"; // Component bạn vừa sửa
-import { getJobAnalysisResult } from "@/services/candidateService"; // Giả sử bạn có hàm này gọi AI hoặc lấy từ Cache DB
+import CVAnalysisResult from "@/components/features/cv/CVAnalysisResult"; 
+import { getJobAnalysisResult } from "@/services/candidateService"; 
+import { useAuth } from "@/context/Authcontext"; //
+import PremiumFeatureLock from "@/components/common/PremiumFeatureLock"; //
 
 export default function JobAnalysisPage() {
   const params = useParams();
   const router = useRouter();
   const jobId = params.jodId;
-  console.log("id2:", jobId);
-
+  
+  const { user } = useAuth(); // Lấy thông tin người dùng từ context
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  console.log("🔄 State hiện tại (Render):", analysisData);
+
+  // Logic kiểm tra quyền VIP: Admin hoặc Role có chứa đuôi _VIP
+  const isVip = user?.userRole === 'ADMIN' || user?.userRole?.includes('_VIP');
 
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
         setLoading(true);
-        // Gọi API lấy kết quả phân tích chi tiết của Job này với User hiện tại
-        // (Nếu chưa có trong DB thì Backend tự gọi AI phân tích rồi trả về)
+        // Gọi API lấy kết quả phân tích
         const data = await getJobAnalysisResult(Number(jobId));
-        console.log("data:", data);
         setAnalysisData(data);
       } catch (error) {
         console.error("Lỗi tải phân tích:", error);
@@ -65,7 +67,7 @@ export default function JobAnalysisPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* 1. Phần tiêu đề Job */}
+            {/* 1. Phần tiêu đề Job - Luôn hiển thị cho tất cả user */}
             <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-8 rounded-2xl shadow-lg">
               <h1 className="text-3xl font-bold mb-2">
                 Báo cáo mức độ phù hợp
@@ -78,9 +80,19 @@ export default function JobAnalysisPage() {
               </p>
             </div>
 
-            {/* 2. Component Kết quả (Tái sử dụng cái bạn vừa sửa) */}
-            {/* Lưu ý: Bạn cần map dữ liệu từ API về đúng format của props 'profile' hoặc sửa component để nhận props khác */}
-            <CVAnalysisResult result={analysisData} />
+            {/* 2. Component Kết quả - Phân biệt quyền VIP */}
+            {isVip ? (
+              // Nếu là VIP: Hiển thị giao diện gốc không bị giới hạn
+              <CVAnalysisResult result={analysisData} />
+            ) : (
+              // Nếu là tài khoản thường: Bọc bằng lớp khóa PremiumFeatureLock
+              <PremiumFeatureLock 
+                title="Báo cáo phân tích AI" 
+                description="Tính năng phân tích CV chuyên sâu yêu cầu tài khoản VIP để mở khóa toàn bộ điểm số và gợi ý từ AI."
+              >
+                <CVAnalysisResult result={analysisData} />
+              </PremiumFeatureLock>
+            )}
           </div>
         )}
       </div>
