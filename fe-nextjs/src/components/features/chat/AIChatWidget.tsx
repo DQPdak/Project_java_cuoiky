@@ -146,9 +146,11 @@ export default function AIChatWidget() {
               disabled={isLoading}
             />
             <button
+              type="button"
               onClick={handleSendMessage}
               disabled={isLoading || !inputValue.trim()}
               className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition shadow-sm"
+              title="Gửi tin nhắn"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

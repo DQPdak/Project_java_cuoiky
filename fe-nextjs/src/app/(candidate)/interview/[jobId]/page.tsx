@@ -231,8 +231,11 @@ export default function InterviewRoomPage() {
             <AlertTriangle className="w-6 h-6 text-red-600" />
           </div>
           <button
+            type="button"
             onClick={() => setShowConfirmModal(false)}
             className="text-gray-400 hover:text-gray-600 transition"
+            title="Đóng"
+            aria-label="Đóng modal"
           >
             <X size={20} />
           </button>
@@ -337,6 +340,8 @@ export default function InterviewRoomPage() {
           <button
             onClick={() => router.back()}
             className="p-2 hover:bg-gray-100 rounded-full transition"
+            title="Quay lại"
+            aria-label="Quay lại"
           >
             <ArrowLeft size={20} className="text-gray-500" />
           </button>
@@ -361,6 +366,8 @@ export default function InterviewRoomPage() {
           <button
             onClick={onClickEndInterview}
             className="flex items-center gap-2 bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-red-100 transition border border-red-100"
+            title="Kết thúc phỏng vấn"
+            aria-label="Kết thúc phỏng vấn"
           >
             <LogOut size={16} />{" "}
             <span className="hidden sm:inline">Kết thúc</span>
@@ -444,6 +451,8 @@ export default function InterviewRoomPage() {
             <button
               type="submit"
               disabled={!inputStr.trim() || isSending}
+              title="Gửi tin nhắn"
+              aria-label="Gửi tin nhắn"
               className="absolute right-3 bottom-3 p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition shadow-md flex items-center justify-center mb-1"
             >
               <Send size={18} />
