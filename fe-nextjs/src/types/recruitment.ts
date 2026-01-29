@@ -27,8 +27,17 @@ export interface JobPosting {
   applicationCount?: number;
   description?: string;
   requirements?: string;
+  benefits?: string;
   createdAt?: string;
   extractedSkills?: string[]; 
+
+  // Thống tin cơ sở
+  companyId?: number;
+  companyName?: string;
+  companyLogo?: string;
+  companyWebsite?: string;
+  companyDescription?: string;
+  companyAddress?: string;
 }
 
 export interface CandidateApplication {

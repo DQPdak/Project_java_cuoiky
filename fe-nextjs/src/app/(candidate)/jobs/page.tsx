@@ -260,9 +260,11 @@ export default function JobsPage() {
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                          {job.title}
-                        </h3>
+                        <Link href={`/jobs/${job.id}`}>
+                          <h3 className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer">
+                            {job.title}
+                          </h3>
+                        </Link>
                         <div className="flex items-center gap-2 text-gray-600 mt-1">
                           <Building2 className="h-4 w-4" />
                           <span className="font-medium">{job.company}</span>
@@ -373,6 +375,14 @@ export default function JobsPage() {
 
                   {/* Actions */}
                   <div className="flex flex-col gap-3 min-w-[200px] border-l border-gray-100 pl-6 md:justify-center">
+                    
+                    <button
+                      onClick={() => router.push(`/jobs/${job.id}`)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-colors border border-blue-100"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Xem chi tiết
+                    </button>
                     <button
                       onClick={() => router.push(`/cv-analysis/${job.id}`)}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-700 rounded-lg font-medium hover:bg-purple-100 transition-colors border border-purple-100"
