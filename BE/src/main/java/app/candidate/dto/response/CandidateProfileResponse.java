@@ -9,15 +9,16 @@ import java.util.List;
 @Builder
 public class CandidateProfileResponse {
     private Long id;
+    private String avatarUrl;
     private String fullName;
     private String email;
     private String phoneNumber;
     private String address;
     private String aboutMe;
     private String linkedInUrl;
+    private String websiteUrl;
     private String cvFilePath;
-    
-    // List này an toàn vì là List String/Object thường, không phải Hibernate Proxy
+
     private List<String> skills;
     private List<ExperienceDTO> experiences; 
 }

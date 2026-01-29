@@ -31,7 +31,8 @@ export default function UserMenu() {
 
   if (!user) return null;
 
-  const userAvatar = user.profileImageUrl || "https://res.cloudinary.com/dpym64zg9/image/upload/v1768898865/phantichcv/avatar/gqwoyrmv8osjl5hjlygz.png";
+  const userAvatar = (user as any).avatarUrl || 
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || "User")}&background=random&color=fff&size=128`;
 
   // Check VIP
   const isVip = user.userRole?.includes('_VIP');
@@ -77,7 +78,6 @@ export default function UserMenu() {
           </div>
 
           <div className="p-2 space-y-1">
-             {/* NÚT MUA VIP */}
              <Link
                 href="/vip-upgrade"
                 className={`flex items-center justify-center px-4 py-2 rounded-md text-sm font-bold transition-all mb-2 ${

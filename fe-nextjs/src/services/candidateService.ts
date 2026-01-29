@@ -90,3 +90,14 @@ export const cancelApplication = async (applicationId: number) => {
   const response = await api.delete(`/applications/${applicationId}`);
   return response.data;
 };
+
+export const uploadAvatar = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  // Gọi API backend (đường dẫn này phải khớp với Controller BE bạn đã viết)
+  const response = await api.post("/candidate/profile/avatar", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data.data; // Trả về URL ảnh mới từ Cloudinary
+};

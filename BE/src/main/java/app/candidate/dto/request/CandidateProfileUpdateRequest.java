@@ -6,6 +6,8 @@ import java.util.Map;
 
 @Data
 public class CandidateProfileUpdateRequest {
+    private String fullName;
+    private String email;
     private String aboutMe;
     private String phoneNumber;
     private String address;

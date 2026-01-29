@@ -7,7 +7,7 @@ import app.ai.service.cv.gemini.dto.GeminiResponse;
 import app.auth.model.User;
 import app.auth.repository.UserRepository;
 import app.candidate.dto.request.CandidateProfileUpdateRequest;
-import app.candidate.dto.response.CandidateProfileResponse; // 👈 Nhớ tạo file DTO này trước
+import app.candidate.dto.response.CandidateProfileResponse;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
 import app.recruitment.repository.CVAnalysisResultRepository;
@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,9 +34,9 @@ public class CandidateService {
     private final CVAnalysisService cvAnalysisService;
     private final CloudinaryService cloudinaryService;
     private final CVAnalysisResultRepository cvAnalysisResultRepository;
+    private final ObjectMapper objectMapper;
 
     /**
-     * ✅ HÀM MỚI: Lấy Profile dạng DTO (An toàn cho Frontend)
      * Dùng @Transactional(readOnly = true) để Hibernate mở cửa kho lấy Skills (Lazy)
      */
     @Transactional(readOnly = true)
@@ -67,6 +68,8 @@ public class CandidateService {
                 .address(p.getAddress())
                 .aboutMe(p.getAboutMe())
                 .linkedInUrl(p.getLinkedInUrl())
+                .websiteUrl(p.getWebsiteUrl())
+                .avatarUrl(p.getAvatarUrl())
                 .cvFilePath(p.getCvFilePath())
                 .skills(p.getSkills() != null ? new ArrayList<>(p.getSkills()) : new ArrayList<>()) 
                 .experiences(expDTOs)
@@ -106,19 +109,50 @@ public class CandidateService {
         return candidateProfileRepository.save(profile);
     }
 
+    @Transactional
+    public String uploadAvatar(Long userId, MultipartFile file) {
+        CandidateProfile profile = getProfile(userId);
+
+        // Upload lên Cloudinary (Dùng lại service đã có)
+        String avatarUrl = cloudinaryService.uploadFile(file);
+
+        // Lưu link vào DB
+        profile.setAvatarUrl(avatarUrl);
+        candidateProfileRepository.save(profile);
+
+        return avatarUrl;
+    }
+
     /**
      * Cập nhật Profile thủ công từ Form
      */
     @Transactional
     public CandidateProfile updateProfile(Long userId, CandidateProfileUpdateRequest request) {
-        CandidateProfile profile = getProfile(userId);
+        // Lấy User
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // TÌM HOẶC TẠO MỚI
+        CandidateProfile profile = candidateProfileRepository.findByUserId(userId)
+                .orElse(CandidateProfile.builder()
+                        .user(user)
+                        .skills(new ArrayList<>())
+                        .experiences(new ArrayList<>())
+                        .build());
 
         // Map các trường cơ bản
+        if (request.getFullName() != null && !request.getFullName().isEmpty()) {
+            profile.setFullName(request.getFullName());
+        }
+        if (request.getEmail() != null && !request.getEmail().isEmpty()) {
+            profile.setEmail(request.getEmail());
+        }
         if (request.getAboutMe() != null) profile.setAboutMe(request.getAboutMe());
         if (request.getPhoneNumber() != null) profile.setPhoneNumber(request.getPhoneNumber());
         if (request.getAddress() != null) profile.setAddress(request.getAddress());
         if (request.getLinkedInUrl() != null) profile.setLinkedInUrl(request.getLinkedInUrl());
-        
+        if (request.getWebsiteUrl() != null) profile.setWebsiteUrl(request.getWebsiteUrl());
+
         // Map Skills
         if (request.getSkills() != null) {
             profile.setSkills(request.getSkills());
@@ -142,7 +176,17 @@ public class CandidateService {
             }
         }
 
-        // Xóa cache chấm điểm cũ
+        // ap Education (Lưu dạng JSON String)
+        if (request.getEducations() != null) {
+            try {
+                String educationJson = objectMapper.writeValueAsString(request.getEducations());
+                profile.setEducationJson(educationJson);
+            } catch (Exception e) {
+                log.error("Lỗi parse Education sang JSON", e);
+            }
+        }
+
+        // Xóa cache chấm điểm cũ để tính lại điểm matching
         cvAnalysisResultRepository.deleteByUserId(userId);
 
         return candidateProfileRepository.save(profile);

@@ -22,15 +22,16 @@ public class CandidateProfile {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
-    @JsonIgnore // Chặn lặp vô hạn
+    @JsonIgnore
     private User user;
 
-    // --- BỔ SUNG THÔNG TIN LIÊN HỆ TỪ CV ---
-    private String fullName; // Tên trích xuất từ CV
-    private String email;    // Email trích xuất từ CV
+    private String avatarUrl;
+    private String fullName;
+    private String email;
     private String phoneNumber;
     private String address;
     private String linkedInUrl;
+    private String websiteUrl;
     
     @Column(columnDefinition = "TEXT")
     private String aboutMe;
