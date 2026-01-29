@@ -11,8 +11,8 @@ public interface SummaryRepository extends JpaRepository<User, Long> {
 
     @Query(value = """
         select
-            (select count(*) from users u where u.user_role = 'CANDIDATE') as candidateTotal,
-            (select count(*) from users u where u.user_role = 'RECRUITER') as recruiterTotal,
+            (select count(*) from users u where u.user_role IN ('CANDIDATE', 'CANDIDATE_VIP')) as candidateTotal,
+            (select count(*) from users u where u.user_role IN ('RECRUITER', 'RECRUITER_VIP')) as recruiterTotal,
             (select count(*) from job_postings j) as jobTotal,
             (select count(*) from job_applications a) as applicationTotal
         """, nativeQuery = true)

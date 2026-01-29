@@ -24,7 +24,7 @@ public interface JobPostingRepository extends JpaRepository<JobPosting, Long> {
     @Override
     @EntityGraph(attributePaths = {"company"})
     Page<JobPosting> findAll(Pageable pageable);
-    
+  
     // Các hàm tìm kiếm cơ bản
     List<JobPosting> findByRecruiterId(Long recruiterId);
     List<JobPosting> findByTitleContainingIgnoreCase(String keyword);
