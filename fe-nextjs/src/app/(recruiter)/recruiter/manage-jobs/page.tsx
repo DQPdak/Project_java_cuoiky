@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Users, MapPin, Calendar, DollarSign } from "lucide-react";
+import { Plus, Users, MapPin, Calendar, DollarSign, Trash2 } from "lucide-react"; // Đã thêm Trash2
 import { recruitmentService } from "@/services/recruitmentService";
-import { JobPosting, JobStatus } from "@/types/recruitment";
+import { JobPosting, JobStatus, JobCreateRequest } from "@/types/recruitment";
 import toast from "react-hot-toast";
 
 export default function ManageJobsPage() {
@@ -11,12 +11,12 @@ export default function ManageJobsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Đổi tên trường 'deadline' thành 'expiryDate' cho khớp Backend
+  // State form tạo job
   const [newJob, setNewJob] = useState({
     title: "",
     location: "",
     salaryRange: "",
-    expiryDate: "", // Đổi từ deadline -> expiryDate
+    expiryDate: "", 
     description: "",
     requirements: ""
   });
@@ -36,26 +36,58 @@ export default function ManageJobsPage() {
     }
   };
 
+  // --- HÀM XỬ LÝ ĐÃ ĐƯỢC SỬA LẠI (QUAN TRỌNG) ---
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Hàm helper format ngày an toàn (Fix lỗi lệch múi giờ)
+    const formatDateForBE = (dateString: string) => {
+        if (!dateString) return "";
+        // Nếu input type="date" trả về yyyy-MM-dd thì giữ nguyên
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+        // Fallback
+        return new Date(dateString).toISOString().split('T')[0];
+    };
+
     try {
-      await recruitmentService.createJob(newJob);
+      // 2. Chuẩn bị payload (dữ liệu gửi đi)
+      const payload: JobCreateRequest = {
+        ...newJob,
+        expiryDate: formatDateForBE(newJob.expiryDate) // Áp dụng format tại đây
+      };
+
+      // 3. Gọi API
+      await recruitmentService.createJob(payload);
+      
       toast.success("Đăng tin thành công!");
       setShowCreateModal(false);
-      loadJobs(); // Reload lại list
+      loadJobs(); // Tải lại danh sách
       
-      // Reset form với expiryDate
+      // 4. Reset form
       setNewJob({ 
         title: "", location: "", salaryRange: "", 
         expiryDate: "", 
         description: "", requirements: "" 
       });
+
     } catch (error: any) {
-      // 2. Hiển thị lỗi chi tiết từ Backend (nếu có)
+      // Hiển thị lỗi chi tiết từ Backend
       const message = error?.response?.data?.message || "Lỗi khi tạo tin tuyển dụng";
       toast.error(message);
       console.error(error);
     }
+  };
+
+  // Hàm xóa tin (Bổ sung thêm cho đầy đủ chức năng)
+  const handleDeleteJob = async (id: number) => {
+      if(!confirm("Bạn có chắc chắn muốn xóa tin này không?")) return;
+      try {
+          await recruitmentService.deleteJob(id);
+          toast.success("Đã xóa tin tuyển dụng");
+          loadJobs();
+      } catch (error) {
+          toast.error("Không thể xóa tin này");
+      }
   };
 
   return (
@@ -74,7 +106,7 @@ export default function ManageJobsPage() {
       {/* Danh sách Jobs */}
       {isLoading ? <div className="text-center py-10">Đang tải...</div> : (
         <div className="grid gap-4">
-          {jobs.length === 0 ? <p className="text-gray-500">Chưa có tin tuyển dụng nào.</p> : jobs.map((job) => (
+          {jobs.length === 0 ? <p className="text-gray-500 text-center">Chưa có tin tuyển dụng nào.</p> : jobs.map((job) => (
             <div key={job.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
               <div className="flex justify-between items-start">
                 <div>
@@ -86,17 +118,16 @@ export default function ManageJobsPage() {
                   <div className="flex gap-4 text-sm text-gray-500 mb-3">
                     <span className="flex items-center gap-1"><MapPin size={16}/> {job.location}</span>
                     <span className="flex items-center gap-1"><DollarSign size={16}/> {job.salaryRange}</span>
-                    {/* 3. Cập nhật hiển thị từ deadline sang expiryDate */}
                     <span className="flex items-center gap-1">
                         <Calendar size={16}/> 
+                        {/* Hiển thị ngày tháng thân thiện với người Việt */}
                         {job.expiryDate ? new Date(job.expiryDate).toLocaleDateString('vi-VN') : 'N/A'}
                     </span>
                   </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-xs font-semibold
-                  ${job.status === JobStatus.PUBLISHED ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {/* Lưu ý: Backend dùng PUBLISHED, frontend cần map enum tương ứng */}
-                  {job.status === JobStatus.PUBLISHED ? 'Đang tuyển' : job.status}
+                  ${job.status === JobStatus.PUBLISHED || job.status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {job.status === JobStatus.PUBLISHED || job.status === 'OPEN' ? 'Đang tuyển' : job.status}
                 </div>
               </div>
               
@@ -108,7 +139,12 @@ export default function ManageJobsPage() {
                   <Users size={18} />
                   Xem {job.applicationCount || 0} hồ sơ ứng tuyển
                 </Link>
-                <button className="text-gray-400 hover:text-red-500 text-sm">Xóa tin</button>
+                <button 
+                    onClick={() => handleDeleteJob(job.id)}
+                    className="text-gray-400 hover:text-red-500 text-sm flex items-center gap-1"
+                >
+                    <Trash2 size={16}/> Xóa tin
+                </button>
               </div>
             </div>
           ))}
@@ -122,32 +158,48 @@ export default function ManageJobsPage() {
             <h2 className="text-xl font-bold mb-4">Đăng tin tuyển dụng mới</h2>
             <form onSubmit={handleCreateJob} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <input placeholder="Tiêu đề công việc" className="border p-2 rounded" required
-                  value={newJob.title} onChange={e => setNewJob({...newJob, title: e.target.value})} />
-                <input placeholder="Địa điểm" className="border p-2 rounded" required
-                  value={newJob.location} onChange={e => setNewJob({...newJob, location: e.target.value})} />
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
+                    <input placeholder="VD: Java Developer" className="border p-2 rounded w-full" required
+                    value={newJob.title} onChange={e => setNewJob({...newJob, title: e.target.value})} />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Địa điểm</label>
+                    <input placeholder="VD: Hà Nội" className="border p-2 rounded w-full" required
+                    value={newJob.location} onChange={e => setNewJob({...newJob, location: e.target.value})} />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <input placeholder="Mức lương (VD: 10-15 triệu)" className="border p-2 rounded"
-                  value={newJob.salaryRange} onChange={e => setNewJob({...newJob, salaryRange: e.target.value})} />
-                
-                {/* 4. Input date đã được sửa để bind vào expiryDate */}
-                <input 
-                  type="date" 
-                  className="border p-2 rounded" 
-                  required
-                  value={newJob.expiryDate} 
-                  onChange={e => setNewJob({...newJob, expiryDate: e.target.value})} 
-                />
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mức lương</label>
+                    <input placeholder="VD: 10-15 triệu" className="border p-2 rounded w-full"
+                    value={newJob.salaryRange} onChange={e => setNewJob({...newJob, salaryRange: e.target.value})} />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Hạn nộp</label>
+                    <input 
+                    type="date" 
+                    className="border p-2 rounded w-full" 
+                    required
+                    value={newJob.expiryDate} 
+                    onChange={e => setNewJob({...newJob, expiryDate: e.target.value})} 
+                    />
+                </div>
               </div>
-              <textarea placeholder="Mô tả công việc..." className="border p-2 rounded w-full h-24" required
-                value={newJob.description} onChange={e => setNewJob({...newJob, description: e.target.value})} />
-              <textarea placeholder="Yêu cầu ứng viên..." className="border p-2 rounded w-full h-24" required
-                value={newJob.requirements} onChange={e => setNewJob({...newJob, requirements: e.target.value})} />
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả công việc</label>
+                  <textarea placeholder="Mô tả chi tiết..." className="border p-2 rounded w-full h-24" required
+                    value={newJob.description} onChange={e => setNewJob({...newJob, description: e.target.value})} />
+              </div>
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Yêu cầu ứng viên</label>
+                  <textarea placeholder="Yêu cầu kỹ năng, kinh nghiệm..." className="border p-2 rounded w-full h-24" required
+                    value={newJob.requirements} onChange={e => setNewJob({...newJob, requirements: e.target.value})} />
+              </div>
               
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Hủy</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Đăng tin</button>
+              <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition">Hủy</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Đăng tin</button>
               </div>
             </form>
           </div>
