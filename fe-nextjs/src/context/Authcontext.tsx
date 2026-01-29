@@ -10,6 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (userData: User) => void;
   logout: () => void;
+  updateUser: (userData: User) => void; // Thêm hàm này
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,7 +34,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.removeItem('currentUser');
         }
       } else {
-        // Nếu không có token nhưng có user rác -> xóa đi
         if (!token) localStorage.removeItem('currentUser');
       }
       setIsLoading(false);
@@ -42,43 +42,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = (userData: User) => {
-    // --- KHỐI KIỂM TRA AN TOÀN (MỚI) ---
-    // Ngăn chặn lỗi crash nếu userData bị null/undefined
-    if (!userData) {
-        console.error("❌ AuthContext: Hàm login được gọi nhưng không có dữ liệu user!", userData);
-        return; 
-    }
-
-    if (!userData.userRole) {
-        console.error("❌ AuthContext: User không có quyền (userRole)", userData);
-        // Có thể mặc định gán role nếu cần thiết, hoặc return
-        // return; 
-    }
-    // ------------------------------------
+    if (!userData) return;
 
     console.log("✅ AuthContext: Đăng nhập thành công với user:", userData);
 
     setUser(userData);
     localStorage.setItem('currentUser', JSON.stringify(userData));
 
-    // ĐIỀU HƯỚNG DỰA TRÊN ROLE
-    // Sử dụng Optional Chaining (?) để an toàn hơn
+    // ĐIỀU HƯỚNG DỰA TRÊN ROLE (Cập nhật case cho VIP)
     switch (userData?.userRole) {
       case UserRole.ADMIN:
         router.push('/admin/dashboard'); 
         break;
       case UserRole.RECRUITER:
+      case UserRole.RECRUITER_VIP: // VIP vẫn vào dashboard Recruiter
         router.push('/dashboard-recruiter');
         break;
       case UserRole.CANDIDATE:
+      case UserRole.CANDIDATE_VIP: // VIP vẫn vào dashboard Candidate
         router.push('/dashboard-candidate');
         break;
       default:
-        // Nếu không có role hoặc role lạ, về trang chủ candidate
         console.warn("⚠️ Role không xác định, chuyển về trang Dashboard Candidate");
         router.push('/dashboard-candidate');
         break;
     }
+  };
+
+  // Hàm updateUser: Chỉ cập nhật data (dùng khi mua gói thành công để đổi Role ngay lập tức)
+  const updateUser = (userData: User) => {
+    if (!userData) return;
+    setUser(userData);
+    localStorage.setItem('currentUser', JSON.stringify(userData));
+    // Không redirect, giữ nguyên trang hiện tại (trang mua VIP)
   };
 
   const logout = () => {
@@ -89,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

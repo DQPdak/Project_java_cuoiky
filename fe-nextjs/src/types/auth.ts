@@ -2,6 +2,9 @@ export enum UserRole {
   CANDIDATE = 'CANDIDATE',
   RECRUITER = 'RECRUITER',
   ADMIN = 'ADMIN',
+  // Thêm 2 Role mới
+  CANDIDATE_VIP = 'CANDIDATE_VIP',
+  RECRUITER_VIP = 'RECRUITER_VIP',
 }
 
 // Khớp với Java RegisterRequest
@@ -25,6 +28,8 @@ export interface User {
   email: string;
   userRole: UserRole;
   profileImageUrl?: string;
+  // Thêm trường này để hiện ngày hết hạn ở FE
+  vipExpirationDate?: string; 
 }
 
 // Khớp với Java AuthResponse

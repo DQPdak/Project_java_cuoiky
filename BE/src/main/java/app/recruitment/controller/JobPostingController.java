@@ -6,10 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-
 import java.net.URI;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import app.recruitment.service.JobPostingService;
 import app.util.SecurityUtils;
@@ -21,16 +19,16 @@ import app.recruitment.entity.JobPosting;
 @RestController
 @RequestMapping("/api/recruiter/jobs")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 @Slf4j
 public class JobPostingController {
 
     private final JobPostingService jobPostingService;
     private final RecruitmentMapper mapper;
     private final SecurityUtils securityUtils;
+
     @PostMapping
-    public ResponseEntity<JobPostingResponse> create(
-            @Valid @RequestBody JobPostingRequest request
-    ) {
+    public ResponseEntity<JobPostingResponse> create(@Valid @RequestBody JobPostingRequest request) {
         Long recruiterId = securityUtils.getCurrentUserId();
         JobPosting created = jobPostingService.create(recruiterId, request);
         JobPostingResponse resp = mapper.toJobPostingResponse(created);
@@ -42,7 +40,7 @@ public class JobPostingController {
             @PathVariable Long id,
             @Valid @RequestBody JobPostingRequest request
     ) {
-        Long recruiterId = getCurrentUserId();
+        Long recruiterId = securityUtils.getCurrentUserId();
         JobPosting updated = jobPostingService.update(recruiterId, id, request);
         return ResponseEntity.ok(mapper.toJobPostingResponse(updated));
     }
@@ -51,7 +49,7 @@ public class JobPostingController {
     public ResponseEntity<Void> delete(
             @PathVariable Long id
     ) {
-        Long recruiterId = getCurrentUserId();
+        Long recruiterId = securityUtils.getCurrentUserId();
         jobPostingService.delete(recruiterId, id);
         return ResponseEntity.noContent().build();
     }
@@ -63,12 +61,13 @@ public class JobPostingController {
         return ResponseEntity.ok(mapper.toJobPostingResponse(job));
     }
 
+    // Trong file JobPostingController.java
     @GetMapping("/me")
     public ResponseEntity<List<JobPostingResponse>> listByRecruiter() {
-        Long recruiterId = getCurrentUserId();
-        List<JobPostingResponse> list = jobPostingService.listByRecruiter(recruiterId)
-                .stream().map(mapper::toJobPostingResponse).collect(Collectors.toList());
-        return ResponseEntity.ok(list);
+        Long recruiterId = securityUtils.getCurrentUserId();
+        
+        // Service đã trả về DTO rồi, không cần stream().map(...) nữa
+        return ResponseEntity.ok(jobPostingService.listByRecruiter(recruiterId));
     }
 
     @GetMapping("/search")
@@ -76,8 +75,5 @@ public class JobPostingController {
         return ResponseEntity.ok(MessageResponse.success("Tìm kiếm thành công", jobPostingService.searchJobs(keyword)));
     }
 
-    // Mock current user id (temporary). Replace with SecurityContext lookup.
-    private Long getCurrentUserId() {
-        return 1L;
-    }
+    
 }

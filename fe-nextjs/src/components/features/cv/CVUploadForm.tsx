@@ -72,7 +72,6 @@ export default function CVUploadForm({
               <iframe
                 src={`https://docs.google.com/gview?url=${currentCvUrl}&embedded=true`}
                 className="w-full h-full absolute inset-0"
-                frameBorder="0"
               ></iframe>
             </div>
 

@@ -16,18 +16,28 @@ public class JobApplicationResponse {
     private Long jobId;
     private String jobTitle;
     
-    private Long studentId;     // Hoặc đổi thành candidateId tùy bạn
-    private String studentName; // Hoặc đổi thành candidateName
+    private Long studentId;
+    private String studentName;
     
     private String companyName;
     private String cvUrl;
     
-    private String status; // Kiểu String
+    private String status;
     
     private LocalDateTime appliedAt;
     private String recruiterNote;
 
-    // [FIX LỖI 3] Thêm 2 trường này để Builder không báo lỗi
+    // --- CÁC TRƯỜNG AI ---
     private Integer matchScore;
     private String aiEvaluation;
+    
+    private String missingSkillsList; 
+    private String matchedSkillsList;
+    private String otherHardSkillsList;
+    private String otherSoftSkillsList;
+
+    private Integer matchedSkillsCount;
+    private Integer missingSkillsCount;
+    private Integer otherHardSkillsCount;
+    private Integer otherSoftSkillsCount;
 }

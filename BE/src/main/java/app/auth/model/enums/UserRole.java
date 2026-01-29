@@ -16,6 +16,7 @@ public enum UserRole {
     RECRUITER_VIP("Nhà tuyển dụng VIP"), // Vai trò nhà tuyển dụng VIP
     ADMIN("Quản trị viên");      // Vai trò quản trị viên
 
+
     /**
      * displayName: Tên hiển thị thân thiện cho người dùng (tiếng Việt).
      */
