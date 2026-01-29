@@ -1,5 +1,6 @@
 // src/services/recruitmentService.ts
 import api from './api';
+
 import { 
   JobPosting, 
   JobCreateRequest, 
@@ -8,6 +9,7 @@ import {
   AIAnalysisDetail,
   CandidateSearchResult, 
 } from '@/types/recruitment';
+
 
 export interface DashboardStats {
     totalActiveJobs: number;
@@ -114,5 +116,10 @@ export const recruitmentService = {
     updateCompany: async (data: CompanyProfile): Promise<CompanyProfile> => {
         const res = await api.put('/recruiter/company/me', data);
         return res.data;
-    }
+    },
+    getRecentApplications: async (): Promise<CandidateApplication[]> => {
+    // Gọi endpoint backend vừa tạo ở trên
+    const response = await api.get('/recruiter/dashboard/recent-applications');
+    return response.data; // Backend trả về List<JobApplicationResponse>
+  },
 };
