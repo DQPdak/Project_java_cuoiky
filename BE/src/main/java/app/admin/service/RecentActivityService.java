@@ -1,26 +1,41 @@
 package app.admin.service;
 
+import app.admin.dto.response.RecentActivityResponse;
+import app.admin.repository.RecentActivityRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import app.admin.dto.response.AdminDashboardRecentActivityResponse;
-import app.admin.repository.AdminDashboardRecentActivityRepository;
+
 import java.sql.Timestamp;
-import java.time.*;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class AdminDashboardRecentActivityService {
+public class RecentActivityService {
 
-    private final AdminDashboardRecentActivityRepository adminActivityRepository;
+    private final RecentActivityRepository adminActivityRepository;
 
-    public List<AdminDashboardRecentActivityResponse> getRecentActivities(int limit) {
+    public List<RecentActivityResponse> getRecentActivities(int limit) {
         if (limit <= 0) limit = 5;
-
         List<Object[]> rows = adminActivityRepository.findRecentApplicationActivities(limit);
+        return mapRows(rows);
+    }
 
-        List<AdminDashboardRecentActivityResponse> result = new ArrayList<>();
+    // ✅ thêm method để controller /all-activities gọi được
+    public List<RecentActivityResponse> getAllActivities(int page, int size) {
+        if (page < 0) page = 0;
+        if (size <= 0) size = 20;
+
+        int offset = page * size;
+        List<Object[]> rows = adminActivityRepository.findApplicationActivitiesPaged(size, offset);
+        return mapRows(rows);
+    }
+
+    private List<RecentActivityResponse> mapRows(List<Object[]> rows) {
+        List<RecentActivityResponse> result = new ArrayList<>();
         Instant now = Instant.now();
 
         for (Object[] r : rows) {
@@ -28,20 +43,11 @@ public class AdminDashboardRecentActivityService {
             String candidateName = (String) r[1];
             String companyName = (String) r[2];
 
-            Instant createdAt;
-            Object tsObj = r[3];
-            if (tsObj instanceof Timestamp ts) {
-                createdAt = ts.toInstant();
-            } else if (tsObj instanceof Instant i) {
-                createdAt = i;
-            } else {
-                // fallback
-                createdAt = now;
-            }
+            Instant createdAt = parseInstant(r[3], now);
 
             String message = String.format("%s vừa ứng tuyển vào %s", candidateName, companyName);
 
-            result.add(AdminDashboardRecentActivityResponse.builder()
+            result.add(RecentActivityResponse.builder()
                     .refId(applicationId)
                     .message(message)
                     .createdAt(createdAt)
@@ -49,6 +55,12 @@ public class AdminDashboardRecentActivityService {
                     .build());
         }
         return result;
+    }
+
+    private Instant parseInstant(Object tsObj, Instant fallback) {
+        if (tsObj instanceof Timestamp ts) return ts.toInstant();
+        if (tsObj instanceof Instant i) return i;
+        return fallback;
     }
 
     private String toTimeAgoVi(Instant createdAt, Instant now) {

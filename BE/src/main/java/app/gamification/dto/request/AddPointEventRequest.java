@@ -1,4 +1,4 @@
-package app.gamification.dto;
+package app.gamification.dto.request;
 
 public class AddPointEventRequest {
 

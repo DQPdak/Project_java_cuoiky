@@ -67,7 +67,7 @@ public class JobPostingServiceImpl implements JobPostingService {
                 .expiryDate(expiryDateTime) // Lưu LocalDateTime đã convert
                 .extractedSkills(skills)
                 .recruiter(recruiter)
-                .status(JobStatus.PUBLISHED)
+                .status(JobStatus.PENDING)
                 .build();
 
         return jobPostingRepository.save(j);

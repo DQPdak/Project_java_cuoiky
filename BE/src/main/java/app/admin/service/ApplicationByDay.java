@@ -2,8 +2,8 @@ package app.admin.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import app.admin.dto.response.AdminDashboardApplicationsByDayResponse;
-import app.admin.repository.AdminDashboardApplicaionByDayRepository;
+import app.admin.dto.response.ApplicationsByDayResponse;
+import app.admin.repository.ApplicaionByDayRepository;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -13,11 +13,11 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-public class AdminDashboardApplicationByDay {
+public class ApplicationByDay {
 
-    private final AdminDashboardApplicaionByDayRepository adminDashboardApplicaionByDayRepository;
+    private final ApplicaionByDayRepository adminDashboardApplicaionByDayRepository;
 
-    public List<AdminDashboardApplicationsByDayResponse> getApplicationsChart(int days) {
+    public List<ApplicationsByDayResponse> getApplicationsChart(int days) {
         if (days <= 0) days = 7;
 
         ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -37,11 +37,11 @@ public class AdminDashboardApplicationByDay {
             countMap.put(d, c);
         }
 
-        List<AdminDashboardApplicationsByDayResponse> result = new ArrayList<>();
+        List<ApplicationsByDayResponse> result = new ArrayList<>();
         for (int i = 0; i < days; i++) {
             LocalDate d = start.plusDays(i);
             long c = countMap.getOrDefault(d, 0L);
-            result.add(new AdminDashboardApplicationsByDayResponse(toVietnamDayLabel(d.getDayOfWeek()), c));
+            result.add(new ApplicationsByDayResponse(toVietnamDayLabel(d.getDayOfWeek()), c));
         }
 
         return result;

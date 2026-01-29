@@ -2,7 +2,10 @@ package app.recruitment.repository;
 
 import app.recruitment.entity.JobPosting;
 import app.recruitment.entity.enums.JobStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,6 +15,21 @@ import java.util.List;
 @Repository
 public interface JobPostingRepository extends JpaRepository<JobPosting, Long> {
 
+    List<JobPosting> findByRecruiterId(Long recruiterId);
+    List<JobPosting> findByTitleContainingIgnoreCase(String keyword);
+
+    List<JobPosting> findByStatus(JobStatus status);
+
+    // ✅ thêm EntityGraph ở đây
+    @EntityGraph(attributePaths = {"company"})
+    Page<JobPosting> findByStatus(JobStatus status, Pageable pageable);
+
+    // ✅ thêm EntityGraph cho findAll paging (admin ALL đang gọi findAll(pageable))
+    @Override
+    @EntityGraph(attributePaths = {"company"})
+    Page<JobPosting> findAll(Pageable pageable);
+
+    List<JobPosting> findTop10ByStatusOrderByCreatedAtDesc(JobStatus status);
     // Các hàm tìm kiếm cơ bản
     List<JobPosting> findByRecruiterId(Long recruiterId);
     List<JobPosting> findByTitleContainingIgnoreCase(String keyword);

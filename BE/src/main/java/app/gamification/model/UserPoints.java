@@ -2,6 +2,7 @@ package app.gamification.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -10,18 +11,23 @@ import java.time.LocalDateTime;
 public class UserPoints {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(unique = true, nullable = false)
+    @Column(name = "user_id")
     private Long userId;
 
-    private long totalPoints;
+    @Column(name = "total_points", nullable = false)
+    private Integer totalPoints;
+
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @PrePersist @PreUpdate
+    @PrePersist
+    void onCreate() {
+        if (totalPoints == null) totalPoints = 0;
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
     void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 }
-

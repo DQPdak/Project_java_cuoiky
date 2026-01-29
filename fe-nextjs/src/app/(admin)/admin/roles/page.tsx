@@ -1,61 +1,142 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Shield, Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import api from '@/services/api';
+import { Shield, Plus, Edit, Trash2 } from 'lucide-react';
 
-// Mock Data: Danh sách quyền
-const ROLES = [
+type RoleKey =
+  | 'ADMIN'
+  | 'CANDIDATE'
+  | 'CANDIDATE_VIP'
+  | 'RECRUITER'
+  | 'RECRUITER_VIP';
+
+type RoleCard = {
+  id: number;
+  key: RoleKey;
+  name: string;
+  description: string;
+  usersCount: number;
+  permissions: string[];
+  isSystem: boolean;
+};
+
+const BASE_ROLES: RoleCard[] = [
   {
     id: 1,
+    key: 'ADMIN',
     name: 'Administrator',
     description: 'Quyền cao nhất, quản lý toàn bộ hệ thống.',
-    usersCount: 3,
+    usersCount: 0,
     permissions: ['all_access', 'manage_users', 'manage_content', 'system_settings'],
-    isSystem: true // Không thể xóa
+    isSystem: true
   },
   {
     id: 2,
+    key: 'RECRUITER',
     name: 'Recruiter',
     description: 'Nhà tuyển dụng, có thể đăng tin và xem hồ sơ ứng viên.',
-    usersCount: 156,
+    usersCount: 0,
     permissions: ['post_job', 'view_candidate', 'manage_applications'],
     isSystem: true
   },
   {
     id: 3,
-    name: 'Candidate',
-    description: 'Người tìm việc, có thể ứng tuyển và tạo hồ sơ.',
-    usersCount: 1240,
-    permissions: ['create_profile', 'apply_job', 'view_job'],
+    key: 'RECRUITER_VIP',
+    name: 'Recruiter VIP',
+    description: 'Recruiter nâng cao: nhiều quyền và hạn mức hơn.',
+    usersCount: 0,
+    permissions: ['post_job', 'view_candidate', 'manage_applications', 'vip_talent_search', 'bulk_actions'],
     isSystem: true
   },
   {
     id: 4,
-    name: 'Content Moderator',
-    description: 'Nhân viên kiểm duyệt nội dung tin đăng.',
-    usersCount: 5,
-    permissions: ['view_job', 'approve_job', 'reject_job'],
-    isSystem: false
+    key: 'CANDIDATE',
+    name: 'Candidate',
+    description: 'Người tìm việc, có thể ứng tuyển và tạo hồ sơ.',
+    usersCount: 0,
+    permissions: ['create_profile', 'apply_job', 'view_job'],
+    isSystem: true
+  },
+  {
+    id: 5,
+    key: 'CANDIDATE_VIP',
+    name: 'Candidate VIP',
+    description: 'Candidate nâng cao: dùng AI & template premium.',
+    usersCount: 0,
+    permissions: ['create_profile', 'apply_job', 'view_job', 'ai_coach', 'advanced_cv_review'],
+    isSystem: true
   }
 ];
 
+// Fix trường hợp BE trả key có khoảng trắng: "CANDIDATE VIP"
+function normalizeRoleKey(k: string) {
+  return k.trim().replace(/\s+/g, '_').toUpperCase();
+}
+
 export default function RolesPage() {
-  const [roles, setRoles] = useState(ROLES);
+  const [roles, setRoles] = useState<RoleCard[]>(BASE_ROLES);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDelete = (id: number) => {
     if (confirm('Bạn có chắc muốn xóa vai trò này?')) {
-      setRoles(roles.filter(role => role.id !== id));
+      setRoles((prev) => prev.filter((role) => role.id !== id));
     }
   };
+
+  const fetchCounts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // ✅ dùng chung api client => tự gắn token => hết 401
+      const res = await api.get('/admin/roles/count-users');
+
+      // tuỳ BE trả structure: {success, message, data} hoặc trả raw map
+      const raw = res.data?.data ?? res.data;
+
+      const normalized: Record<string, number> = {};
+      Object.keys(raw || {}).forEach((key) => {
+        normalized[normalizeRoleKey(key)] = Number(raw[key] ?? 0);
+      });
+
+      setRoles((prev) =>
+        prev.map((r) => ({
+          ...r,
+          usersCount: Number(normalized?.[r.key] ?? 0)
+        }))
+      );
+    } catch (err: any) {
+      console.error('Lỗi tải dữ liệu Roles:', err);
+      setError(err?.response?.data?.message || err?.message || 'Không tải được dữ liệu phân quyền');
+      // fallback giữ 0 để UI vẫn hiển thị
+      setRoles(BASE_ROLES);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
+
+  const subtitle = useMemo(() => {
+    if (loading) return 'Đang tải dữ liệu phân quyền...';
+    if (error) return `Lỗi: ${error}`;
+    return 'Quản lý vai trò và quyền hạn truy cập của người dùng.';
+  }, [loading, error]);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Phân quyền hệ thống</h1>
-          <p className="text-gray-500 text-sm">Quản lý vai trò và quyền hạn truy cập của người dùng.</p>
+          <p className="text-gray-500 text-sm">{subtitle}</p>
         </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm transition">
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm transition"
+          onClick={() => alert('MVP: dùng 5 vai trò hệ thống.')}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Thêm vai trò mới
         </button>
@@ -73,9 +154,9 @@ export default function RolesPage() {
                   <Edit className="w-4 h-4" />
                 </button>
                 {!role.isSystem && (
-                  <button 
+                  <button
                     onClick={() => handleDelete(role.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 transition" 
+                    className="p-2 text-gray-400 hover:text-red-600 transition"
                     title="Xóa"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -96,13 +177,24 @@ export default function RolesPage() {
               <div className="flex flex-wrap gap-2">
                 {role.permissions.map((perm, index) => (
                   <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border border-gray-200">
-                    {perm.replace('_', ' ')}
+                    {perm.replaceAll('_', ' ')}
                   </span>
                 ))}
               </div>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* nút reload nếu muốn */}
+      <div>
+        <button
+          type="button"
+          onClick={fetchCounts}
+          className="text-sm text-blue-600 hover:underline"
+        >
+          Tải lại dữ liệu phân quyền
+        </button>
       </div>
     </div>
   );
