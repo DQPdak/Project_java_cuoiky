@@ -13,7 +13,6 @@ import {
   Building,
   PlusCircle,
   Shield,
-  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/Authcontext";
 import UserMenu from "@/components/features/auth/UserMenu";
@@ -33,10 +32,9 @@ const CANDIDATE_NAV: NavItem[] = [
 
 const RECRUITER_NAV: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard-recruiter", icon: LayoutDashboard },
-  { label: "Đăng tin", href: "/recruiter/manage-jobs", icon: PlusCircle },
+  { label: "Đăng tin", href: "/post-job", icon: PlusCircle },
   { label: "Ứng viên", href: "/applications", icon: Users }, // Lưu ý: thêm dấu / ở đầu để đúng path
-  { label: "Công ty", href: "/recruiter/company", icon: Building },
-  { label: "AI Matching", href: "/recruiter/candidates", icon: Sparkles },
+  { label: "Công ty", href: "/company", icon: Building },
 ];
 
 const ADMIN_NAV: NavItem[] = [
