@@ -1,5 +1,6 @@
 // src/services/recruitmentService.ts
 import api from './api';
+
 import { 
   JobPosting, 
   JobCreateRequest, 
@@ -9,11 +10,27 @@ import {
   CandidateSearchResult, 
 } from '@/types/recruitment';
 
+
 export interface DashboardStats {
     totalActiveJobs: number;
     totalCandidates: number;
     newCandidatesToday: number;
     pipelineStats: Record<string, number>;
+}
+
+export interface CompanyProfile {
+    id?: number;
+    name: string;
+    description: string;
+    industry: string;
+    size: string;
+    foundedYear: string; // Chú ý tên biến khớp BE
+    website: string;
+    address: string;
+    phone: string;
+    email: string;
+    logoUrl?: string;
+    coverImageUrl?: string;
 }
 
 export const recruitmentService = {
@@ -84,8 +101,25 @@ export const recruitmentService = {
   searchCandidates: async (query: string): Promise<CandidateSearchResult[]> => {
     // Endpoint: POST /api/recruitment/search/match-description
     const res = await api.post('/recruitment/search/match-description', query, {
-        headers: { "Content-Type": "text/plain" } // Backend nhận String nên cần header này
+        headers: { "Content-Type": "text/plain" }, // Backend nhận String nên cần header này
+
     });
   
-    return res.data.data;}
+    return res.data.data;},
+
+  // --- NHÓM CÔNG TY (RECRUITER COMPANY PROFILE) ---
+    getMyCompany: async (): Promise<CompanyProfile> => {
+        const res = await api.get('/recruiter/company/me');
+        return res.data;
+    },
+
+    updateCompany: async (data: CompanyProfile): Promise<CompanyProfile> => {
+        const res = await api.put('/recruiter/company/me', data);
+        return res.data;
+    },
+    getRecentApplications: async (): Promise<CandidateApplication[]> => {
+    // Gọi endpoint backend vừa tạo ở trên
+    const response = await api.get('/recruiter/dashboard/recent-applications');
+    return response.data; // Backend trả về List<JobApplicationResponse>
+  },
 };

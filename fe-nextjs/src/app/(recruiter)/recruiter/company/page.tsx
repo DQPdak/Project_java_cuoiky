@@ -1,29 +1,71 @@
+// File: src/app/(recruiter)/recruiter/company/page.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building, MapPin, Globe, Users, Edit, Save, X, Upload, Camera } from 'lucide-react';
+import { recruitmentService, CompanyProfile } from '@/services/recruitmentService';
+import { toast } from 'react-hot-toast'; 
 
 export default function CompanyPage() {
   const [isEditing, setIsEditing] = useState(false);
-  const [companyData, setCompanyData] = useState({
-    name: 'TechCorp Vietnam',
-    description: 'TechCorp là công ty công nghệ hàng đầu Việt Nam, chuyên cung cấp giải pháp phần mềm cho doanh nghiệp. Chúng tôi cam kết mang đến những sản phẩm chất lượng cao và dịch vụ tốt nhất cho khách hàng.',
-    industry: 'Công nghệ thông tin',
-    size: '100-500 nhân viên',
-    founded: '2015',
-    website: 'https://techcorp.vn',
-    address: '123 Đường ABC, Quận 1, TP.HCM',
-    phone: '+84 28 1234 5678',
-    email: 'contact@techcorp.vn',
-    logo: '/api/placeholder/150/150',
-    coverImage: '/api/placeholder/800/200'
+  const [loading, setLoading] = useState(true);
+
+  // Khởi tạo state với dữ liệu mặc định
+  const [companyData, setCompanyData] = useState<CompanyProfile>({
+    name: '',
+    description: '',
+    industry: '',
+    size: '',
+    foundedYear: '',
+    website: '',
+    address: '',
+    phone: '',
+    email: '',
+    logoUrl: '/api/placeholder/150/150',
+    coverImageUrl: '/api/placeholder/800/200'
   });
 
-  const [editData, setEditData] = useState(companyData);
+  const [editData, setEditData] = useState<CompanyProfile>(companyData);
 
-  const handleSave = () => {
-    setCompanyData(editData);
-    setIsEditing(false);
+  // 1. Fetch dữ liệu khi load trang
+  useEffect(() => {
+    fetchCompanyData();
+  }, []);
+
+  const fetchCompanyData = async () => {
+    try {
+      setLoading(true);
+      const data = await recruitmentService.getMyCompany();
+      // Nếu API trả về null/undefined cho ảnh thì dùng ảnh placeholder
+      setCompanyData({
+        ...data,
+        logoUrl: data.logoUrl || '/api/placeholder/150/150',
+        coverImageUrl: data.coverImageUrl || '/api/placeholder/800/200'
+      });
+      setEditData({
+        ...data,
+        logoUrl: data.logoUrl || '/api/placeholder/150/150',
+        coverImageUrl: data.coverImageUrl || '/api/placeholder/800/200'
+      });
+    } catch (error) {
+      console.error("Lỗi tải thông tin công ty", error);
+      toast.error("Không thể tải thông tin công ty");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 2. Xử lý lưu dữ liệu
+  const handleSave = async () => {
+    try {
+      const updated = await recruitmentService.updateCompany(editData);
+      setCompanyData(updated);
+      setIsEditing(false);
+      toast.success("Cập nhật thành công!");
+    } catch (error) {
+      toast.error("Cập nhật thất bại.");
+      console.error(error);
+    }
   };
 
   const handleCancel = () => {
@@ -31,12 +73,15 @@ export default function CompanyPage() {
     setIsEditing(false);
   };
 
+  // Phần thống kê (Stats) - Giữ nguyên mảng tĩnh hoặc thay bằng API Dashboard nếu cần
   const stats = [
     { label: 'Tin tuyển dụng đang hoạt động', value: '5', icon: Building },
     { label: 'Tổng ứng viên đã nhận', value: '127', icon: Users },
     { label: 'Tỷ lệ điền form', value: '68%', icon: Globe },
     { label: 'Thời gian trung bình tuyển dụng', value: '24 ngày', icon: MapPin },
   ];
+
+  if (loading) return <div className="p-8 text-center">Đang tải thông tin...</div>;
 
   return (
     <div>
@@ -90,7 +135,7 @@ export default function CompanyPage() {
         {/* Cover Image */}
         <div className="relative h-48 bg-gradient-to-r from-blue-500 to-purple-600">
           <img
-            src={companyData.coverImage}
+            src={companyData.coverImageUrl}
             alt="Company cover"
             className="w-full h-full object-cover"
           />
@@ -107,7 +152,7 @@ export default function CompanyPage() {
             <div className="relative">
               <div className="w-24 h-24 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden">
                 <img
-                  src={companyData.logo}
+                  src={companyData.logoUrl}
                   alt="Company logo"
                   className="w-full h-full object-cover"
                 />
@@ -146,13 +191,14 @@ export default function CompanyPage() {
 
           {/* Company Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Cột Trái */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ngành nghề</label>
                 {isEditing ? (
                   <input
                     type="text"
-                    value={editData.industry}
+                    value={editData.industry || ''}
                     onChange={(e) => setEditData({...editData, industry: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   />
@@ -164,15 +210,16 @@ export default function CompanyPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Quy mô</label>
                 {isEditing ? (
                   <select
-                    value={editData.size}
+                    value={editData.size || ''}
                     onChange={(e) => setEditData({...editData, size: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   >
-                    <option>1-10 nhân viên</option>
-                    <option>11-50 nhân viên</option>
-                    <option>51-100 nhân viên</option>
-                    <option>100-500 nhân viên</option>
-                    <option>500+ nhân viên</option>
+                    <option value="">Chọn quy mô</option>
+                    <option value="1-10 nhân viên">1-10 nhân viên</option>
+                    <option value="11-50 nhân viên">11-50 nhân viên</option>
+                    <option value="51-100 nhân viên">51-100 nhân viên</option>
+                    <option value="100-500 nhân viên">100-500 nhân viên</option>
+                    <option value="500+ nhân viên">500+ nhân viên</option>
                   </select>
                 ) : (
                   <p className="text-gray-900">{companyData.size}</p>
@@ -183,22 +230,24 @@ export default function CompanyPage() {
                 {isEditing ? (
                   <input
                     type="number"
-                    value={editData.founded}
-                    onChange={(e) => setEditData({...editData, founded: e.target.value})}
+                    value={editData.foundedYear || ''}
+                    onChange={(e) => setEditData({...editData, foundedYear: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   />
                 ) : (
-                  <p className="text-gray-900">{companyData.founded}</p>
+                  <p className="text-gray-900">{companyData.foundedYear}</p>
                 )}
               </div>
             </div>
+
+            {/* Cột Phải */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
                 {isEditing ? (
                   <input
                     type="url"
-                    value={editData.website}
+                    value={editData.website || ''}
                     onChange={(e) => setEditData({...editData, website: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   />
@@ -212,7 +261,7 @@ export default function CompanyPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
                 {isEditing ? (
                   <textarea
-                    value={editData.address}
+                    value={editData.address || ''}
                     onChange={(e) => setEditData({...editData, address: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 h-20 resize-none"
                   />
@@ -226,7 +275,7 @@ export default function CompanyPage() {
                   {isEditing ? (
                     <input
                       type="tel"
-                      value={editData.phone}
+                      value={editData.phone || ''}
                       onChange={(e) => setEditData({...editData, phone: e.target.value})}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2"
                     />
@@ -239,7 +288,7 @@ export default function CompanyPage() {
                   {isEditing ? (
                     <input
                       type="email"
-                      value={editData.email}
+                      value={editData.email || ''}
                       onChange={(e) => setEditData({...editData, email: e.target.value})}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2"
                     />

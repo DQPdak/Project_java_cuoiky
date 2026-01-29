@@ -30,11 +30,19 @@ public class Company {
     private String description;
 
     private String logoUrl;
+    private String coverImageUrl;
     private String website;
 
+    private String industry;      // Ngành nghề
+    private String size;          // Quy mô (10-50, etc.)
+    private String foundedYear;   // Năm thành lập
+    private String address;       // Địa chỉ
+    private String phone;         // Số điện thoại công ty
+    private String email;         // Email liên hệ công ty
     // Liên kết với User (Recruiter quản lý công ty này)
     @OneToOne
     @JoinColumn(name = "recruiter_id")
+    @JsonIgnore
     private User recruiter;
     
     // Một công ty có nhiều Job

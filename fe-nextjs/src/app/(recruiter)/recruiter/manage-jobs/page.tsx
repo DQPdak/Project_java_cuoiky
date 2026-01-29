@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Users, MapPin, Calendar, DollarSign, Trash2 } from "lucide-react"; // Đã thêm Trash2
+import { Plus, Users, MapPin, Calendar, DollarSign, Trash2 } from "lucide-react";
 import { recruitmentService } from "@/services/recruitmentService";
 import { JobPosting, JobStatus, JobCreateRequest } from "@/types/recruitment";
 import toast from "react-hot-toast";
@@ -36,34 +36,34 @@ export default function ManageJobsPage() {
     }
   };
 
-  // --- HÀM XỬ LÝ ĐÃ ĐƯỢC SỬA LẠI (QUAN TRỌNG) ---
+  // --- HÀM XỬ LÝ ĐÃ ĐƯỢC CẬP NHẬT MỚI ---
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. Hàm helper format ngày an toàn (Fix lỗi lệch múi giờ)
-    const formatDateForBE = (dateString: string) => {
-        if (!dateString) return "";
-        // Nếu input type="date" trả về yyyy-MM-dd thì giữ nguyên
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
-        // Fallback
-        return new Date(dateString).toISOString().split('T')[0];
-    };
-
     try {
-      // 2. Chuẩn bị payload (dữ liệu gửi đi)
+      // VALIDATION TẠI FRONTEND TRƯỚC
+      if (!newJob.expiryDate) {
+         toast.error("Vui lòng chọn hạn nộp hồ sơ");
+         return;
+      }
+
+      // Payload
       const payload: JobCreateRequest = {
         ...newJob,
-        expiryDate: formatDateForBE(newJob.expiryDate) // Áp dụng format tại đây
+        // Giữ nguyên giá trị date từ input (yyyy-MM-dd) là chuẩn nhất
+        // Không cần convert qua Date object rồi split T để tránh lệch múi giờ
+        expiryDate: newJob.expiryDate 
       };
 
-      // 3. Gọi API
+      console.log("Sending payload:", payload); // Debug: Xem dữ liệu gửi đi
+
       await recruitmentService.createJob(payload);
       
       toast.success("Đăng tin thành công!");
       setShowCreateModal(false);
-      loadJobs(); // Tải lại danh sách
+      loadJobs();
       
-      // 4. Reset form
+      // Reset form
       setNewJob({ 
         title: "", location: "", salaryRange: "", 
         expiryDate: "", 
@@ -71,14 +71,34 @@ export default function ManageJobsPage() {
       });
 
     } catch (error: any) {
-      // Hiển thị lỗi chi tiết từ Backend
-      const message = error?.response?.data?.message || "Lỗi khi tạo tin tuyển dụng";
-      toast.error(message);
-      console.error(error);
+      console.error("Lỗi API:", error);
+      
+      // LOGIC HIỂN THỊ LỖI CHI TIẾT TỪ BACKEND
+      // Nếu Backend trả về validation errors (ví dụ: title trống, ngày quá khứ...)
+      if (error.response?.data) {
+          const serverData = error.response.data;
+          
+          // Trường hợp 1: Backend trả về message string
+          if (serverData.message) {
+              toast.error(serverData.message);
+          } 
+          // Trường hợp 2: Backend trả về list lỗi validation (MethodArgumentNotValidException)
+          else if (serverData.errors && typeof serverData.errors === 'object') {
+             // Lấy lỗi đầu tiên trong object lỗi để hiển thị
+             const firstErrorKey = Object.keys(serverData.errors)[0];
+             const errorMessage = serverData.errors[firstErrorKey];
+             toast.error(`Lỗi: ${errorMessage}`);
+          }
+          else {
+             toast.error("Lỗi dữ liệu không hợp lệ (400)");
+          }
+      } else {
+          toast.error("Lỗi kết nối đến máy chủ");
+      }
     }
   };
 
-  // Hàm xóa tin (Bổ sung thêm cho đầy đủ chức năng)
+  // Hàm xóa tin
   const handleDeleteJob = async (id: number) => {
       if(!confirm("Bạn có chắc chắn muốn xóa tin này không?")) return;
       try {

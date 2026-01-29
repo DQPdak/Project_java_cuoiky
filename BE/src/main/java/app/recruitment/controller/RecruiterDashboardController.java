@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import app.recruitment.dto.response.JobApplicationResponse;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/recruiter/dashboard")
@@ -22,4 +24,9 @@ public class RecruiterDashboardController {
         Long recruiterId = securityUtils.getCurrentUserId();
         return ResponseEntity.ok(dashboardService.getDashboardStats(recruiterId));
     }
+    @GetMapping("/recent-applications")
+    public ResponseEntity<List<JobApplicationResponse>> getRecentApplications() {
+        Long recruiterId = securityUtils.getCurrentUserId();
+        return ResponseEntity.ok(dashboardService.getRecentApplications(recruiterId));
+}
 }
