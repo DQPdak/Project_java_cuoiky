@@ -41,8 +41,8 @@ public class JobPostingServiceImpl implements JobPostingService {
                 .orElseThrow(() -> new IllegalArgumentException("Recruiter not found: " + recruiterId));
         
         // 1. Kiểm tra quyền
-        if (recruiter.getUserRole() != UserRole.RECRUITER) {
-            throw new IllegalArgumentException("Only recruiter can create job postings");
+        if (recruiter.getUserRole() != UserRole.RECRUITER && recruiter.getUserRole() != UserRole.RECRUITER_VIP) {
+             throw new RuntimeException("Only recruiter can create job postings");
         }
 
         // 2. Xử lý AI an toàn (Safe AI call) - Logic từ Gemini
