@@ -75,4 +75,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("keyword") String keyword,
             Pageable pageable
     );
+    @Query("select u.userRole, count(u) from User u group by u.userRole")
+    List<Object[]> countUsersByRole();
 }

@@ -11,7 +11,9 @@ package app.auth.model.enums;
  */
 public enum UserRole {
     CANDIDATE("Ứng viên"),       // Vai trò ứng viên
+    CANDIDATE_VIP("Ứng viên VIP"), // Vai trò ứng viên VIP
     RECRUITER("Nhà tuyển dụng"), // Vai trò nhà tuyển dụng
+    RECRUITER_VIP("Nhà tuyển dụng VIP"), // Vai trò nhà tuyển dụng VIP
     ADMIN("Quản trị viên");      // Vai trò quản trị viên
 
     /**
