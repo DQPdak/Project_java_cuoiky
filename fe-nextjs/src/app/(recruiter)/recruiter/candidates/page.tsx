@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { Search, Sparkles } from "lucide-react";
 import { recruitmentService } from "@/services/recruitmentService";
+import { CandidateSearchResult } from "@/types/recruitment";
 
 export default function CandidateSearchPage() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<CandidateSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
