@@ -1,6 +1,5 @@
 // src/services/recruitmentService.ts
 import api from './api';
-
 import { 
   JobPosting, 
   JobCreateRequest, 
@@ -8,8 +7,7 @@ import {
   ApplicationStatus,
   AIAnalysisDetail,
   CandidateSearchResult, 
-} from '@/types/recruitment';
-
+} from '@/types/recruitment'; //
 
 export interface DashboardStats {
     totalActiveJobs: number;
@@ -24,7 +22,7 @@ export interface CompanyProfile {
     description: string;
     industry: string;
     size: string;
-    foundedYear: string; // Chú ý tên biến khớp BE
+    foundedYear: string; 
     website: string;
     address: string;
     phone: string;
@@ -35,30 +33,25 @@ export interface CompanyProfile {
 
 export const recruitmentService = {
   // --- NHÓM JOB (TIN TUYỂN DỤNG) ---
-
-  // 1. Lấy danh sách tin của tôi
   getMyJobs: async (): Promise<JobPosting[]> => {
     const res = await api.get('/recruiter/jobs/me'); 
-    return res.data; // BE trả về List<JobPostingResponse>
+    return res.data; 
   },
 
-  // 2. Tạo tin mới
   createJob: async (data: JobCreateRequest): Promise<JobPosting> => {
     const res = await api.post('/recruiter/jobs', data);
     return res.data;
   },
 
-  // 3. Xóa tin
   deleteJob: async (id: number): Promise<void> => {
     await api.delete(`/recruiter/jobs/${id}`);
   },
 
-  // 4. Tìm kiếm Job (để khớp với BE searchJobs)
   searchMyJobs: async (keyword: string): Promise<any> => {
      const res = await api.get('/recruiter/jobs/search', {
         params: { keyword }
      });
-     return res.data.data; // BE trả về MessageResponse nên data nằm trong .data
+     return res.data.data;
   },
 
   // --- NHÓM DASHBOARD ---
@@ -67,18 +60,17 @@ export const recruitmentService = {
     return response.data;
   },
 
-  // --- NHÓM ỨNG VIÊN (PIPELINE) ---
+  getRecentApplications: async (): Promise<CandidateApplication[]> => {
+    const response = await api.get('/recruiter/dashboard/recent-applications');
+    return response.data;
+  },
 
-  // 5. Lấy danh sách ứng viên của 1 Job
-  // QUAN TRỌNG: Kiểm tra lại prefix URL trong JobApplicationController ở BE
-  // Giả sử Controller là /api/recruitment/applications hoặc /api/applications
+  // --- NHÓM ỨNG VIÊN (PIPELINE) ---
   getJobPipeline: async (jobId: number): Promise<CandidateApplication[]> => {
-    // Nếu BE là @RequestMapping("/api/recruitment/applications")
     const res = await api.get(`/recruitment/applications/job/${jobId}`); 
     return res.data;
   },
 
-  // 6. Cập nhật trạng thái ứng viên
   updateStatus: async (appId: number, status: ApplicationStatus, note?: string) => {
     const res = await api.put(`/recruitment/applications/${appId}/status`, null, {
         params: { newStatus: status, recruiterNote: note }
@@ -86,40 +78,48 @@ export const recruitmentService = {
     return res.data;
   },
 
-  // 7. Lấy chi tiết phân tích AI (Modal)
   getApplicationAnalysis: async (applicationId: number): Promise<AIAnalysisDetail> => {
     const res = await api.get(`/recruitment/applications/${applicationId}/analysis`);
     return res.data.data || res.data;
   },
-  // 8. Lấy danh sách ứng tuyển của tôi
+
   getMyApplications: async (): Promise<any[]> => {
-      // Backend: @GetMapping("/me")
       const res = await api.get('/recruitment/applications/me');
-      return res.data.data; // Backend trả về MessageResponse nên data nằm trong .data
+      return res.data.data; 
   },
-  // 9. Tìm kiếm ứng viên bằng AI (Match Description)
+
   searchCandidates: async (query: string): Promise<CandidateSearchResult[]> => {
-    // Endpoint: POST /api/recruitment/search/match-description
     const res = await api.post('/recruitment/search/match-description', query, {
-        headers: { "Content-Type": "text/plain" }, // Backend nhận String nên cần header này
-
+        headers: { "Content-Type": "text/plain" },
     });
-  
-    return res.data.data;},
-
-  // --- NHÓM CÔNG TY (RECRUITER COMPANY PROFILE) ---
-    getMyCompany: async (): Promise<CompanyProfile> => {
-        const res = await api.get('/recruiter/company/me');
-        return res.data;
-    },
-
-    updateCompany: async (data: CompanyProfile): Promise<CompanyProfile> => {
-        const res = await api.put('/recruiter/company/me', data);
-        return res.data;
-    },
-    getRecentApplications: async (): Promise<CandidateApplication[]> => {
-    // Gọi endpoint backend vừa tạo ở trên
-    const response = await api.get('/recruiter/dashboard/recent-applications');
-    return response.data; // Backend trả về List<JobApplicationResponse>
+    return res.data.data;
   },
+
+  // --- NHÓM CÔNG TY ---
+  getMyCompany: async (): Promise<CompanyProfile> => {
+      const res = await api.get('/recruiter/company/me');
+      return res.data;
+  },
+
+  updateCompany: async (data: CompanyProfile): Promise<CompanyProfile> => {
+      const res = await api.put('/recruiter/company/me', data);
+      return res.data;
+  },
+
+  // --- NHÓM DÀNH CHO ỨNG VIÊN (CANDIDATE) ---
+  
+  // Sửa từ /recruitment/ thành /recruiter/ để khớp Backend
+  getJobDetail: async (id: number): Promise<JobPosting> => {
+    const res = await api.get(`/recruiter/jobs/public/${id}`);
+    return res.data;
+  },
+  
+  checkApplicationStatus: async (jobId: number): Promise<string | null> => {
+      try {
+          const res = await api.get(`/recruitment/applications/check/${jobId}`);
+          return res.data.status; 
+      } catch (e) {
+          return null;
+      }
+  }
 };

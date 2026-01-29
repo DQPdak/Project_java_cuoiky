@@ -74,6 +74,11 @@ public class JobPostingController {
     public ResponseEntity<?> searchJobs(@RequestParam(value = "keyword", required = false) String keyword) {
         return ResponseEntity.ok(MessageResponse.success("Tìm kiếm thành công", jobPostingService.searchJobs(keyword)));
     }
-
+    @GetMapping("/public/{id}")
+    public ResponseEntity<JobPostingResponse> getJobDetailPublic(@PathVariable Long id) {
+        JobPosting jobPosting = jobPostingService.getById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found: " + id));
+        return ResponseEntity.ok(mapper.toJobPostingResponse(jobPosting));
+    }
     
 }

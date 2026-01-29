@@ -8,6 +8,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import app.auth.model.enums.AuthProvider;
 import app.auth.model.enums.UserRole;
 import app.auth.model.enums.UserStatus;
+import app.content.model.Company;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -58,11 +60,13 @@ public class User {
     @Column(name = "is_email_verified", nullable = false)
     @Builder.Default
     private Boolean isEmailVerified = false;
-    
-    // --- THÊM FIELD MỚI ---
+
     @Column(name = "vip_expiration_date")
     private LocalDateTime vipExpirationDate;
-    // ----------------------
+
+    @OneToOne(mappedBy = "recruiter", fetch = FetchType.LAZY)
+    private Company company;
+    // ------------------------------------
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
