@@ -15,10 +15,6 @@ import java.util.List;
 @Repository
 public interface JobPostingRepository extends JpaRepository<JobPosting, Long> {
 
-    List<JobPosting> findByRecruiterId(Long recruiterId);
-    List<JobPosting> findByTitleContainingIgnoreCase(String keyword);
-
-    List<JobPosting> findByStatus(JobStatus status);
 
     // ✅ thêm EntityGraph ở đây
     @EntityGraph(attributePaths = {"company"})
@@ -28,8 +24,7 @@ public interface JobPostingRepository extends JpaRepository<JobPosting, Long> {
     @Override
     @EntityGraph(attributePaths = {"company"})
     Page<JobPosting> findAll(Pageable pageable);
-
-    List<JobPosting> findTop10ByStatusOrderByCreatedAtDesc(JobStatus status);
+    
     // Các hàm tìm kiếm cơ bản
     List<JobPosting> findByRecruiterId(Long recruiterId);
     List<JobPosting> findByTitleContainingIgnoreCase(String keyword);
