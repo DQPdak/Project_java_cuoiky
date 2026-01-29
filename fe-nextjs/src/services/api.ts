@@ -29,9 +29,7 @@ api.interceptors.response.use(
 
     // 1) Maintenance mode: 503
     if (status === 503) {
-      const msg =
-        data?.message ||
-        'Hệ thống đang bảo trì, vui lòng thử lại sau.';
+      const msg = data?.message || 'Hệ thống đang bảo trì, vui lòng thử lại sau.';
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('maintenance_message', msg);
