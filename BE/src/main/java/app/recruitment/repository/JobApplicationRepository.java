@@ -9,6 +9,9 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long> {
@@ -23,4 +26,6 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     long countByJobPostingId(Long jobPostingId);
     List<JobApplication> findByJobPostingIdAndMatchScoreGreaterThanEqualOrderByMatchScoreDesc(Long jobPostingId, Integer minScore);
     List<JobApplication> findByCandidateId(Long candidateId);
+    @Query("SELECT j FROM JobApplication j WHERE j.jobPosting.recruiter.id = :recruiterId ORDER BY j.appliedAt DESC")
+    List<JobApplication> findRecentApplicationsByRecruiter(@Param("recruiterId") Long recruiterId, Pageable pageable);
 }
