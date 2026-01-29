@@ -87,6 +87,13 @@ public class GlobalExceptionHandler {
         log.warn("Illegal argument: {}", ex.getMessage());
         return ResponseEntity.badRequest().body(MessageResponse.error(ex.getMessage()));
     }
+
+    @ExceptionHandler(MaintenanceModeException.class)
+    public ResponseEntity<MessageResponse> handleMaintenance(MaintenanceModeException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(MessageResponse.error(ex.getMessage()));
+    }
+    
     
     // --- PHẦN SỬA ĐỔI QUAN TRỌNG Ở ĐÂY ---
 

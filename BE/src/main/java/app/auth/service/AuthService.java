@@ -8,8 +8,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile; 
+import org.springframework.web.multipart.MultipartFile;
 
+import app.admin.service.SystemSettingService;
 import app.auth.dto.request.*;
 import app.auth.dto.response.AuthResponse;
 import app.auth.dto.response.UserResponse;
@@ -24,6 +25,10 @@ import app.auth.repository.PasswordResetTokenRepository;
 import app.auth.repository.UserRepository;
 import app.auth.security.JwtTokenProvider;
 import app.service.CloudinaryService;
+import app.admin.service.SystemSettingService;
+import app.exception.MaintenanceModeException;
+
+
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -43,6 +48,9 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final CloudinaryService cloudinaryService;
+    private final SystemSettingService systemSettingService;
+    
+
     
     // --- ĐĂNG KÝ ---
     @Transactional
@@ -165,6 +173,12 @@ public class AuthService {
             throw new UnauthorizedException("Tài khoản đã bị khóa hoặc chưa được kích hoạt");
         }
         
+        // ✅ CHẶN NON-ADMIN KHI BẢO TRÌ
+        if (systemSettingService.isMaintenanceEnabled()
+            && user.getUserRole() != UserRole.ADMIN) {
+        throw new MaintenanceModeException(systemSettingService.maintenanceMessage());
+        }
+
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
         
@@ -217,6 +231,12 @@ public class AuthService {
             }
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
+        }
+
+        // ✅ CHẶN NON-ADMIN KHI BẢO TRÌ
+        if (systemSettingService.isMaintenanceEnabled()
+            && user.getUserRole() != UserRole.ADMIN) {
+        throw new MaintenanceModeException(systemSettingService.maintenanceMessage());
         }
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());

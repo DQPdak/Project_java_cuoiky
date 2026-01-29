@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import api from '@/services/api';
+import { useRouter } from 'next/navigation';
 import {
   Users,
   Briefcase,
@@ -29,6 +30,8 @@ type RecentActivity = {
 };
 
 export default function AdminDashboard() {
+  const router = useRouter();
+
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [chartData, setChartData] = useState<ApplicationsByDay[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
@@ -163,8 +166,8 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Recent activities (real DB) */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        {/* Recent activities (FIX) */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col min-h-[360px]">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-800">Hoạt động gần đây</h3>
             <button
@@ -176,6 +179,7 @@ export default function AdminDashboard() {
             </button>
           </div>
 
+          {/* LIST */}
           <div className="space-y-4">
             {recentActivities.length === 0 ? (
               <div className="text-sm text-gray-500">
@@ -195,18 +199,16 @@ export default function AdminDashboard() {
                 </div>
               ))
             )}
-
-            <button
-              type="button"
-              className="w-full text-center text-sm text-blue-600 font-medium mt-4 hover:underline"
-              onClick={() => {
-                // TODO: điều hướng sang trang all activities nếu bạn có
-                // router.push('/admin/activities')
-              }}
-            >
-              Xem tất cả hoạt động
-            </button>
           </div>
+
+          {/* FOOTER - luôn nằm dưới */}
+          <button
+            type="button"
+            className="mt-auto pt-4 w-full text-center text-sm text-blue-600 font-medium hover:underline"
+            onClick={() => router.push('/admin/activities')}
+          >
+            Xem tất cả hoạt động
+          </button>
         </div>
       </div>
 
