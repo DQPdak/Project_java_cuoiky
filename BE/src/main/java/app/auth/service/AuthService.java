@@ -316,6 +316,7 @@ public class AuthService {
                 .isEmailVerified(user.getIsEmailVerified())
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
+                .vipExpirationDate(user.getVipExpirationDate())
                 .build();
         return AuthResponse.builder()
                 .accessToken(accessToken)
