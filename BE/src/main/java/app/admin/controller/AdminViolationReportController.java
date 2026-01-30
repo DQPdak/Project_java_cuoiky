@@ -16,7 +16,6 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/violation-reports")
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminViolationReportController {
 
     private final ViolationReportService reportService;

@@ -6,5 +6,7 @@ public enum JobStatus {
     PUBLISHED,
     REJECTED,
     HIDDEN,
+    OPEN,
+    BLOCKED,
     CLOSED
 }

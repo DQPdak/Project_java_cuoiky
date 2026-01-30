@@ -44,6 +44,29 @@ type JobPostingResponse = {
   updatedAt?: string;
 };
 
+type ViolationReportResponse = {
+  id: number;
+  reporterId: number;
+  reporterName: string;
+
+  targetType: 'JOB_POSTING' | 'COMPANY' | 'USER';
+  targetId: number;
+
+  reason: 'SPAM' | 'SCAM' | 'FAKE_INFORMATION' | 'HARASSMENT' | 'INAPPROPRIATE_CONTENT' | 'OTHER';
+  description?: string;
+  evidenceUrl?: string;
+
+  status: 'PENDING' | 'VALID' | 'INVALID' | 'RESOLVED';
+
+  handledById?: number | null;
+  handledByName?: string | null;
+  adminNote?: string | null;
+
+  createdAt?: string;
+  updatedAt?: string;
+  handledAt?: string | null;
+};
+
 type PageLike<T> = {
   content: T[];
   totalElements?: number;
@@ -82,19 +105,25 @@ export default function AdminDashboard() {
   // Modal for approval
   const [approveModalOpen, setApproveModalOpen] = useState(false);
 
+  // Violation reports
+  const [pendingReportsCount, setPendingReportsCount] = useState(0);
+  const [reportsModalOpen, setReportsModalOpen] = useState(false);
+
   const fetchDashboard = async () => {
     setLoading(true);
     try {
-      const [summaryRes, chartRes, recentRes, pendingRes] = await Promise.all([
+      const [summaryRes, chartRes, recentRes, pendingRes, reportSummaryRes] = await Promise.all([
         api.get('/admin/dashboard/summary'),
         api.get('/admin/dashboard/applications-chart', { params: { days: 7 } }),
         api.get('/admin/dashboard/recent-activities', { params: { limit: 5 } }),
         api.get('/admin/content/pending', { params: { page: 0, size: 1 } }),
+        api.get('/admin/violation-reports/summary'),
       ]);
 
       setSummary(summaryRes.data?.data ?? null);
       setChartData(chartRes.data?.data ?? []);
       setRecentActivities(recentRes.data?.data ?? []);
+      setPendingReportsCount(reportSummaryRes.data?.pendingCount ?? 0);
 
       const pendingPage = normalizePage<JobPostingResponse>(pendingRes.data);
       setPendingPostsCount(pendingPage.totalElements ?? 0);
@@ -279,9 +308,9 @@ export default function AdminDashboard() {
           />
           <ActionButton
             label="Báo cáo vi phạm"
-            count={2}
+            count={pendingReportsCount}
             color="text-red-600 bg-red-50"
-            onClick={() => alert('TODO: mở modal báo cáo vi phạm')}
+            onClick={() => setReportsModalOpen(true)}
           />
           <ActionButton
             label="Yêu cầu hỗ trợ"
@@ -296,6 +325,14 @@ export default function AdminDashboard() {
       <ApproveJobPostingModal
         open={approveModalOpen}
         onClose={() => setApproveModalOpen(false)}
+        onAfterAction={async () => {
+          await fetchDashboard();
+        }}
+      />
+      {/* Modal báo cáo vi phạm (giữ nguyên phần bạn đang có) */}
+      <ViolationReportsModal
+        open={reportsModalOpen}
+        onClose={() => setReportsModalOpen(false)}
         onAfterAction={async () => {
           await fetchDashboard();
         }}
@@ -610,6 +647,316 @@ function ApproveJobPostingModal({
 
           <div className="px-6 py-3 border-t text-xs text-gray-500">
             Tip: Duyệt/Từ chối ngay trong Drawer mà không rời Dashboard.
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** ====== MODAL (giữ nguyên phần bạn đang có) ====== */
+function ViolationReportsModal({
+  open,
+  onClose,
+  onAfterAction,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onAfterAction: () => Promise<void> | void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<ViolationReportResponse[]>([]);
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState<number | undefined>(undefined);
+
+  const [selected, setSelected] = useState<ViolationReportResponse | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const fetchPendingReports = async (p = page, s = size) => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/violation-reports', {
+        params: { status: 'PENDING', page: p, size: s, sort: 'createdAt,desc' },
+      });
+      const pageData = normalizePage<ViolationReportResponse>(res.data);
+      setRows(pageData.content ?? []);
+      setTotalPages(pageData.totalPages ?? 1);
+      setTotalElements(pageData.totalElements);
+      setPage(pageData.number ?? p);
+      setSize(pageData.size ?? s);
+    } catch (e) {
+      console.error('Lỗi tải violation reports:', e);
+      setRows([]);
+      setTotalPages(1);
+      setTotalElements(undefined);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      fetchPendingReports(0, size);
+    } else {
+      setRows([]);
+      setSelected(null);
+      setDrawerOpen(false);
+      setPage(0);
+      setTotalPages(1);
+      setTotalElements(undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const openDetail = (r: ViolationReportResponse) => {
+    setSelected(r);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setSelected(null);
+  };
+
+  // ⚠️ Tạm thời vẫn dùng adminId=1 giống backend của bạn
+  // Sau này bạn bỏ adminId param và lấy từ token thì xoá phần params này.
+  const updateStatus = async (reportId: number, status: 'VALID' | 'INVALID') => {
+    setActionLoading(true);
+    try {
+      await api.patch(
+        `/admin/violation-reports/${reportId}/status`,
+        { status, adminNote: status === 'VALID' ? 'Xác nhận vi phạm' : 'Từ chối báo cáo' },
+        { params: { adminId: 5 } }
+      );
+      closeDrawer();
+      await fetchPendingReports(page, size);
+      await onAfterAction();
+    } catch (e: any) {
+      alert(e?.response?.data?.message || 'Cập nhật trạng thái thất bại');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const paginationText = useMemo(() => {
+    if (typeof totalElements === 'number') {
+      const from = page * size + 1;
+      const to = Math.min((page + 1) * size, totalElements);
+      return `Hiển thị ${from}-${to} / ${totalElements}`;
+    }
+    return `Trang ${page + 1} / ${totalPages}`;
+  }, [page, size, totalPages, totalElements]);
+
+  if (!open) return null;
+
+  return (
+    <>
+      {/* Overlay */}
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-8">
+        <div
+          className="relative w-full max-w-5xl bg-white rounded-2xl shadow-xl border overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="px-6 py-4 border-b flex items-center justify-between">
+            <div>
+              <div className="text-lg font-bold text-gray-900">Báo cáo vi phạm</div>
+              <div className="text-sm text-gray-500">
+                Danh sách báo cáo đang chờ xử lý (PENDING). Click 1 dòng để mở Drawer.
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fetchPendingReports(page, size)}
+                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm"
+              >
+                Tải lại
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="relative">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm text-gray-600">{paginationText}</div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={page <= 0 || loading}
+                    onClick={() => fetchPendingReports(page - 1, size)}
+                    className="px-3 py-1.5 rounded-lg border bg-white text-sm disabled:opacity-40"
+                  >
+                    ← Trước
+                  </button>
+                  <button
+                    type="button"
+                    disabled={page >= totalPages - 1 || loading}
+                    onClick={() => fetchPendingReports(page + 1, size)}
+                    className="px-3 py-1.5 rounded-lg border bg-white text-sm disabled:opacity-40"
+                  >
+                    Sau →
+                  </button>
+
+                  <select
+                    value={size}
+                    onChange={(e) => {
+                      const newSize = Number(e.target.value);
+                      setSize(newSize);
+                      fetchPendingReports(0, newSize);
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white border text-sm"
+                  >
+                    {[5, 10, 20, 50].map((n) => (
+                      <option key={n} value={n}>
+                        {n}/trang
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="p-6 text-sm text-gray-500">Đang tải danh sách...</div>
+              ) : rows.length === 0 ? (
+                <div className="p-6 text-sm text-gray-500">Không có báo cáo nào đang chờ xử lý.</div>
+              ) : (
+                <div className="overflow-x-auto border rounded-xl">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-600">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-semibold">ID</th>
+                        <th className="text-left px-4 py-3 font-semibold">Lý do</th>
+                        <th className="text-left px-4 py-3 font-semibold">Target</th>
+                        <th className="text-left px-4 py-3 font-semibold">Reporter</th>
+                        <th className="text-left px-4 py-3 font-semibold">Ngày tạo</th>
+                        <th className="text-right px-4 py-3 font-semibold">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr
+                          key={r.id}
+                          onClick={() => openDetail(r)}
+                          className="border-t hover:bg-gray-50 cursor-pointer"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900">#{r.id}</div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">{r.reason}</td>
+                          <td className="px-4 py-3 text-gray-700">
+                            {r.targetType} (ID: {r.targetId})
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">
+                            {r.reporterName} (ID: {r.reporterId})
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">{fmtDate(r.createdAt)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100">
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Drawer */}
+            {drawerOpen && (
+              <>
+                <div className="fixed inset-0 z-50" onClick={closeDrawer} />
+
+                <div className="absolute top-0 right-0 h-full w-full sm:w-[520px] bg-white z-[60] shadow-2xl border-l flex flex-col">
+                  <div className="p-5 border-b flex items-start justify-between">
+                    <div>
+                      <div className="text-xs text-gray-500">Chi tiết báo cáo</div>
+                      <div className="text-lg font-bold text-gray-900">Report #{selected?.id}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Tạo lúc: {fmtDate(selected?.createdAt)}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={closeDrawer}
+                      className="px-3 py-1.5 rounded-lg border hover:bg-gray-50 text-sm"
+                    >
+                      Đóng
+                    </button>
+                  </div>
+
+                  <div className="p-5 overflow-y-auto space-y-4 flex-1">
+                    <InfoRow label="Lý do" value={selected?.reason || '-'} />
+                    <InfoRow label="Target" value={`${selected?.targetType} (ID: ${selected?.targetId})`} />
+                    <InfoRow label="Reporter" value={`${selected?.reporterName} (ID: ${selected?.reporterId})`} />
+                    <InfoRow label="Trạng thái" value={selected?.status || 'PENDING'} />
+
+                    <Section title="Mô tả">
+                      <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {selected?.description || '(Không có mô tả)'}
+                      </div>
+                    </Section>
+
+                    <Section title="Bằng chứng">
+                      {selected?.evidenceUrl ? (
+                        <a
+                          className="text-sm text-blue-600 hover:underline break-all"
+                          href={selected.evidenceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {selected.evidenceUrl}
+                        </a>
+                      ) : (
+                        <div className="text-sm text-gray-700">(Không có)</div>
+                      )}
+                    </Section>
+                  </div>
+
+                  <div className="p-5 border-t flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => selected?.id && updateStatus(selected.id, 'INVALID')}
+                      disabled={actionLoading}
+                      className="px-4 py-2 rounded-lg border text-red-600 hover:bg-red-50 disabled:opacity-60"
+                    >
+                      {actionLoading ? 'Đang xử lý...' : 'Từ chối'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => selected?.id && updateStatus(selected.id, 'VALID')}
+                      disabled={actionLoading}
+                      className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+                    >
+                      {actionLoading ? 'Đang xử lý...' : 'Xác nhận vi phạm'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="px-6 py-3 border-t text-xs text-gray-500">
+            Tip: Xác nhận vi phạm sẽ tự động xử lý (ví dụ khoá User / block Job) theo backend của bạn.
           </div>
         </div>
       </div>
