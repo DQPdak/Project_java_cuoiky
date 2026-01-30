@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { uploadCV } from "@/services/candidateService";
+import toast from "react-hot-toast";
 
 interface CVUploadFormProps {
   currentCvUrl?: string;
@@ -19,21 +20,30 @@ export default function CVUploadForm({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Kiểm tra dung lượng file (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert("File quá lớn! Vui lòng chọn file dưới 5MB.");
+      toast.error("File quá lớn! Vui lòng chọn file dưới 5MB.");
       return;
     }
+
+    const loadingToastId = toast.loading("Đang tải lên CV...");
 
     try {
       setUploading(true);
       await uploadCV(file);
-      alert("Đăng tải CV thành công!");
+      
+      toast.dismiss(loadingToastId);
+      toast.success("Đăng tải CV thành công!");
+      
       onUploadSuccess();
     } catch (error) {
       console.error(error);
-      alert("Có lỗi xảy ra khi upload CV.");
+      
+      toast.dismiss(loadingToastId);
+      toast.error("Có lỗi xảy ra khi upload CV. Vui lòng thử lại!");
     } finally {
       setUploading(false);
+      // Reset input để có thể chọn lại cùng 1 file nếu cần
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -52,12 +62,12 @@ export default function CVUploadForm({
           onChange={handleFileChange}
           accept=".pdf,.doc,.docx"
           className="hidden"
+          title="Tải lên CV của bạn"
+          aria-label="Tải lên CV của bạn"
         />
       </div>
 
       <div className="flex-1 flex flex-col justify-center items-center w-full">
-        {" "}
-        {/* Thêm w-full */}
         {uploading ? (
           <div className="text-center py-10">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3"></div>
@@ -67,11 +77,11 @@ export default function CVUploadForm({
           </div>
         ) : currentCvUrl ? (
           <div className="w-full flex flex-col">
-            {/* 👇 THAY ĐỔI Ở ĐÂY: Tăng chiều cao lên 600px hoặc 80vh */}
             <div className="w-full bg-gray-100 rounded-lg border border-gray-300 overflow-hidden mb-4 relative h-[500px]">
               <iframe
                 src={`https://docs.google.com/gview?url=${currentCvUrl}&embedded=true`}
                 className="w-full h-full absolute inset-0"
+                title="Xem trước CV"
               ></iframe>
             </div>
 
@@ -94,7 +104,6 @@ export default function CVUploadForm({
           </div>
         ) : (
           <div className="text-center py-12 px-4 border-2 border-dashed border-gray-300 rounded-xl w-full h-[300px] flex flex-col justify-center items-center">
-            {/* Tăng padding và height cho ô upload lúc chưa có file */}
             <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mb-4">
               <span className="text-3xl">📄</span>
             </div>
