@@ -24,17 +24,24 @@ interface NavItem {
   icon: React.ElementType;
 }
 
-// 1. Tách Menu ra biến riêng để tái sử dụng cho VIP
-const CANDIDATE_NAV: NavItem[] = [
+// 1. Menu cho Candidate Thường (KHÔNG CÓ Phỏng vấn)
+const CANDIDATE_NAV_FREE: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard-candidate", icon: LayoutDashboard },
   { label: "Việc làm", href: "/jobs", icon: Briefcase },
-  { label: "Phỏng vấn", href: "/interview", icon: Users },
+  // Đã ẩn "Phỏng vấn" ở đây
+];
+
+// 2. Menu cho Candidate VIP (CÓ Phỏng vấn)
+const CANDIDATE_NAV_VIP: NavItem[] = [
+  { label: "Tổng quan", href: "/dashboard-candidate", icon: LayoutDashboard },
+  { label: "Việc làm", href: "/jobs", icon: Briefcase },
+  { label: "Phỏng vấn", href: "/interview", icon: Users }, // Chỉ VIP mới thấy
 ];
 
 const RECRUITER_NAV: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard-recruiter", icon: LayoutDashboard },
   { label: "Đăng tin", href: "/recruiter/manage-jobs", icon: PlusCircle },
-  { label: "Ứng viên", href: "/applications", icon: Users }, // Lưu ý: thêm dấu / ở đầu để đúng path
+  { label: "Ứng viên", href: "/applications", icon: Users },
   { label: "Công ty", href: "/recruiter/company", icon: Building },
   { label: "AI Matching", href: "/recruiter/candidates", icon: Sparkles },
 ];
@@ -47,13 +54,17 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Phân quyền", href: "/admin/roles", icon: Shield },
 ];
 
-// 2. Map Role vào Menu (Thêm VIP vào đây)
+// 3. Map Role vào Menu riêng biệt
 const ROLE_MENUS: Record<string, NavItem[]> = {
-  CANDIDATE: CANDIDATE_NAV,
-  CANDIDATE_VIP: CANDIDATE_NAV, // VIP dùng chung menu candidate
+  // Gói thường dùng menu rút gọn
+  CANDIDATE: CANDIDATE_NAV_FREE,
+  
+  // Gói VIP dùng menu đầy đủ
+  CANDIDATE_VIP: CANDIDATE_NAV_VIP, 
 
+  // Nhà tuyển dụng (Giữ nguyên logic cũ hoặc tách ra nếu cần sau này)
   RECRUITER: RECRUITER_NAV,
-  RECRUITER_VIP: RECRUITER_NAV, // VIP dùng chung menu recruiter
+  RECRUITER_VIP: RECRUITER_NAV,
 
   ADMIN: ADMIN_NAV,
 };
@@ -63,6 +74,7 @@ export default function Header() {
   const router = useRouter();
   const { user } = useAuth();
 
+  // Lấy menu dựa trên userRole chính xác
   const currentNavItems = user?.userRole ? ROLE_MENUS[user.userRole] || [] : [];
 
   const isActive = (path: string) =>
@@ -70,14 +82,12 @@ export default function Header() {
       ? "text-blue-600 border-b-2 border-blue-600"
       : "text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-gray-300";
 
-  // Hàm xử lý click Logo (Sửa lại logic so sánh Role)
   const handleLogoClick = () => {
     if (!user) {
       router.push("/");
       return;
     }
 
-    // Dùng includes để bắt cả VIP
     if (user.userRole === "ADMIN") {
       router.push("/admin/dashboard");
     } else if (user.userRole.includes("RECRUITER")) {
