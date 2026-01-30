@@ -1,12 +1,8 @@
 package app.ai.service.cv.extractortext.component;
 
 import app.ai.service.cv.extractortext.Interface.IFileTextExtractor;
-import app.ai.service.cv.gemini.GeminiService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFPictureData;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,11 +11,7 @@ import java.io.FileInputStream;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class DOCXTextExtractor implements IFileTextExtractor {
-
-    private final GeminiService geminiService; // Inject Gemini
 
     // --- HỖ TRỢ MULTIPART FILE (Upload Form) ---
     @Override
@@ -36,7 +28,7 @@ public class DOCXTextExtractor implements IFileTextExtractor {
         }
     }
 
-    // --- HỖ TRỢ FILE (Tải từ URL) ---
+    // --- [MỚI] HỖ TRỢ FILE (Tải từ URL/Cloudinary) ---
     @Override
     public boolean supports(File file) {
         String fileName = file.getName();
@@ -52,69 +44,28 @@ public class DOCXTextExtractor implements IFileTextExtractor {
         }
     }
 
-    // --- LOGIC XỬ LÝ CHÍNH ---
+    // --- LOGIC TRÍCH XUẤT CHUNG (Tách ra để tái sử dụng) ---
     private String processDocument(XWPFDocument document) {
         StringBuilder text = new StringBuilder();
-        
-        // 1. Cố gắng lấy Text theo cách thông thường
         List<XWPFParagraph> paragraphs = document.getParagraphs();
+
         for (XWPFParagraph para : paragraphs) {
             String paraText = para.getText();
+            // Chỉ lấy các đoạn có chữ
             if (paraText != null && !paraText.trim().isEmpty()) {
+                // Thêm xuống dòng thủ công vì DOCX tách theo Paragraph object
                 text.append(paraText).append("\n");
             }
         }
-        
-        String cleanText = cleanForAI(text.toString());
-
-        // 2. Kiểm tra độ dài Text
-        if (cleanText.length() > 50) {
-            return cleanText; // Text ngon -> Trả về luôn
-        }
-
-        // 3. Nếu Text quá ngắn -> Khả năng cao là ảnh dán trong Word -> Lấy ảnh ra gửi Gemini
-        log.warn("DOCX ít chữ, chuyển sang chế độ quét ảnh (OCR)...");
-        return extractImagesAndOCR(document);
+        return cleanForAI(text.toString());
     }
 
-    private String extractImagesAndOCR(XWPFDocument document) {
-        StringBuilder ocrResult = new StringBuilder();
-        
-        // Lấy tất cả ảnh nhúng trong file Word
-        List<XWPFPictureData> pictures = document.getAllPictures();
-        
-        if (pictures.isEmpty()) {
-            return "File không chứa văn bản và cũng không chứa ảnh nào.";
-        }
-
-        log.info("Tìm thấy {} ảnh trong file DOCX. Đang gửi sang Gemini...", pictures.size());
-
-        for (int i = 0; i < pictures.size(); i++) {
-            XWPFPictureData picture = pictures.get(i);
-            byte[] imageBytes = picture.getData();
-            String mimeType = picture.getPackagePart().getContentType(); // Ví dụ: image/png, image/jpeg
-
-            try {
-                // Chỉ xử lý các định dạng ảnh phổ biến để tránh lỗi
-                if (mimeType.startsWith("image/")) {
-                    log.info("OCR ảnh thứ {}/{} ({})", i + 1, pictures.size(), mimeType);
-                    String extracted = geminiService.convertImageToText(imageBytes, mimeType);
-                    ocrResult.append(extracted).append("\n\n");
-                }
-            } catch (Exception e) {
-                log.error("Lỗi OCR ảnh trong DOCX: " + e.getMessage());
-            }
-        }
-        
-        return ocrResult.toString();
-    }
-
-    // Hàm làm sạch dữ liệu
+    // Hàm làm sạch dữ liệu cho AI
     private String cleanForAI(String text) {
         if (text == null) return "";
-        return text.replaceAll("[\\t\\u00A0]+", " ")
-                   .replaceAll("\\n\\s*\\n", "\n\n")
-                   .replaceAll("(?m)^\\s+|\\s+$", "")
+        return text.replaceAll("[\\t\\u00A0]+", " ")  // Thay tab/nbsp bằng space
+                   .replaceAll("\\n\\s*\\n", "\n\n")  // Gộp dòng trống
+                   .replaceAll("(?m)^\\s+|\\s+$", "") // Xóa space thừa đầu/cuối dòng
                    .trim();
     }
 }

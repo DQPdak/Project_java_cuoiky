@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,63 +114,5 @@ public class GeminiApiClient {
         return aiTextResponse.replaceAll("```json", "")
                              .replaceAll("```", "")
                              .trim();
-    }
-
-    /**
-     * [MỚI] Gửi ảnh + Prompt lên Gemini (Multimodal)
-     */
-    public String generateContentWithImage(String promptText, byte[] imageBytes, String mimeType, float temperature) {
-        try {
-            return callGeminiApiWithImage(promptText, imageBytes, mimeType, temperature);
-        } catch (Exception e) {
-            log.error("Lỗi gọi Gemini Vision: ", e);
-            throw new RuntimeException("Gemini Vision Error: " + e.getMessage());
-        }
-    }
-
-    private String callGeminiApiWithImage(String promptText, byte[] imageBytes, String mimeType, float temperature) throws Exception {
-        String currentKey = getRotatedKey();
-
-        // 1. Tạo phần Text
-        Map<String, Object> textPart = new HashMap<>();
-        textPart.put("text", promptText);
-
-        // 2. Tạo phần Ảnh (Inline Data)
-        Map<String, Object> inlineData = new HashMap<>();
-        inlineData.put("mime_type", mimeType);
-        inlineData.put("data", Base64.getEncoder().encodeToString(imageBytes));
-
-        Map<String, Object> imagePart = new HashMap<>();
-        imagePart.put("inline_data", inlineData);
-
-        // 3. Gộp Text và Ảnh vào parts
-        Map<String, Object> parts = new HashMap<>();
-        parts.put("parts", List.of(textPart, imagePart)); // Gửi cả 2
-
-        // 4. Body request
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("contents", List.of(parts));
-
-        // Config nhiệt độ
-        Map<String, Object> generationConfig = new HashMap<>();
-        generationConfig.put("temperature", temperature);
-        requestBody.put("generationConfig", generationConfig);
-
-        // 5. Gọi API
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-
-        String url = GEMINI_API_URL + currentKey;
-        ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
-
-        // 6. Parse kết quả (tương tự hàm cũ)
-        if (response.getBody() == null) throw new RuntimeException("Empty Response");
-        var jsonNode = objectMapper.readTree(response.getBody());
-        var candidate = jsonNode.path("candidates").get(0);
-        
-        if (!candidate.has("content")) throw new RuntimeException("No content from Gemini");
-        
-        return candidate.path("content").path("parts").get(0).path("text").asText().trim();
     }
 }

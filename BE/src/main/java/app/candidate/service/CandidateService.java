@@ -214,7 +214,7 @@ public class CandidateService {
 
     private void updateProfileFromAI(CandidateProfile profile, GeminiResponse result) {
         try {
-            // 1. Map Contact (Thông tin liên hệ)
+            // Map Contact
             if (result.getContact() != null) {
                 if (result.getContact().getName() != null) profile.setFullName(result.getContact().getName());
                 if (result.getContact().getEmail() != null) profile.setEmail(result.getContact().getEmail());
@@ -223,14 +223,13 @@ public class CandidateService {
                 if (result.getContact().getLinkedIn() != null) profile.setLinkedInUrl(result.getContact().getLinkedIn());
             }
 
-            // 2. Map Skills (Kỹ năng)
+            // Map Skills
             if (result.getSkills() != null && !result.getSkills().isEmpty()) {
                 profile.setSkills(new ArrayList<>(result.getSkills()));
             }
 
-            // 3. Map Experience (Kinh nghiệm làm việc)
+            // Map Experience
             if (result.getExperiences() != null) {
-                // Xóa danh sách cũ để cập nhật danh sách mới từ CV
                 if (profile.getExperiences() != null) profile.getExperiences().clear();
                 else profile.setExperiences(new ArrayList<>());
 
@@ -241,24 +240,16 @@ public class CandidateService {
                     entity.setStartDate(dto.getStartDate());
                     entity.setEndDate(dto.getEndDate());
                     entity.setDescription(dto.getDescription());
-                    entity.setCandidateProfile(profile); // Set quan hệ 2 chiều
+                    entity.setCandidateProfile(profile);
                     profile.getExperiences().add(entity);
                 }
             }
 
-            // 4. [MỚI] Map About Me (Giới thiệu bản thân)
-            // Lấy trực tiếp từ kết quả AI nếu có
-            if (result.getAboutMe() != null && !result.getAboutMe().isEmpty()) {
-                profile.setAboutMe(result.getAboutMe());
-            }
-
-            // 5. Default About Me (Dự phòng)
-            // Chỉ tự sinh câu giới thiệu nếu sau bước 4 mà vẫn chưa có About Me
+            // Default About Me
             if (profile.getAboutMe() == null || profile.getAboutMe().isEmpty()) {
                 String name = profile.getFullName() != null ? profile.getFullName() : "Ứng viên";
                 profile.setAboutMe("Hồ sơ của " + name + " được trích xuất tự động bởi CareerMate AI.");
             }
-
         } catch (Exception e) {
             log.error("Lỗi khi map dữ liệu AI sang Profile: ", e);
         }
