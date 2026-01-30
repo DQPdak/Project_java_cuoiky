@@ -224,7 +224,7 @@ public class AuthService {
             if ((user.getProfileImageUrl() == null || user.getProfileImageUrl().isEmpty()) && pictureUrl != null) {
                 user.setProfileImageUrl(pictureUrl);
             }
-            if (user.getStatus() != UserStatus.ACTIVE) {
+            if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.BANNED) {
                 user.setStatus(UserStatus.ACTIVE);
                 user.setIsEmailVerified(true);
             }
