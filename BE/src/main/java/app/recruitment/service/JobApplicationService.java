@@ -25,6 +25,7 @@ public interface JobApplicationService {
     // 5. Lấy danh sách DTO theo Candidate (trả về thẳng cho Frontend)
     List<JobApplicationResponse> getApplicationsByCandidateId(Long candidateId);
 
+    List<JobApplicationResponse> scanAndSuggestCandidates(Long jobId);
     // 6. Lấy chi tiết đơn
     Optional<JobApplication> getById(Long id);
     

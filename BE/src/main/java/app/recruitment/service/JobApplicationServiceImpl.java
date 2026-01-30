@@ -1,5 +1,7 @@
 package app.recruitment.service;
 
+import app.ai.service.JobFastMatchingService;
+import app.ai.service.cv.gemini.dto.FastMatchResult;
 import app.ai.service.cv.gemini.dto.MatchResult;
 import app.auth.model.User;
 import app.auth.repository.UserRepository;
@@ -21,8 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,13 +35,12 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     private final JobPostingRepository jobRepo;
     private final UserRepository userRepository;
     private final CandidateProfileRepository profileRepository;
-
-    // Inject thêm để lấy kết quả AI đã cache
     private final CVAnalysisResultRepository analysisResultRepo;
     private final ObjectMapper objectMapper;
-
-    // ✅ Leaderboard
     private final LeaderboardService leaderboardService;
+    
+    // Service tính toán nhanh
+    private final JobFastMatchingService fastMatchingService;
 
     @Override
     @Transactional
@@ -51,12 +51,10 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         JobPosting job = jobRepo.findById(request.getJobId())
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + request.getJobId()));
 
-        // Check trùng đơn
         if (appRepo.existsByCandidateIdAndJobPostingId(candidateId, job.getId())) {
             throw new IllegalArgumentException("Bạn đã ứng tuyển công việc này rồi.");
         }
 
-        // Logic CV: Ưu tiên link gửi lên, nếu null thì lấy từ Profile
         String finalCvUrl = request.getCvUrl();
         if (finalCvUrl == null || finalCvUrl.isEmpty()) {
             CandidateProfile profile = profileRepository.findByUserId(candidateId).orElse(null);
@@ -67,7 +65,6 @@ public class JobApplicationServiceImpl implements JobApplicationService {
             }
         }
 
-        // --- BUILD JOB APPLICATION ---
         JobApplication.JobApplicationBuilder appBuilder = JobApplication.builder()
                 .jobPosting(job)
                 .candidate(candidate)
@@ -75,161 +72,159 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 .coverLetter(request.getCoverLetter())
                 .status(ApplicationStatus.PENDING);
 
-        // --- [LOGIC MỚI] KIỂM TRA & COPY KẾT QUẢ AI TỪ BẢNG ANALYSIS ---
+        // Logic copy kết quả AI cũ (nếu có)
         Optional<CVAnalysisResult> existingAnalysis =
                 analysisResultRepo.findByUserIdAndJobPostingId(candidateId, job.getId());
 
         if (existingAnalysis.isPresent()) {
             CVAnalysisResult analysis = existingAnalysis.get();
-            log.info("Found existing AI analysis for user {} and job {}. Copying data...", candidateId, job.getId());
-
-            // 1. Copy điểm số %
             appBuilder.matchScore(analysis.getMatchPercentage());
-
-            // 2. Parse JSON chi tiết
             if (analysis.getAnalysisDetails() != null) {
                 try {
-                    MatchResult matchResult =
-                            objectMapper.readValue(analysis.getAnalysisDetails(), MatchResult.class);
-
+                    MatchResult matchResult = objectMapper.readValue(analysis.getAnalysisDetails(), MatchResult.class);
                     if (matchResult != null) {
                         appBuilder.aiEvaluation(matchResult.getEvaluation());
-
                         appBuilder.matchedSkillsCount(matchResult.getMatchedSkillsCount());
                         appBuilder.missingSkillsCount(matchResult.getMissingSkillsCount());
                         appBuilder.otherHardSkillsCount(matchResult.getOtherHardSkillsCount());
                         appBuilder.otherSoftSkillsCount(matchResult.getOtherSoftSkillsCount());
-
-                        if (matchResult.getMissingSkillsList() != null) {
+                        
+                        // Convert List -> String để lưu vào Entity (nếu Entity lưu String)
+                        if (matchResult.getMissingSkillsList() != null) 
                             appBuilder.missingSkillsList(String.join(", ", matchResult.getMissingSkillsList()));
-                        }
-                        if (matchResult.getMatchedSkillsList() != null) {
+                        if (matchResult.getMatchedSkillsList() != null) 
                             appBuilder.matchedSkillsList(String.join(", ", matchResult.getMatchedSkillsList()));
-                        }
-                        if (matchResult.getOtherHardSkillsList() != null) {
-                            appBuilder.otherHardSkillsList(String.join(", ", matchResult.getOtherHardSkillsList()));
-                        }
-                        if (matchResult.getOtherSoftSkillsList() != null) {
-                            appBuilder.otherSoftSkillsList(String.join(", ", matchResult.getOtherSoftSkillsList()));
-                        }
                     }
                 } catch (Exception e) {
-                    log.warn("Failed to parse analysisDetails JSON. Error: {}", e.getMessage());
+                    log.warn("Failed to parse analysisDetails JSON: {}", e.getMessage());
                 }
             }
         } else {
-            log.info("No existing AI analysis found. Setting default score to 0.");
             appBuilder.matchScore(0);
         }
 
-        // ✅ Lưu application trước để lấy applicationId làm refId
         JobApplication saved = appRepo.save(appBuilder.build());
-
-        // ✅ CỘNG ĐIỂM LEADERBOARD khi apply thành công
-        // user_role lấy từ User entity (đúng users.user_role)
-        String userRole = String.valueOf(candidate.getUserRole()); // enum/string đều ok
-        boolean added = leaderboardService.addPoints(
-                candidateId,
-                userRole,
-                "APPLY",
-                10,
-                saved.getId()
-        );
-        log.info("Leaderboard addPoints APPLY for candidateId={} appId={} result={}",
-                candidateId, saved.getId(), added);
-
+        leaderboardService.addPoints(candidateId, String.valueOf(candidate.getUserRole()), "APPLY", 10, saved.getId());
         return saved;
     }
 
-    // 2. Logic Recruiter duyệt đơn
     @Override
     @Transactional
     public JobApplication updateStatus(Long recruiterId, Long applicationId, ApplicationStatus newStatus, String recruiterNote) {
         JobApplication application = appRepo.findById(applicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Application not found"));
 
-        if (!application.getJobPosting().getRecruiter().getId().equals(recruiterId)) {
+        if (recruiterId != null && !application.getJobPosting().getRecruiter().getId().equals(recruiterId)) {
             throw new IllegalArgumentException("Không có quyền chỉnh sửa đơn ứng tuyển này.");
         }
 
         application.setStatus(newStatus);
         application.setRecruiterNote(recruiterNote);
-
         JobApplication saved = appRepo.save(application);
 
-        // ✅ CỘNG ĐIỂM LEADERBOARD cho recruiter khi xử lý đơn
+        // [SỬA LỖI 2] OFFERED -> OFFER (theo file Enum bạn gửi)
         int points = switch (newStatus) {
             case SCREENING -> 1;
             case INTERVIEW -> 3;
-            case OFFER -> 5;
+            case OFFER -> 5; 
             case REJECTED -> 1;
-            default -> 0; // APPLIED, PENDING
+            default -> 0;
         };
 
         if (points > 0) {
-            Long recruiterUserId = saved.getJobPosting().getRecruiter().getId();
-
-            String recruiterRole = String.valueOf(
-                    userRepository.findById(recruiterUserId)
-                            .orElseThrow(() -> new IllegalArgumentException("User not found: " + recruiterUserId))
-                            .getUserRole()
-            );
-
-            String actionType = "APP_STATUS_" + newStatus.name();
-
-            boolean added = leaderboardService.addPoints(
-                    recruiterUserId,
-                    recruiterRole,
-                    actionType,
-                    points,
-                    saved.getId() // refId = applicationId
-            );
-
-            log.info("Leaderboard addPoints {} (+{}) recruiterId={} appId={} result={}",
-                    actionType, points, recruiterUserId, saved.getId(), added);
+            leaderboardService.addPoints(saved.getJobPosting().getRecruiter().getId(), "RECRUITER", "APP_STATUS_" + newStatus.name(), points, saved.getId());
         }
-
         return saved;
     }
+
+    // --- HÀM LẤY DANH SÁCH (FAST MATCHING) ---
     @Override
     @Transactional(readOnly = true)
     public List<JobApplicationResponse> listByJob(Long jobId) {
+        if (!jobRepo.existsById(jobId)) {
+            throw new IllegalArgumentException("Job not found with ID: " + jobId);
+        }
+
         List<JobApplication> apps = appRepo.findByJobPostingId(jobId);
 
         return apps.stream()
-                .map(app -> JobApplicationResponse.builder()
-                        .id(app.getId())
-                        .jobId(app.getJobPosting().getId())
-                        .jobTitle(app.getJobPosting().getTitle())
-                        .companyName(app.getJobPosting().getCompany().getName())
-                        .studentId(app.getCandidate().getId())
-                        .studentName(app.getCandidate().getFullName())
-                        .cvUrl(app.getCvUrl())
-                        .status(app.getStatus().name())
-                        .appliedAt(app.getAppliedAt())
-                        .matchScore(app.getMatchScore())
-                        .aiEvaluation(app.getAiEvaluation())
-                        .missingSkillsList(app.getMissingSkillsList())
-                        .recruiterNote(app.getRecruiterNote())
-                        .build()
-                )
+                .map(app -> {
+                    // 1. Lấy Skills
+                    List<String> candidateSkills = Collections.emptyList();
+                    CandidateProfile profile = profileRepository.findByUserId(app.getCandidate().getId()).orElse(null);
+                    if (profile != null && profile.getSkills() != null) {
+                        candidateSkills = profile.getSkills();
+                    }
+
+                    // 2. Gọi hàm tính nhanh
+                    Map<Long, FastMatchResult> batchResult = fastMatchingService.calculateBatchCompatibility(
+                        candidateSkills, 
+                        Collections.singletonList(jobId)
+                    );
+                    
+                    FastMatchResult result = batchResult.get(jobId);
+                    
+                    // [SỬA LỖI 4] Dùng getMatchScore() thay vì getScore()
+                    int score = (result != null) ? result.getMatchScore() : 0;
+                    
+                    // [SỬA LỖI 5, 6] Convert List<String> -> String để gán vào Response DTO
+                    String matchedStr = (result != null && result.getMatchedSkills() != null) 
+                                        ? String.join(", ", result.getMatchedSkills()) : "";
+                    String missingStr = (result != null && result.getMissingSkills() != null) 
+                                        ? String.join(", ", result.getMissingSkills()) : "";
+
+                    String companyName = (app.getJobPosting().getCompany() != null) 
+                                       ? app.getJobPosting().getCompany().getName() : "Unknown Company";
+                    String studentName = (app.getCandidate() != null) 
+                                       ? app.getCandidate().getFullName() : "Unknown Candidate";
+
+                    return JobApplicationResponse.builder()
+                            .id(app.getId())
+                            .jobId(jobId)
+                            .jobTitle(app.getJobPosting().getTitle())
+                            .companyName(companyName)
+                            .studentId(app.getCandidate().getId())
+                            .studentName(studentName)
+                            .cvUrl(app.getCvUrl())
+                            .status(app.getStatus().name())
+                            .appliedAt(app.getAppliedAt())
+                            
+                            // Gán dữ liệu Fast Match đã sửa lỗi
+                            .matchScore(score)
+                            .matchedSkillsList(matchedStr) // Đã join thành chuỗi
+                            .missingSkillsList(missingStr) // Đã join thành chuỗi
+                            
+                            .aiEvaluation("Đánh giá nhanh từ khóa")
+                            .recruiterNote(app.getRecruiterNote())
+                            .build();
+                })
+                .sorted((a, b) -> {
+                     int s1 = a.getMatchScore() == null ? 0 : a.getMatchScore();
+                     int s2 = b.getMatchScore() == null ? 0 : b.getMatchScore();
+                     return s2 - s1;
+                })
                 .collect(Collectors.toList());
+    }
+
+    // [SỬA LỖI 1] Implement hàm scanAndSuggestCandidates để thỏa mãn Interface
+    // Vì bạn muốn dùng Fast Match cho mọi thứ, hàm này có thể gọi lại listByJob
+    @Override
+    public List<JobApplicationResponse> scanAndSuggestCandidates(Long jobId) {
+        return listByJob(jobId);
     }
 
     @Override
     public List<JobApplication> listByCandidateId(Long candidateId) {
         return appRepo.findByCandidateId(candidateId);
     }
-
+    
     @Override
     @Transactional(readOnly = true)
     public List<JobApplicationResponse> getApplicationsByCandidateId(Long candidateId) {
         List<JobApplication> applications = appRepo.findByCandidateId(candidateId);
-
         return applications.stream().map(app -> {
             JobPosting job = app.getJobPosting();
             String companyName = (job.getCompany() != null) ? job.getCompany().getName() : "Unknown Company";
-
             return JobApplicationResponse.builder()
                     .id(app.getId())
                     .jobId(job.getId())
@@ -241,12 +236,12 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                     .status(app.getStatus().name())
                     .appliedAt(app.getAppliedAt())
                     .recruiterNote(app.getRecruiterNote())
-                    .matchScore(app.getMatchScore())
+                    .matchScore(app.getMatchScore()) 
                     .aiEvaluation(app.getAiEvaluation())
                     .build();
         }).collect(Collectors.toList());
     }
-
+    
     @Override
     public Optional<JobApplication> getById(Long id) {
         return appRepo.findById(id);
@@ -258,6 +253,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         JobApplication app = appRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ ID: " + id));
 
+        // Logic hiển thị chi tiết (giả định stored DB là String)
         return JobApplicationResponse.builder()
                 .id(app.getId())
                 .jobId(app.getJobPosting().getId())
@@ -267,16 +263,10 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 .cvUrl(app.getCvUrl())
                 .status(app.getStatus().name())
                 .appliedAt(app.getAppliedAt())
-                .matchScore(app.getMatchScore() != null ? app.getMatchScore() : 0)
-                .aiEvaluation(app.getAiEvaluation() != null ? app.getAiEvaluation() : "Chưa có đánh giá")
+                .matchScore(app.getMatchScore())
+                .aiEvaluation(app.getAiEvaluation())
                 .missingSkillsList(app.getMissingSkillsList())
                 .matchedSkillsList(app.getMatchedSkillsList())
-                .otherHardSkillsList(app.getOtherHardSkillsList())
-                .otherSoftSkillsList(app.getOtherSoftSkillsList())
-                .matchedSkillsCount(app.getMatchedSkillsCount() != null ? app.getMatchedSkillsCount() : 0)
-                .missingSkillsCount(app.getMissingSkillsCount() != null ? app.getMissingSkillsCount() : 0)
-                .otherHardSkillsCount(app.getOtherHardSkillsCount() != null ? app.getOtherHardSkillsCount() : 0)
-                .otherSoftSkillsCount(app.getOtherSoftSkillsCount() != null ? app.getOtherSoftSkillsCount() : 0)
                 .recruiterNote(app.getRecruiterNote())
                 .build();
     }
