@@ -47,7 +47,6 @@ export default function ProfilePage() {
         setFormData({
           fullName: data.fullName || '',
           email: data.email || '',
-          // Ưu tiên lấy từ API, nếu không có lấy từ Context user, cuối cùng là chuỗi rỗng
           avatarUrl: data.avatarUrl || (user as any)?.avatarUrl || '', 
           aboutMe: data.aboutMe || '',
           phoneNumber: data.phoneNumber || '',

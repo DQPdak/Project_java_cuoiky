@@ -253,13 +253,25 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         JobApplication app = appRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ ID: " + id));
 
-        // Logic hiển thị chi tiết (giả định stored DB là String)
+
+        String phoneStr = "---";
+        CandidateProfile profile = profileRepository.findByUserId(app.getCandidate().getId()).orElse(null);
+        if (profile != null) {
+            phoneStr = profile.getPhoneNumber();
+        }
+
+        String displayEmail = (profile != null && profile.getEmail() != null)
+                ? profile.getEmail()
+                : app.getCandidate().getEmail();
+
         return JobApplicationResponse.builder()
                 .id(app.getId())
                 .jobId(app.getJobPosting().getId())
                 .jobTitle(app.getJobPosting().getTitle())
                 .studentId(app.getCandidate().getId())
                 .studentName(app.getCandidate().getFullName())
+                .email(displayEmail)
+                .phone(phoneStr)
                 .cvUrl(app.getCvUrl())
                 .status(app.getStatus().name())
                 .appliedAt(app.getAppliedAt())
@@ -269,5 +281,6 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 .matchedSkillsList(app.getMatchedSkillsList())
                 .recruiterNote(app.getRecruiterNote())
                 .build();
+
+        }
     }
-}

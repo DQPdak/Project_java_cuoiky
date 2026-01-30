@@ -79,6 +79,8 @@ export interface CandidateSearchResult {
 
 export interface AIAnalysisDetail {
   id?: number;
+  email?: string;
+  phone?: string;
   matchPercentage?: number;
   evaluation?: string;
   learningPath?: string;
