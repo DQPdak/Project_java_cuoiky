@@ -31,13 +31,12 @@ export default function UserMenu() {
 
   if (!user) return null;
 
-  const userAvatar = (user as any).avatarUrl || 
+  const userAvatar =
+    user.profileImageUrl ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || "User")}&background=random&color=fff&size=128`;
 
   // Check VIP
-  const isVip = user.userRole?.includes('_VIP');
-  // Check if User is Candidate
-  const isCandidate = user.userRole === "CANDIDATE" || user.userRole?.includes("CANDIDATE");
+  const isVip = user.userRole?.includes("_VIP");
 
   return (
     <div className="relative" ref={menuRef}>
@@ -46,50 +45,69 @@ export default function UserMenu() {
         className="flex items-center space-x-2 focus:outline-none hover:bg-gray-100 p-2 rounded-lg transition duration-150"
       >
         <div className="relative">
-            <img
+          <img
             src={userAvatar}
             alt={user.fullName}
-            className={`w-8 h-8 md:w-10 md:h-10 rounded-full object-cover ${isVip ? 'border-2 border-yellow-400' : 'border border-gray-200'}`}
-            />
-            {isVip && (
-                <span className="absolute -bottom-1 -right-1 bg-yellow-400 text-[8px] font-bold px-1 rounded-sm text-white border border-white">VIP</span>
-            )}
+            className={`w-8 h-8 md:w-10 md:h-10 rounded-full object-cover ${isVip ? "border-2 border-yellow-400" : "border border-gray-200"}`}
+          />
+          {isVip && (
+            <span className="absolute -bottom-1 -right-1 bg-yellow-400 text-[8px] font-bold px-1 rounded-sm text-white border border-white">
+              VIP
+            </span>
+          )}
         </div>
         <span className="font-medium text-gray-700 hidden md:block text-sm md:text-base">
           {user.fullName}
         </span>
-        <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-100 ring-1 ring-black ring-opacity-5">
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <p className="text-sm font-semibold text-gray-900">{user.fullName}</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {user.fullName}
+            </p>
             <p className="text-xs text-gray-500 truncate mb-1">{user.email}</p>
             {isVip ? (
-               <span className="text-xs font-bold text-white bg-gradient-to-r from-yellow-400 to-orange-500 px-2 py-0.5 rounded-full inline-block shadow-sm">
-                 Thành viên VIP
-               </span>
+              <span className="text-xs font-bold text-white bg-gradient-to-r from-yellow-400 to-orange-500 px-2 py-0.5 rounded-full inline-block shadow-sm">
+                Thành viên VIP
+              </span>
             ) : (
-               <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded">
-                 {user.userRole === "CANDIDATE" ? "Ứng viên" : user.userRole === "RECRUITER" ? "Nhà tuyển dụng" : "Admin"}
-               </span>
+              <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded">
+                {user.userRole === "CANDIDATE"
+                  ? "Ứng viên"
+                  : user.userRole === "RECRUITER"
+                    ? "Nhà tuyển dụng"
+                    : "Admin"}
+              </span>
             )}
           </div>
 
           <div className="p-2 space-y-1">
-             <Link
-                href="/vip-upgrade"
-                className={`flex items-center justify-center px-4 py-2 rounded-md text-sm font-bold transition-all mb-2 ${
-                    isVip 
-                    ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200' 
-                    : 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md hover:shadow-lg hover:scale-[1.02]'
-                }`}
-                onClick={() => setIsOpen(false)}
+            <Link
+              href="/vip-upgrade"
+              className={`flex items-center justify-center px-4 py-2 rounded-md text-sm font-bold transition-all mb-2 ${
+                isVip
+                  ? "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
+                  : "bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md hover:shadow-lg hover:scale-[1.02]"
+              }`}
+              onClick={() => setIsOpen(false)}
             >
-                {isVip ? '✨ Gia hạn VIP' : '👑 Nâng cấp VIP'}
+              {isVip ? "✨ Gia hạn VIP" : "👑 Nâng cấp VIP"}
             </Link>
 
             {user.userRole !== "ADMIN" && (
@@ -98,21 +116,9 @@ export default function UserMenu() {
                 className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                 onClick={() => setIsOpen(false)}
               >
-                👤 Chỉnh sửa profile
+                👤 Xem hồ sơ
               </Link>
             )}
-
-            {/* --- MỤC MỚI: CV BUILDER (CHỈ HIỆN VỚI CANDIDATE) --- */}
-            {isCandidate && (
-              <Link
-                href="/cv-builder"
-                className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setIsOpen(false)}
-              >
-                📄 Tạo CV
-              </Link>
-            )}
-            {/* -------------------------------------------------- */}
 
             {user.userRole !== "ADMIN" && (
               <Link
