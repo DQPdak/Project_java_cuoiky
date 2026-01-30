@@ -10,7 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (userData: User) => void;
   logout: () => void;
-  updateUser: (userData: User) => void; // Thêm hàm này
+  updateUser: (updatedData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,17 +49,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(userData);
     localStorage.setItem('currentUser', JSON.stringify(userData));
 
-    // ĐIỀU HƯỚNG DỰA TRÊN ROLE (Cập nhật case cho VIP)
+    // ĐIỀU HƯỚNG DỰA TRÊN ROLE
     switch (userData?.userRole) {
       case UserRole.ADMIN:
         router.push('/admin/dashboard'); 
         break;
       case UserRole.RECRUITER:
-      case UserRole.RECRUITER_VIP: // VIP vẫn vào dashboard Recruiter
+      case UserRole.RECRUITER_VIP:
         router.push('/dashboard-recruiter');
         break;
       case UserRole.CANDIDATE:
-      case UserRole.CANDIDATE_VIP: // VIP vẫn vào dashboard Candidate
+      case UserRole.CANDIDATE_VIP:
         router.push('/dashboard-candidate');
         break;
       default:
@@ -69,12 +69,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Hàm updateUser: Chỉ cập nhật data (dùng khi mua gói thành công để đổi Role ngay lập tức)
-  const updateUser = (userData: User) => {
-    if (!userData) return;
-    setUser(userData);
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-    // Không redirect, giữ nguyên trang hiện tại (trang mua VIP)
+  const updateUser = (updatedData: Partial<User>) => {
+    if (user) {
+      const newUser = { ...user, ...updatedData };
+      setUser(newUser);
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+    }
   };
 
   const logout = () => {

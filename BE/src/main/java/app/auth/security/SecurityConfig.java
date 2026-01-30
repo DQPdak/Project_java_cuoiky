@@ -59,7 +59,8 @@ public class SecurityConfig {
                     "/api/auth/**",       // Login, Register, Refresh Token
                     "/api/public/**",     // Các API public chung
                     "/swagger-ui/**",     // Swagger UI
-                    "/v3/api-docs/**"     // API Docs
+                    "/v3/api-docs/**", 
+                    "/api/recruiter/jobs/public/**"   // API Docs
                 ).permitAll()
 
                 // ======================================================
@@ -109,6 +110,9 @@ public class SecurityConfig {
                 // Quan trọng: Phải cấp quyền cho cả CANDIDATE và CANDIDATE_VIP
                 .requestMatchers("/api/candidate/**")
                     .hasAnyAuthority("CANDIDATE", "CANDIDATE_VIP", "ADMIN")
+
+                // Trong SecurityConfig.java
+                .requestMatchers("/api/recruiter/jobs/public/**").permitAll() 
 
                 // ======================================================
                 // 6. CHỨC NĂNG TUYỂN DỤNG CHUNG (/api/recruitment)

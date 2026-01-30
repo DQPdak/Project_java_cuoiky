@@ -1,20 +1,21 @@
-// Đường dẫn: fe-nextjs/src/types/recruitment.ts
+// src/types/recruitment.ts
 
 export enum JobStatus {
-  PUBLISHED = "PUBLISHED", 
+  PUBLISHED = "PUBLISHED",
   CLOSED = "CLOSED",
   DRAFT = "DRAFT",
-  OPEN = "OPEN" 
+  OPEN = "OPEN",
 }
 
+// Enum chuẩn khớp với Backend
 export enum ApplicationStatus {
-  APPLIED = "APPLIED",
-  PENDING = "PENDING",    
-  SCREENING = "SCREENING",
-  INTERVIEW = "INTERVIEW",
-  OFFERED = "OFFERED",
-  REJECTED = "REJECTED",
-  HIRED = "HIRED"
+  APPLIED = "APPLIED", // Mới ứng tuyển
+  PENDING = "PENDING", // Chờ xử lý (mặc định)
+  SCREENING = "SCREENING", // Đang sàng lọc
+  INTERVIEW = "INTERVIEW", // Đã duyệt phỏng vấn (Thay cho APPROVED)
+  OFFERED = "OFFERED", // Đã gửi offer
+  REJECTED = "REJECTED", // Từ chối
+  HIRED = "HIRED", // Đã tuyển
 }
 
 export interface JobPosting {
@@ -22,24 +23,39 @@ export interface JobPosting {
   title: string;
   location: string;
   salaryRange: string;
-  expiryDate: string;    
+  expiryDate: string;
   status: JobStatus;
   applicationCount?: number;
   description?: string;
   requirements?: string;
+  benefits?: string;
   createdAt?: string;
-  extractedSkills?: string[]; 
+  extractedSkills?: string[];
+
+  // Thông tin cơ sở
+  companyId?: number;
+  companyName?: string;
+  companyLogo?: string;
+  companyWebsite?: string;
+  companyDescription?: string;
+  companyAddress?: string;
 }
 
 export interface CandidateApplication {
   id: number;
-  studentName?: string;  
-  candidateName?: string; 
+  studentName?: string;
+  candidateName?: string; // Backend có thể trả về trường này
   matchScore: number;
   status: ApplicationStatus;
   cvUrl: string;
   jobTitle?: string;
   appliedAt?: string;
+
+  aiEvaluation?: string;
+  matchedSkillsList?: string;
+  missingSkillsList?: string;
+
+  recruiterNote?: string;
 }
 
 export interface JobCreateRequest {
@@ -49,4 +65,50 @@ export interface JobCreateRequest {
   location: string;
   salaryRange: string;
   expiryDate: string;
+}
+
+export interface CandidateSearchResult {
+  id: number;
+  fullName: string;
+  title: string;
+  skills: string[];
+  matchScore?: number;
+  avatar?: string;
+  cvUrl?: string;
+}
+
+export interface AIAnalysisDetail {
+  id?: number;
+  matchPercentage?: number;
+  evaluation?: string;
+  learningPath?: string;
+  careerAdvice?: string;
+  matchedSkillsList?: string[];
+  missingSkillsList?: string[];
+  otherHardSkillsList?: string[];
+  otherSoftSkillsList?: string[];
+  recommendedSkillsList?: string[];
+  matchedSkillsCount?: number;
+  missingSkillsCount?: number;
+  otherHardSkillsCount?: number;
+  otherSoftSkillsCount?: number;
+  recommendedSkillsCount?: number;
+  candidateName?: string;
+  studentName?: string;
+  jobTitle?: string;
+}
+
+export interface CompanyProfile {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  logoUrl?: string; // Thay đổi từ 'logo' thành 'logoUrl'
+  coverImageUrl?: string; // Thêm mới trường này
+  website?: string;
+  description?: string;
+  address?: string;
+  industry?: string;
+  size?: string;
+  foundedYear?: string; // Đồng bộ kiểu String với Backend DTO
 }

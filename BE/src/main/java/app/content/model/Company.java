@@ -29,12 +29,23 @@ public class Company {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    private String logoUrl;
+    @Builder.Default
+    private String logoUrl = "https://res.cloudinary.com/dpym64zg9/image/upload/v1769752122/avatar_Company_guzrau.jpg";
+
+    @Builder.Default
+    private String coverImageUrl = "https://res.cloudinary.com/dpym64zg9/image/upload/v1769752140/cover_company_rydzha.jpg";
     private String website;
 
+    private String industry;      // Ngành nghề
+    private String size;          // Quy mô (10-50, etc.)
+    private String foundedYear;   // Năm thành lập
+    private String address;       // Địa chỉ
+    private String phone;         // Số điện thoại công ty
+    private String email;         // Email liên hệ công ty
     // Liên kết với User (Recruiter quản lý công ty này)
     @OneToOne
     @JoinColumn(name = "recruiter_id")
+    @JsonIgnore
     private User recruiter;
     
     // Một công ty có nhiều Job

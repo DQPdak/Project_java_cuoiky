@@ -1,8 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import * as recruiterService from "@/services/recruiterService";
+// SỬA LỖI: Chỉ import biến service từ file service
+import { recruitmentService } from "@/services/recruitmentService";
+
+// SỬA LỖI: Import Types và Enum trực tiếp từ file định nghĩa types
+// Alias (đổi tên) JobPosting -> RecruiterJob để khớp với code hiện tại
+import {
+  JobPosting as RecruiterJob,
+  CandidateApplication as RecruiterApplication,
+  ApplicationStatus,
+  JobStatus,
+} from "@/types/recruitment";
+
 import CVAnalysisResult from "@/components/features/cv/CVAnalysisResult";
+import PremiumFeatureLock from "@/components/common/PremiumFeatureLock";
 import {
   Briefcase,
   Sparkles,
@@ -24,7 +36,6 @@ import toast, { Toaster } from "react-hot-toast";
 const safeSplit = (input: any): string[] => {
   if (Array.isArray(input)) return input;
   if (typeof input === "string" && input.trim().length > 0) {
-    // Tách dấu phẩy, xóa khoảng trắng thừa và lọc phần tử rỗng
     return input
       .split(",")
       .map((s) => s.trim())
@@ -34,9 +45,16 @@ const safeSplit = (input: any): string[] => {
 };
 
 // --- 1. MODAL XEM CV & DUYỆT ---
-const CVDetailModal = ({ app, onClose, onUpdateStatus }: any) => {
+const CVDetailModal = ({
+  app,
+  onClose,
+  onUpdateStatus,
+}: {
+  app: RecruiterApplication;
+  onClose: any;
+  onUpdateStatus: any;
+}) => {
   if (!app) return null;
-  console.log("CVDetailModal app:", app.cvUrl);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-7xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
@@ -44,11 +62,11 @@ const CVDetailModal = ({ app, onClose, onUpdateStatus }: any) => {
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-white">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
-              {app.studentName.charAt(0).toUpperCase()}
+              {app.studentName?.charAt(0).toUpperCase() || "U"}
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-800">
-                {app.studentName}
+                {app.studentName || "Ứng viên"}
               </h2>
               <p className="text-sm text-gray-500">
                 Ứng tuyển vị trí:{" "}
@@ -57,15 +75,14 @@ const CVDetailModal = ({ app, onClose, onUpdateStatus }: any) => {
                 </span>
               </p>
             </div>
-            {/* Badge Điểm số */}
             <div
               className={`ml-4 px-3 py-1 rounded-full text-sm font-bold border flex items-center gap-1 ${
-                app.matchScore >= 50
+                (app.matchScore || 0) >= 50
                   ? "bg-green-50 text-green-700 border-green-200"
                   : "bg-yellow-50 text-yellow-700 border-yellow-200"
               }`}
             >
-              <Sparkles size={14} /> {app.matchScore}% Phù hợp
+              <Sparkles size={14} /> {app.matchScore || 0}% Phù hợp
             </div>
           </div>
 
@@ -82,13 +99,11 @@ const CVDetailModal = ({ app, onClose, onUpdateStatus }: any) => {
           {app.cvUrl ? (
             <div className="w-full h-full flex flex-col">
               <div className="flex-1 bg-gray-200 rounded-xl border border-gray-300 overflow-hidden relative shadow-inner">
-                {/* Dùng object tag để hỗ trợ xem PDF tốt hơn iframe Google Docs */}
                 <iframe
                   src={`https://docs.google.com/gview?url=${app.cvUrl}&embedded=true`}
                   className="w-full h-full absolute inset-0"
                 ></iframe>
               </div>
-
               <div className="mt-3 flex justify-between items-center px-1">
                 <p className="text-sm text-gray-500 italic">
                   * Nếu không thấy nội dung, hãy mở file gốc.
@@ -117,9 +132,10 @@ const CVDetailModal = ({ app, onClose, onUpdateStatus }: any) => {
             Trạng thái:{" "}
             <span
               className={`font-bold ${
-                app.status === "APPROVED"
+                app.status === ApplicationStatus.INTERVIEW ||
+                app.status === ApplicationStatus.HIRED
                   ? "text-green-600"
-                  : app.status === "REJECTED"
+                  : app.status === ApplicationStatus.REJECTED
                     ? "text-red-600"
                     : "text-yellow-600"
               }`}
@@ -135,16 +151,20 @@ const CVDetailModal = ({ app, onClose, onUpdateStatus }: any) => {
               Đóng
             </button>
 
-            {app.status === "PENDING" && (
+            {app.status === ApplicationStatus.PENDING && (
               <>
                 <button
-                  onClick={() => onUpdateStatus(app.id, "REJECTED")}
+                  onClick={() =>
+                    onUpdateStatus(app.id, ApplicationStatus.REJECTED)
+                  }
                   className="px-5 py-2.5 rounded-lg border border-red-200 text-red-600 font-semibold hover:bg-red-50 flex items-center gap-2 transition"
                 >
                   <XCircle size={18} /> Từ chối
                 </button>
                 <button
-                  onClick={() => onUpdateStatus(app.id, "APPROVED")}
+                  onClick={() =>
+                    onUpdateStatus(app.id, ApplicationStatus.INTERVIEW)
+                  }
                   className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center gap-2 transition transform hover:-translate-y-0.5"
                 >
                   <CheckCircle size={18} /> Duyệt phỏng vấn
@@ -158,34 +178,32 @@ const CVDetailModal = ({ app, onClose, onUpdateStatus }: any) => {
   );
 };
 
-// --- 2. MODAL AI ANALYSIS (Đã sửa lỗi map function & NaN) ---
-const AnalysisModal = ({ app, onClose }: any) => {
+// --- 2. MODAL AI ANALYSIS ---
+const AnalysisModal = ({
+  app,
+  onClose,
+}: {
+  app: RecruiterApplication;
+  onClose: any;
+}) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (app) {
       setLoading(true);
-      // Gọi API lấy dữ liệu chi tiết
-      recruiterService
+      recruitmentService
         .getApplicationAnalysis(app.id)
         .then((res: any) => {
-          // Chuẩn hóa dữ liệu trả về từ API
           const mappedData = {
             ...res,
-            // 1. Map điểm số (tránh NaN)
             matchPercentage: res.matchScore ?? res.matchPercentage ?? 0,
             evaluation: res.aiEvaluation || "Chưa có đánh giá chi tiết.",
-
-            // 2. Map các danh sách kỹ năng (Tránh lỗi .map is not a function)
-            // Sử dụng hàm safeSplit cho TẤT CẢ các trường list
             matchedSkillsList: safeSplit(res.matchedSkillsList),
             missingSkillsList: safeSplit(res.missingSkillsList),
             otherHardSkillsList: safeSplit(res.otherHardSkillsList),
             otherSoftSkillsList: safeSplit(res.otherSoftSkillsList),
             recommendedSkillsList: safeSplit(res.recommendedSkillsList),
-
-            // 3. Map số lượng (nếu API trả về null thì đếm từ mảng đã split)
             matchedSkillsCount:
               res.matchedSkillsCount || safeSplit(res.matchedSkillsList).length,
             missingSkillsCount:
@@ -199,35 +217,27 @@ const AnalysisModal = ({ app, onClose }: any) => {
             recommendedSkillsCount:
               res.recommendedSkillsCount ||
               safeSplit(res.recommendedSkillsList).length,
-
-            // 4. Map thông tin chung
             candidateName:
               res.candidateName || res.studentName || app.studentName,
             jobTitle: res.jobTitle || app.jobTitle,
           };
-
           setData(mappedData);
         })
         .catch((err) => {
           console.error("Lỗi lấy dữ liệu AI:", err);
-          // Fallback data an toàn nếu API lỗi
           setData({
             matchPercentage: app.matchScore || 0,
             evaluation: app.aiEvaluation || "Chưa có đánh giá chi tiết.",
-
-            // Vẫn dùng safeSplit cho dữ liệu có sẵn từ danh sách
             missingSkillsList: safeSplit(app.missingSkillsList),
             matchedSkillsList: [],
             otherHardSkillsList: [],
             otherSoftSkillsList: [],
             recommendedSkillsList: [],
-
             matchedSkillsCount: 0,
             missingSkillsCount: safeSplit(app.missingSkillsList).length,
             otherHardSkillsCount: 0,
             otherSoftSkillsCount: 0,
             recommendedSkillsCount: 0,
-
             jobTitle: app.jobTitle,
             candidateName: app.studentName,
           });
@@ -249,7 +259,6 @@ const AnalysisModal = ({ app, onClose }: any) => {
             <X className="text-gray-400 hover:text-gray-600" />
           </button>
         </div>
-
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 text-gray-500">
@@ -267,29 +276,24 @@ const AnalysisModal = ({ app, onClose }: any) => {
 
 // --- 3. TRANG CHÍNH ---
 export default function ApplicationsPage() {
-  const [jobs, setJobs] = useState<recruiterService.RecruiterJob[]>([]);
+  const [jobs, setJobs] = useState<RecruiterJob[]>([]);
   const [currentApplications, setCurrentApplications] = useState<
-    recruiterService.RecruiterApplication[]
+    RecruiterApplication[]
   >([]);
-
-  // State quản lý lựa chọn: Mặc định là null, sẽ set thành job đầu tiên khi fetch xong
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
-
   const [activeTab, setActiveTab] = useState<"all" | "matching">("all");
   const [loading, setLoading] = useState(false);
-
-  // State Modals
-  const [viewCVApp, setViewCVApp] = useState<any>(null);
-  const [analyzeApp, setAnalyzeApp] = useState<any>(null);
+  const [viewCVApp, setViewCVApp] = useState<RecruiterApplication | null>(null);
+  const [analyzeApp, setAnalyzeApp] = useState<RecruiterApplication | null>(
+    null,
+  );
 
   // 1. Fetch Danh sách Jobs
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const jobsData = await recruiterService.getMyJobs();
+        const jobsData = await recruitmentService.getMyJobs();
         setJobs(jobsData || []);
-
-        // Tự động chọn Job đầu tiên nếu có
         if (jobsData && jobsData.length > 0) {
           setSelectedJobId(jobsData[0].id);
         }
@@ -300,16 +304,14 @@ export default function ApplicationsPage() {
     fetchJobs();
   }, []);
 
-  // 2. Fetch Danh sách Hồ sơ (Chỉ chạy khi có selectedJobId hợp lệ)
+  // 2. Fetch Danh sách Hồ sơ
   useEffect(() => {
     if (!selectedJobId) return;
-
     const fetchApps = async () => {
       setLoading(true);
       try {
-        // Chỉ gọi API lấy theo Job ID
         const appsData =
-          await recruiterService.getApplicationsByJob(selectedJobId);
+          await recruitmentService.getApplicationsByJob(selectedJobId);
         setCurrentApplications(appsData || []);
       } catch (error) {
         console.error("Lỗi lấy hồ sơ:", error);
@@ -322,28 +324,24 @@ export default function ApplicationsPage() {
   }, [selectedJobId]);
 
   // Handle Update Status
-  const handleStatusUpdate = async (id: number, newStatus: string) => {
-    if (
-      !confirm(
-        `Xác nhận ${newStatus === "APPROVED" ? "DUYỆT" : "LOẠI"} hồ sơ này?`,
-      )
-    )
-      return;
-    try {
-      await recruiterService.updateApplicationStatus(id, newStatus);
+  const handleStatusUpdate = async (
+    id: number,
+    newStatus: ApplicationStatus,
+  ) => {
+    const actionName =
+      newStatus === ApplicationStatus.INTERVIEW ? "DUYỆT PHỎNG VẤN" : "TỪ CHỐI";
+    if (!confirm(`Xác nhận ${actionName} hồ sơ này?`)) return;
 
-      // Cập nhật UI ngay lập tức
+    try {
+      await recruitmentService.updateApplicationStatus(id, newStatus);
       setCurrentApplications((prev) =>
         prev.map((app) =>
-          app.id === id ? { ...app, status: newStatus as any } : app,
+          app.id === id ? { ...app, status: newStatus } : app,
         ),
       );
-
-      // Nếu đang mở modal xem CV của user này thì đóng lại
       if (viewCVApp && viewCVApp.id === id) {
         setViewCVApp(null);
       }
-
       toast.success("Cập nhật thành công!");
     } catch (e) {
       toast.error("Lỗi cập nhật trạng thái");
@@ -364,11 +362,120 @@ export default function ApplicationsPage() {
     return "text-gray-600 bg-gray-50 border-gray-200";
   };
 
+  // Helper render status text
+  const getStatusLabel = (status: ApplicationStatus) => {
+    switch (status) {
+      case ApplicationStatus.PENDING:
+        return "Chờ duyệt";
+      case ApplicationStatus.INTERVIEW:
+        return "Phỏng vấn";
+      case ApplicationStatus.OFFERED:
+        return "Đã mời";
+      case ApplicationStatus.HIRED:
+        return "Đã tuyển";
+      case ApplicationStatus.REJECTED:
+        return "Đã loại";
+      default:
+        return status;
+    }
+  };
+
+  const getStatusBadgeColor = (status: ApplicationStatus) => {
+    switch (status) {
+      case ApplicationStatus.PENDING:
+        return "bg-yellow-100 text-yellow-800";
+      case ApplicationStatus.INTERVIEW:
+        return "bg-blue-100 text-blue-800";
+      case ApplicationStatus.HIRED:
+        return "bg-green-100 text-green-800";
+      case ApplicationStatus.REJECTED:
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  // Component hiển thị danh sách để tái sử dụng
+  const ApplicationsList = () => (
+    <div className="space-y-4">
+      {displayApplications.map((app) => (
+        <div
+          key={app.id}
+          className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start gap-5">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-blue-700 font-bold text-xl shrink-0 border border-blue-200">
+              {app.studentName?.charAt(0).toUpperCase() || "U"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                    {app.studentName}
+                  </h3>
+                  <div className="flex items-center gap-3 mt-2">
+                    <div
+                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${getScoreColor(app.matchScore || 0)}`}
+                    >
+                      <Sparkles className="w-3 h-3" /> {app.matchScore || 0}%
+                    </div>
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {app.appliedAt
+                        ? new Date(app.appliedAt).toLocaleDateString("vi-VN")
+                        : "N/A"}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium ${getStatusBadgeColor(app.status)}`}
+                    >
+                      {getStatusLabel(app.status)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAnalyzeApp(app)}
+                    className="flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg text-sm font-semibold hover:bg-purple-100 border border-purple-200 transition"
+                  >
+                    <Sparkles size={16} /> AI Phân tích
+                  </button>
+                  <button
+                    onClick={() => setViewCVApp(app)}
+                    className="flex items-center gap-2 px-3 py-2 bg-white text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 border border-gray-300 transition shadow-sm"
+                  >
+                    <Eye size={16} /> Xem CV
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm border border-gray-100">
+                <p className="text-gray-700 italic line-clamp-1">
+                  <Sparkles className="w-3 h-3 inline mr-1 text-purple-500" />"
+                  {app.aiEvaluation || "Chưa có nhận xét"}"
+                </p>
+                {app.missingSkillsList && (
+                  <div className="flex items-start gap-2 mt-1 pt-1 border-t border-gray-200">
+                    <AlertCircle className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />
+                    <p className="text-xs">
+                      <span className="font-semibold text-gray-500 uppercase mr-1">
+                        Kỹ năng thiếu:
+                      </span>
+                      <span className="text-gray-800 font-medium">
+                        {app.missingSkillsList}
+                      </span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="h-[calc(100vh-64px)] bg-gray-50 flex overflow-hidden">
       <Toaster position="top-center" />
-
-      {/* --- RENDER MODALS --- */}
       {viewCVApp && (
         <CVDetailModal
           app={viewCVApp}
@@ -380,7 +487,7 @@ export default function ApplicationsPage() {
         <AnalysisModal app={analyzeApp} onClose={() => setAnalyzeApp(null)} />
       )}
 
-      {/* LEFT SIDEBAR: List Jobs */}
+      {/* LEFT SIDEBAR */}
       <div className="w-1/3 min-w-[300px] max-w-[400px] bg-white border-r border-gray-200 flex flex-col">
         <div className="p-5 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -390,14 +497,12 @@ export default function ApplicationsPage() {
             Chọn công việc để xem hồ sơ
           </p>
         </div>
-
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {jobs.length === 0 && (
             <div className="text-center py-10 text-gray-400 text-sm">
               Chưa có tin tuyển dụng nào
             </div>
           )}
-
           {jobs.map((job) => (
             <button
               key={job.id}
@@ -410,9 +515,7 @@ export default function ApplicationsPage() {
             >
               <div className="flex justify-between items-start mb-1">
                 <h3
-                  className={`font-semibold text-sm line-clamp-2 ${
-                    selectedJobId === job.id ? "text-blue-700" : "text-gray-900"
-                  }`}
+                  className={`font-semibold text-sm line-clamp-2 ${selectedJobId === job.id ? "text-blue-700" : "text-gray-900"}`}
                 >
                   {job.title}
                 </h3>
@@ -421,12 +524,9 @@ export default function ApplicationsPage() {
                 )}
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                {/* SỬA LỖI: Dùng Enum JobStatus thay vì chuỗi cứng */}
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] ${
-                    job.status === "PUBLISHED"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
+                  className={`px-2 py-0.5 rounded text-[10px] ${job.status === JobStatus.PUBLISHED ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
                 >
                   {job.status}
                 </span>
@@ -436,7 +536,7 @@ export default function ApplicationsPage() {
         </div>
       </div>
 
-      {/* RIGHT CONTENT: List Applications */}
+      {/* RIGHT CONTENT */}
       <div className="flex-1 flex flex-col min-w-0 bg-gray-50/50">
         <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
           <div>
@@ -466,7 +566,10 @@ export default function ApplicationsPage() {
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" /> AI Đề xuất (
-                  {currentApplications.filter((a) => a.matchScore >= 50).length}
+                  {
+                    currentApplications.filter((a) => (a.matchScore || 0) >= 50)
+                      .length
+                  }
                   )
                 </button>
               </div>
@@ -492,106 +595,22 @@ export default function ApplicationsPage() {
           ) : displayApplications.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-400">
               <Filter size={48} className="mb-4 opacity-20" />
-              <p>Chưa có hồ sơ nào cho vị trí này</p>
+              <p>Chưa có hồ sơ nào cho bộ lọc này</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {displayApplications.map((app) => (
-                <div
-                  key={app.id}
-                  className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all group"
+            <>
+              {/* LOGIC KHÓA TÍNH NĂNG Ở ĐÂY */}
+              {activeTab === "matching" ? (
+                <PremiumFeatureLock
+                  title="Danh sách Top Ứng viên (AI)"
+                  description="Nâng cấp tài khoản VIP để xem danh sách ứng viên được AI sàng lọc và sắp xếp theo độ phù hợp."
                 >
-                  <div className="flex items-start gap-5">
-                    {/* Avatar */}
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-blue-700 font-bold text-xl shrink-0 border border-blue-200">
-                      {app.studentName.charAt(0).toUpperCase()}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                            {app.studentName}
-                          </h3>
-                          <div className="flex items-center gap-3 mt-2">
-                            {/* Score Badge */}
-                            <div
-                              className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${getScoreColor(
-                                app.matchScore,
-                              )}`}
-                            >
-                              <Sparkles className="w-3 h-3" /> {app.matchScore}%
-                            </div>
-                            <span className="text-xs text-gray-400 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />{" "}
-                              {new Date(app.appliedAt).toLocaleDateString(
-                                "vi-VN",
-                              )}
-                            </span>
-
-                            {/* Status Badge */}
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-medium 
-                                ${
-                                  app.status === "PENDING"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : app.status === "APPROVED"
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-red-100 text-red-800"
-                                }`}
-                            >
-                              {app.status === "PENDING"
-                                ? "Chờ duyệt"
-                                : app.status === "APPROVED"
-                                  ? "Đã nhận"
-                                  : "Đã loại"}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* BUTTONS GROUP */}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setAnalyzeApp(app)}
-                            className="flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg text-sm font-semibold hover:bg-purple-100 border border-purple-200 transition"
-                          >
-                            <Sparkles size={16} /> AI Phân tích
-                          </button>
-                          <button
-                            onClick={() => setViewCVApp(app)}
-                            className="flex items-center gap-2 px-3 py-2 bg-white text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 border border-gray-300 transition shadow-sm"
-                          >
-                            <Eye size={16} /> Xem CV
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* AI Brief Summary Inline */}
-                      <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm border border-gray-100">
-                        <p className="text-gray-700 italic line-clamp-1">
-                          <Sparkles className="w-3 h-3 inline mr-1 text-purple-500" />
-                          "{app.aiEvaluation || "Chưa có nhận xét"}"
-                        </p>
-                        {app.missingSkillsList && (
-                          <div className="flex items-start gap-2 mt-1 pt-1 border-t border-gray-200">
-                            <AlertCircle className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />
-                            <p className="text-xs">
-                              <span className="font-semibold text-gray-500 uppercase mr-1">
-                                Kỹ năng thiếu:
-                              </span>
-                              <span className="text-gray-800 font-medium">
-                                {app.missingSkillsList}
-                              </span>
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  <ApplicationsList />
+                </PremiumFeatureLock>
+              ) : (
+                <ApplicationsList />
+              )}
+            </>
           )}
         </div>
       </div>

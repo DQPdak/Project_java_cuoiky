@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getMyApplications } from "@/services/candidateService";
 import { interviewService } from "@/services/interviewService";
-import { InterviewDTO } from "@/types/interview";
+import { InterviewSession } from "@/types/interview"; 
 import toast, { Toaster } from "react-hot-toast";
 import {
   Briefcase,
@@ -16,12 +16,12 @@ import {
   Search,
 } from "lucide-react";
 
-// ✅ 1. SỬA INTERFACE: Khớp với JobApplicationResponse.java
+// Interface Application giữ nguyên
 interface Application {
   id: number;
-  jobId: number; // Sửa: Dùng jobId trực tiếp
-  jobTitle: string; // Sửa: Dùng jobTitle trực tiếp
-  companyName: string; // Sửa: Dùng companyName trực tiếp
+  jobId: number;
+  jobTitle: string;
+  companyName: string;
   studentId: number;
   studentName: string;
   cvUrl: string;
@@ -38,7 +38,7 @@ export default function InterviewHubPage() {
   // State
   const [applications, setApplications] = useState<Application[]>([]);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
-  const [history, setHistory] = useState<InterviewDTO[]>([]);
+  const [history, setHistory] = useState<InterviewSession[]>([]);
   const [loadingApps, setLoadingApps] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,15 +70,15 @@ export default function InterviewHubPage() {
     setSelectedApp(app);
     setLoadingHistory(true);
     try {
-      // ✅ SỬA LỖI: Gọi app.jobId thay vì app.job.id
       const historyData = await interviewService.getHistory(app.jobId);
-      console.log("thu", historyData);
+      console.log("historyData", historyData);
 
       // Sắp xếp mới nhất lên đầu
       if (Array.isArray(historyData)) {
         setHistory(
+          // Thêm type any cho a, b để tránh lỗi TS nếu historyData chưa rõ type
           historyData.sort(
-            (a, b) =>
+            (a: any, b: any) =>
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
           ),
         );
@@ -96,7 +96,6 @@ export default function InterviewHubPage() {
   // 3. Hàm chuyển trang sang phòng chat
   const handleStartInterview = () => {
     if (selectedApp) {
-      // ✅ SỬA LỖI: Dùng selectedApp.jobId
       router.push(`/interview/${selectedApp.jobId}`);
     }
   };
@@ -104,7 +103,6 @@ export default function InterviewHubPage() {
   // Filter list theo search
   const filteredApps = applications.filter(
     (app) =>
-      // ✅ SỬA LỖI: Truy cập property phẳng
       (app.jobTitle &&
         app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (app.companyName &&
@@ -163,7 +161,6 @@ export default function InterviewHubPage() {
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
-                      {/* ✅ SỬA LỖI: app.jobTitle */}
                       <h3
                         className={`font-bold text-sm line-clamp-1 ${selectedApp?.id === app.id ? "text-blue-700" : "text-gray-800"}`}
                       >
@@ -173,7 +170,6 @@ export default function InterviewHubPage() {
                         <ChevronRight size={16} className="text-blue-500" />
                       )}
                     </div>
-                    {/* ✅ SỬA LỖI: app.companyName */}
                     <p className="text-xs text-gray-500 mb-2">
                       {app.companyName}
                     </p>
@@ -201,7 +197,6 @@ export default function InterviewHubPage() {
                 {/* 1. Header Job & Action Button */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
                   <div>
-                    {/* ✅ SỬA LỖI: selectedApp.jobTitle */}
                     <h2 className="text-xl font-bold text-gray-900">
                       {selectedApp.jobTitle}
                     </h2>
@@ -299,21 +294,19 @@ export default function InterviewHubPage() {
                               </td>
                               <td
                                 className="px-6 py-4 max-w-xs truncate text-gray-500"
-                                title={session.feedback}
+                                title={session.feedback || ""}
                               >
                                 {session.feedback || "Chưa có nhận xét"}
                               </td>
                               <td className="px-6 py-4 text-right">
                                 <button
                                   onClick={() => {
-                                    // 1. Kiểm tra session.id có tồn tại không
                                     if (!session.id) {
                                       toast.error(
                                         "Phiên phỏng vấn này bị lỗi ID",
                                       );
                                       return;
                                     }
-                                    // 2. Chỉ chuyển trang khi ID hợp lệ
                                     router.push(
                                       `/interview/${selectedApp.jobId}?sessionId=${session.id}`,
                                     );

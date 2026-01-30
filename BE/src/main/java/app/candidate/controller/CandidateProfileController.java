@@ -51,11 +51,10 @@ public class CandidateProfileController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         try {
-            // SỬA: Lấy DTO thay vì Entity để tránh lỗi Lazy Loading
             CandidateProfileResponse profile = candidateService.getProfileDTO(user.getId());
             return ResponseEntity.ok(MessageResponse.success("Lấy thông tin thành công", profile));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(MessageResponse.error("Chưa có hồ sơ"));
+            return ResponseEntity.ok(MessageResponse.success("Chưa có hồ sơ", null));
         }
     }
 
@@ -76,6 +75,23 @@ public class CandidateProfileController {
             return ResponseEntity.ok(MessageResponse.success("Cập nhật hồ sơ thành công", updatedProfile));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(MessageResponse.error("Lỗi cập nhật: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/avatar")
+    public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Gọi service
+            String newAvatarUrl = candidateService.uploadAvatar(user.getId(), file);
+
+            return ResponseEntity.ok(MessageResponse.success("Cập nhật ảnh đại diện thành công", newAvatarUrl));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(MessageResponse.error("Lỗi upload ảnh: " + e.getMessage()));
         }
     }
 }
