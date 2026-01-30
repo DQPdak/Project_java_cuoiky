@@ -1,11 +1,13 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
-import api from '@/services/api';
-import { Search, Lock, Unlock } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from "react";
+import api from "@/services/api";
+import { Search, Lock, Unlock } from "lucide-react";
+import toast from "react-hot-toast";
+import { useConfirm } from "@/context/ConfirmDialogContext";
 
-type UserStatus = 'ACTIVE' | 'BANNED' | 'PENDING_VERIFICATION';
-type UserRole = 'ADMIN' | 'CANDIDATE' | 'RECRUITER' | string;
+type UserStatus = "ACTIVE" | "BANNED" | "PENDING_VERIFICATION";
+type UserRole = "ADMIN" | "CANDIDATE" | "RECRUITER" | string;
 
 interface UserData {
   id: number;
@@ -28,18 +30,18 @@ interface PageResponse<T> {
 
 function formatDate(input: string) {
   // input dạng "2024-01-01T10:00:00"
-  if (!input) return '';
-  return input.replace('T', ' ').slice(0, 16);
+  if (!input) return "";
+  return input.replace("T", " ").slice(0, 16);
 }
 
 function statusLabel(status: UserStatus) {
   switch (status) {
-    case 'ACTIVE':
-      return 'Hoạt động';
-    case 'BANNED':
-      return 'Đã khóa';
-    case 'PENDING_VERIFICATION':
-      return 'Chờ xác thực';
+    case "ACTIVE":
+      return "Hoạt động";
+    case "BANNED":
+      return "Đã khóa";
+    case "PENDING_VERIFICATION":
+      return "Chờ xác thực";
     default:
       return status;
   }
@@ -48,18 +50,23 @@ function statusLabel(status: UserStatus) {
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const [page, setPage] = useState<number>(0);
   const [size, setSize] = useState<number>(10);
 
   const [totalPages, setTotalPages] = useState<number>(0);
   const [totalElements, setTotalElements] = useState<number>(0);
+  const confirm = useConfirm();
 
   const canPrev = page > 0;
   const canNext = page + 1 < totalPages;
 
-  const fetchUsers = async (opts?: { page?: number; size?: number; keyword?: string }) => {
+  const fetchUsers = async (opts?: {
+    page?: number;
+    size?: number;
+    keyword?: string;
+  }) => {
     try {
       setLoading(true);
 
@@ -67,12 +74,12 @@ export default function UserManagementPage() {
       const s = opts?.size ?? size;
       const keyword = opts?.keyword ?? searchTerm;
 
-      const res = await api.get<PageResponse<UserData>>('/admin/users', {
+      const res = await api.get<PageResponse<UserData>>("/admin/users", {
         params: {
           keyword: keyword?.trim() || undefined,
           page: p,
           size: s,
-          sort: 'createdAt,desc',
+          sort: "createdAt,desc",
         },
       });
 
@@ -83,7 +90,7 @@ export default function UserManagementPage() {
       setPage(data.number ?? p);
       setSize(data.size ?? s);
     } catch (err) {
-      console.error('fetchUsers error:', err);
+      console.error("fetchUsers error:", err);
       setUsers([]);
       setTotalPages(0);
       setTotalElements(0);
@@ -109,51 +116,59 @@ export default function UserManagementPage() {
   }, [searchTerm]);
 
   const handleToggleStatus = async (u: UserData) => {
-    if (!confirm('Bạn có chắc muốn thay đổi trạng thái user này?')) return;
+    const isConfirmed = await confirm({
+      title: "Xác nhận thay đổi",
+      message: `Bạn có chắc muốn thay đổi trạng thái của người dùng ${u.fullName}?`,
+      isDanger: u.status === "ACTIVE", // Màu đỏ nếu đang khóa
+      confirmLabel: u.status === "ACTIVE" ? "Khóa ngay" : "Mở khóa",
+    });
+    if (!isConfirmed) return;
 
     try {
       // ACTIVE -> lock (BANNED), BANNED -> unlock (ACTIVE)
-      if (u.status === 'ACTIVE') {
+      if (u.status === "ACTIVE") {
         await api.put(`/admin/users/${u.id}/lock`);
-      } else if (u.status === 'BANNED') {
+      } else if (u.status === "BANNED") {
         await api.put(`/admin/users/${u.id}/unlock`);
       } else {
-        alert('User đang ở trạng thái chờ xác thực, không hỗ trợ toggle tại đây.');
+        toast.error("User đang chờ xác thực, không thể thay đổi trạng thái.");
         return;
       }
 
       await fetchUsers(); // refresh list
     } catch (err) {
-      console.error('toggle status error:', err);
-      alert('Thay đổi trạng thái thất bại (kiểm tra quyền ADMIN / token).');
+      console.error("toggle status error:", err);
+      toast.error("Thay đổi trạng thái thất bại.");
     }
   };
 
   const roleBadgeClass = useMemo(
     () => (role: string) =>
-      role === 'RECRUITER'
-        ? 'bg-purple-100 text-purple-700'
-        : role === 'ADMIN'
-        ? 'bg-amber-100 text-amber-800'
-        : 'bg-blue-100 text-blue-700',
-    []
+      role === "RECRUITER"
+        ? "bg-purple-100 text-purple-700"
+        : role === "ADMIN"
+          ? "bg-amber-100 text-amber-800"
+          : "bg-blue-100 text-blue-700",
+    [],
   );
 
   const statusBadgeClass = useMemo(
     () => (status: UserStatus) =>
-      status === 'ACTIVE'
-        ? 'bg-green-100 text-green-700'
-        : status === 'PENDING_VERIFICATION'
-        ? 'bg-yellow-100 text-yellow-800'
-        : 'bg-red-100 text-red-700',
-    []
+      status === "ACTIVE"
+        ? "bg-green-100 text-green-700"
+        : status === "PENDING_VERIFICATION"
+          ? "bg-yellow-100 text-yellow-800"
+          : "bg-red-100 text-red-700",
+    [],
   );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Quản lý người dùng</h1>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Quản lý người dùng
+          </h1>
           <p className="text-sm text-gray-500">
             Tổng: <span className="font-medium">{totalElements}</span>
           </p>
@@ -176,11 +191,21 @@ export default function UserManagementPage() {
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Người dùng</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Vai trò</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Trạng thái</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Ngày tham gia</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500 text-right">Hành động</th>
+                <th className="px-6 py-4 text-sm font-medium text-gray-500">
+                  Người dùng
+                </th>
+                <th className="px-6 py-4 text-sm font-medium text-gray-500">
+                  Vai trò
+                </th>
+                <th className="px-6 py-4 text-sm font-medium text-gray-500">
+                  Trạng thái
+                </th>
+                <th className="px-6 py-4 text-sm font-medium text-gray-500">
+                  Ngày tham gia
+                </th>
+                <th className="px-6 py-4 text-sm font-medium text-gray-500 text-right">
+                  Hành động
+                </th>
               </tr>
             </thead>
 
@@ -189,35 +214,49 @@ export default function UserManagementPage() {
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div>
-                      <p className="font-medium text-gray-900">{user.fullName}</p>
+                      <p className="font-medium text-gray-900">
+                        {user.fullName}
+                      </p>
                       <p className="text-sm text-gray-500">{user.email}</p>
                     </div>
                   </td>
 
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${roleBadgeClass(user.userRole)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-semibold ${roleBadgeClass(user.userRole)}`}
+                    >
                       {user.userRole}
                     </span>
                   </td>
 
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusBadgeClass(user.status)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-semibold ${statusBadgeClass(user.status)}`}
+                    >
                       {statusLabel(user.status)}
                     </span>
                   </td>
 
-                  <td className="px-6 py-4 text-sm text-gray-500">{formatDate(user.createdAt)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {formatDate(user.createdAt)}
+                  </td>
 
                   <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => handleToggleStatus(user)}
                       className="p-2 hover:bg-gray-200 rounded-full transition text-gray-500 disabled:opacity-50"
-                      title={user.status === 'ACTIVE' ? 'Khóa tài khoản' : user.status === 'BANNED' ? 'Mở khóa' : 'Không hỗ trợ'}
-                      disabled={user.userRole === 'ADMIN'} // tránh khóa admin từ UI
+                      title={
+                        user.status === "ACTIVE"
+                          ? "Khóa tài khoản"
+                          : user.status === "BANNED"
+                            ? "Mở khóa"
+                            : "Không hỗ trợ"
+                      }
+                      disabled={user.userRole === "ADMIN"} // tránh khóa admin từ UI
                     >
-                      {user.status === 'ACTIVE' ? (
+                      {user.status === "ACTIVE" ? (
                         <Lock className="w-4 h-4" />
-                      ) : user.status === 'BANNED' ? (
+                      ) : user.status === "BANNED" ? (
                         <Unlock className="w-4 h-4 text-green-600" />
                       ) : (
                         <Lock className="w-4 h-4 opacity-40" />
@@ -229,7 +268,10 @@ export default function UserManagementPage() {
 
               {!loading && users.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
                     Không có người dùng nào.
                   </td>
                 </tr>
@@ -240,8 +282,11 @@ export default function UserManagementPage() {
 
         <div className="flex items-center justify-between px-6 py-4 border-t bg-white">
           <div className="text-sm text-gray-500">
-            Trang <span className="font-medium">{totalPages === 0 ? 0 : page + 1}</span> /{' '}
-            <span className="font-medium">{totalPages}</span>
+            Trang{" "}
+            <span className="font-medium">
+              {totalPages === 0 ? 0 : page + 1}
+            </span>{" "}
+            / <span className="font-medium">{totalPages}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -262,7 +307,9 @@ export default function UserManagementPage() {
           </div>
         </div>
 
-        {loading && <div className="px-6 py-3 text-center text-gray-500">Đang tải...</div>}
+        {loading && (
+          <div className="px-6 py-3 text-center text-gray-500">Đang tải...</div>
+        )}
       </div>
     </div>
   );

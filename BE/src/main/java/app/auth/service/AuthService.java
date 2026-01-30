@@ -25,7 +25,6 @@ import app.auth.repository.PasswordResetTokenRepository;
 import app.auth.repository.UserRepository;
 import app.auth.security.JwtTokenProvider;
 import app.service.CloudinaryService;
-import app.admin.service.SystemSettingService;
 import app.exception.MaintenanceModeException;
 
 
@@ -222,7 +221,7 @@ public class AuthService {
                 user.setGoogleId(googleId);
                 user.setAuthProvider(AuthProvider.GOOGLE);
             }
-            if (pictureUrl != null) {
+            if ((user.getProfileImageUrl() == null || user.getProfileImageUrl().isEmpty()) && pictureUrl != null) {
                 user.setProfileImageUrl(pictureUrl);
             }
             if (user.getStatus() != UserStatus.ACTIVE) {
