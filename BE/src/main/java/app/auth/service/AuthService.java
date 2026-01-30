@@ -233,6 +233,10 @@ public class AuthService {
             userRepository.save(user);
         }
 
+            if (user.getStatus() != UserStatus.ACTIVE) {
+                throw new UnauthorizedException("Tài khoản đã bị khóa hoặc chưa được kích hoạt");
+            }
+
         // ✅ CHẶN NON-ADMIN KHI BẢO TRÌ
         if (systemSettingService.isMaintenanceEnabled()
             && user.getUserRole() != UserRole.ADMIN) {
