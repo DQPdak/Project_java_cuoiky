@@ -37,6 +37,7 @@ export default function UserMenu() {
 
   // Check VIP
   const isVip = user.userRole?.includes("_VIP");
+  const isAdmin = user.userRole === "ADMIN"; // Biến tiện ích kiểm tra admin
 
   return (
     <div className="relative" ref={menuRef}>
@@ -98,19 +99,22 @@ export default function UserMenu() {
           </div>
 
           <div className="p-2 space-y-1">
-            <Link
-              href="/vip-upgrade"
-              className={`flex items-center justify-center px-4 py-2 rounded-md text-sm font-bold transition-all mb-2 ${
-                isVip
-                  ? "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
-                  : "bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md hover:shadow-lg hover:scale-[1.02]"
-              }`}
-              onClick={() => setIsOpen(false)}
-            >
-              {isVip ? "✨ Gia hạn VIP" : "👑 Nâng cấp VIP"}
-            </Link>
+            {/* Chỉ hiển thị nút nâng cấp VIP nếu KHÔNG phải là ADMIN */}
+            {!isAdmin && (
+              <Link
+                href="/vip-upgrade"
+                className={`flex items-center justify-center px-4 py-2 rounded-md text-sm font-bold transition-all mb-2 ${
+                  isVip
+                    ? "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
+                    : "bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md hover:shadow-lg hover:scale-[1.02]"
+                }`}
+                onClick={() => setIsOpen(false)}
+              >
+                {isVip ? "✨ Gia hạn VIP" : "👑 Nâng cấp VIP"}
+              </Link>
+            )}
 
-            {user.userRole !== "ADMIN" && (
+            {!isAdmin && (
               <Link
                 href="/profile"
                 className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
@@ -120,7 +124,7 @@ export default function UserMenu() {
               </Link>
             )}
 
-            {user.userRole !== "ADMIN" && (
+            {!isAdmin && (
               <Link
                 href={
                   user.userRole.includes("RECRUITER")
@@ -131,6 +135,17 @@ export default function UserMenu() {
                 onClick={() => setIsOpen(false)}
               >
                 📊 Dashboard
+              </Link>
+            )}
+
+            {/* Nếu là Admin thì có thể thêm link dashboard Admin */}
+            {isAdmin && (
+              <Link
+                href="/admin/dashboard"
+                className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                onClick={() => setIsOpen(false)}
+              >
+                🛡️ Admin Dashboard
               </Link>
             )}
           </div>

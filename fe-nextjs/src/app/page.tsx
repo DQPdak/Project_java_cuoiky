@@ -20,7 +20,7 @@ export default function LandingPage() {
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     const elements = document.querySelectorAll(".animate-on-scroll");
@@ -172,12 +172,7 @@ export default function LandingPage() {
               className="max-w-full drop-shadow-2xl animate-[float_3s_ease-in-out_infinite]"
             >
               <circle cx="250" cy="200" r="150" fill="rgba(255,255,255,0.1)" />
-              <circle
-                cx="250"
-                cy="200"
-                r="120"
-                fill="rgba(255,255,255,0.15)"
-              />
+              <circle cx="250" cy="200" r="120" fill="rgba(255,255,255,0.15)" />
               <rect
                 x="150"
                 y="120"
@@ -301,9 +296,7 @@ export default function LandingPage() {
                 <h3 className="text-xl font-bold text-slate-800 mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-slate-500 leading-relaxed">
-                  {feature.desc}
-                </p>
+                <p className="text-slate-500 leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -317,9 +310,7 @@ export default function LandingPage() {
             <h2 className="text-4xl font-bold text-slate-800 mb-4">
               Cách hoạt động
             </h2>
-            <p className="text-xl text-slate-500">
-              4 bước đơn giản để bắt đầu
-            </p>
+            <p className="text-xl text-slate-500">4 bước đơn giản để bắt đầu</p>
           </div>
 
           <div className="grid md:grid-cols-4 gap-8">
@@ -377,9 +368,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-8 items-start">
             {/* 1. Gói Cơ bản (Free) */}
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 animate-on-scroll opacity-0 translate-y-10 transition-all duration-700">
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                Cơ bản
-              </h3>
+              <h3 className="text-2xl font-bold text-slate-800 mb-2">Cơ bản</h3>
               <div className="text-4xl font-bold text-slate-600 mb-1">0₫</div>
               <p className="text-slate-400 mb-6">Mãi mãi miễn phí</p>
               <div className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-4">
@@ -417,17 +406,18 @@ export default function LandingPage() {
                 200K
               </div>
               <p className="text-slate-400 mb-6">/ 30 ngày</p>
-              
+
               <ul className="space-y-4 mb-8 text-slate-600 text-sm">
                 {[
                   "AI Phân tích & Chấm điểm CV chi tiết",
                   "Phỏng vấn thử 1-1 với AI (Mock Interview)",
                   "Huy hiệu Ứng viên Tài năng (VIP)",
-                  "Ưu tiên hiển thị với nhà tuyển dụng",
-                  "Mở khóa toàn bộ tính năng AI",
                 ].map((feat, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-indigo-500 font-bold text-lg leading-none">✓</span> {feat}
+                    <span className="text-indigo-500 font-bold text-lg leading-none">
+                      ✓
+                    </span>{" "}
+                    {feat}
                   </li>
                 ))}
               </ul>
@@ -452,12 +442,7 @@ export default function LandingPage() {
                 Dành cho Nhà tuyển dụng
               </div>
               <ul className="space-y-4 mb-8 text-slate-500 text-sm">
-                {[
-                  "Phân tích hồ sơ ứng viên bằng AI",
-                  "Đăng tin tuyển dụng nổi bật",
-                  "Tìm kiếm ứng viên tiềm năng",
-                  "Quản lý quy trình tuyển dụng",
-                ].map((feat, i) => (
+                {["Phân tích hồ sơ ứng viên bằng AI"].map((feat, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-orange-500 font-bold">✓</span> {feat}
                   </li>
@@ -505,15 +490,18 @@ export default function LandingPage() {
           <div>
             <h4 className="text-white font-bold text-lg mb-6">Sản phẩm</h4>
             <ul className="space-y-3">
-              {["Phân tích CV", "AI Career Coach", "Sàn việc làm", "Khóa học"].map(
-                (item) => (
-                  <li key={item}>
-                    <a href="#" className="hover:text-white transition">
-                      {item}
-                    </a>
-                  </li>
-                )
-              )}
+              {[
+                "Phân tích CV",
+                "AI Career Coach",
+                "Sàn việc làm",
+                "Khóa học",
+              ].map((item) => (
+                <li key={item}>
+                  <a href="#" className="hover:text-white transition">
+                    {item}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
