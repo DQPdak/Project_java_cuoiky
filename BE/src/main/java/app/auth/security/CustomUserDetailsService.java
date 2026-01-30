@@ -2,8 +2,11 @@ package app.auth.security;
 
 import app.auth.model.User;
 import app.auth.model.enums.UserRole;
+import app.auth.model.enums.UserStatus;
 import app.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -39,6 +42,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                     // Log error nếu cần, giữ nguyên role nếu không map được
                 }
             }
+        }
+        // --- Nếu user bị khoá, ném exception ---
+        if (user.getStatus() == UserStatus.BANNED) {
+            throw new DisabledException("Tài khoản đã bị khoá.");
         }
         // ----------------------------------
 

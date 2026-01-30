@@ -5,7 +5,6 @@ import app.gamification.repository.LeaderboardScoreRepository;
 import app.gamification.dto.response.LeaderboardEntryResponse;
 import app.gamification.dto.response.LeaderboardMeResponse;
 import app.gamification.model.LeaderboardPointsLog;
-import app.gamification.model.LeaderboardScore;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -2,7 +2,6 @@ package app.admin.controller;
 
 import app.admin.dto.request.RejectJobPostingRequest;
 import app.admin.service.AdminContentService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
@@ -33,17 +32,21 @@ public class AdminContentController {
 
     @PutMapping("/posts/{id}/approve")
     public ResponseEntity<?> approve(@PathVariable Long id, Authentication auth) {
-        Long adminId = 1L; // TODO: lấy từ principal/JWT
+        Long adminId = 1L; 
         adminContentService.approve(id, adminId);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/posts/{id}/reject")
-    public ResponseEntity<?> reject(@PathVariable Long id,
-                                   @Valid @RequestBody RejectJobPostingRequest req,
-                                   Authentication auth) {
-        Long adminId = 1L; // TODO: lấy từ principal/JWT
-        adminContentService.reject(id, adminId, req.reason());
+    public ResponseEntity<?> reject(
+            @PathVariable Long id,
+            @RequestBody(required = false) RejectJobPostingRequest req,
+            Authentication auth
+    ) {
+        Long adminId = 1L; 
+        String reason = (req != null) ? req.reason() : null; // có cũng được, không có cũng ok
+        adminContentService.reject(id, adminId, reason);
         return ResponseEntity.ok().build();
     }
+
 }
