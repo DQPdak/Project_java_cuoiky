@@ -3,6 +3,7 @@ package app.gamification.controller;
 import app.gamification.service.LeaderboardService;
 import app.gamification.dto.response.LeaderboardEntryResponse;
 import app.gamification.dto.response.LeaderboardMeResponse;
+import app.gamification.dto.response.LeaderboardLogResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -64,5 +65,11 @@ public class LeaderboardController {
         res.put("data", data); // có thể null nếu user chưa có điểm
         res.put("meta", Map.of("role", role, "period", period, "periodKey", periodKey));
         return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/logs")
+        public ResponseEntity<?> logs(@RequestParam(defaultValue = "5") int limit) {
+        List<LeaderboardLogResponse> data = leaderboardService.getRecentLogs(limit);
+        return ResponseEntity.ok(Map.of("success", true, "data", data));
     }
 }
