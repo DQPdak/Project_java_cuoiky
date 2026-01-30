@@ -10,4 +10,5 @@ public class GeminiResponse {
     private ContactDTO contact;
     private List<ExperienceDTO> experiences;
     private List<String> skills;
+    private String aboutMe;
 }

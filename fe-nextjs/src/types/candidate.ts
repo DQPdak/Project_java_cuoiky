@@ -1,16 +1,30 @@
 export interface Experience {
+  // Các trường cho hiển thị Profile (Khớp với ExperienceDTO của BE)
+  company?: string;
+  role?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+
+  // Các trường dự phòng cho AI (nếu dùng chung)
   totalYears?: number;
   level?: string;
-  companies?: string[]; // Tuỳ chỉnh theo dữ liệu thực tế AI trả về
+  companies?: string[];
 }
 
 export interface CandidateProfile {
-  websiteUrl: string;
   id: number;
+  // 4 trường mới thêm để fix lỗi
+  userFullName?: string;
+  fullName?: string;
+  email?: string;
+  avatarUrl?: string;
+
+  websiteUrl?: string;
   cvFilePath?: string;
   skills: string[];
   experiences: Experience[];
-  educations?: any[]; // Có thể định nghĩa chi tiết sau
+  educations?: any[];
   aboutMe?: string;
   phoneNumber?: string;
   address?: string;

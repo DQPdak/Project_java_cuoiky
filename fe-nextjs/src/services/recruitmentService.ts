@@ -6,7 +6,6 @@ import {
   CandidateApplication,
   ApplicationStatus,
   AIAnalysisDetail,
-  CandidateSearchResult,
   CompanyProfile, // Nhớ import thêm interface này
 } from "@/types/recruitment";
 
@@ -97,13 +96,6 @@ export const recruitmentService = {
     return res.data.data || res.data;
   },
 
-  // Endpoint: /recruitment/search/match-description (Candidate Search)
-  searchCandidates: async (query: string): Promise<CandidateSearchResult[]> => {
-    const res = await api.post("/recruitment/search/match-description", query, {
-      headers: { "Content-Type": "text/plain" },
-    });
-    return res.data.data;
-  },
 
   // ==========================================
   // 5. NHÓM PUBLIC / CANDIDATE (XEM JOB)
@@ -111,9 +103,9 @@ export const recruitmentService = {
 
   // Xem chi tiết Job (Public - không cần login hoặc Candidate)
   getJobDetail: async (id: number): Promise<JobPosting> => {
-    // API Public trong SecurityConfig: /api/recruiter/jobs/public/**
-    const res = await api.get(`/recruiter/jobs/public/${id}`);
-    return res.data;
+
+      const response = await api.get(`/recruiter/jobs/public/${id}`); 
+      return response.data;
   },
 
   // Kiểm tra trạng thái ứng tuyển của Candidate với Job này
@@ -130,6 +122,22 @@ export const recruitmentService = {
   getMyApplications: async (): Promise<any[]> => {
     const res = await api.get("/applications/me");
     return res.data.data || res.data;
+  },
+
+  // ==========================================
+  // 6. NHÓM UPLOAD (Thêm mới)
+  // ==========================================
+  uploadImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await api.post("/recruiter/company/upload-image", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    // Server trả về Map<String, String> -> { "url": "..." }
+    return res.data.url;
   },
 };
 

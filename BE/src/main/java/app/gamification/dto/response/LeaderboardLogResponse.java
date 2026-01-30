@@ -2,7 +2,6 @@ package app.gamification.dto.response;
 
 import java.time.Instant;
 
-
 public interface LeaderboardLogResponse {
   Long getUserId();
   String getFullName();

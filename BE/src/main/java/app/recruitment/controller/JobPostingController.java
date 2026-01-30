@@ -76,9 +76,7 @@ public class JobPostingController {
     }
     @GetMapping("/public/{id}")
     public ResponseEntity<JobPostingResponse> getJobDetailPublic(@PathVariable Long id) {
-        JobPosting jobPosting = jobPostingService.getById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Job not found: " + id));
-        return ResponseEntity.ok(mapper.toJobPostingResponse(jobPosting));
+        return ResponseEntity.ok(jobPostingService.getJobDetailPublic(id));
     }
-    
+
 }
