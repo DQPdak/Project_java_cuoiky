@@ -67,4 +67,20 @@ public class CloudinaryService {
             throw new RuntimeException("Lỗi upload avatar lên Cloudinary: " + e.getMessage());
         }
     }
+
+    public String uploadCompanyImage(MultipartFile file) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(
+                file.getBytes(),
+                ObjectUtils.asMap(
+                    "resource_type", "image",
+                    "folder", "phantichcv/company" // Lưu vào folder riêng
+                )
+            );
+            return uploadResult.get("secure_url").toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi upload ảnh công ty: " + e.getMessage());
+        }
+    }
 }
