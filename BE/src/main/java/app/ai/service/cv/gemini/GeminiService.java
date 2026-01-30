@@ -28,6 +28,10 @@ public class GeminiService {
      * CHỨC NĂNG 1: Phân tích CV (Raw Text -> JSON Profile)
      */
     public GeminiResponse parseCV(String rawText) {
+        // [DEBUG LOG 1] Kiểm tra text đầu vào
+        log.info("=== START PARSING CV ===");
+        log.info("Raw Text Length: {}", rawText != null ? rawText.length() : 0);
+
         String prompt = """
               Bạn là một trợ lý nhân sự chuyên nghiệp (HR Assistant).
               Nhiệm vụ: Trích xuất thông tin từ văn bản CV dưới đây thành JSON hợp lệ.
@@ -36,34 +40,35 @@ public class GeminiService {
               %s
 
               YÊU CẦU:
-              - Chỉ trả về JSON hợp lệ, không thêm lời chào, không thêm Markdown, không giải thích.
-              - JSON phải theo đúng cấu trúc sau:
+              - Chỉ trả về JSON hợp lệ, không thêm lời chào, không thêm Markdown.
+              - JSON phải theo đúng cấu trúc sau (Chú ý dấu phẩy và ngoặc):
 
               {
                 "contact": {
                   "name": "Họ tên đầy đủ",
                   "email": "Email",
                   "phoneNumber": "Số điện thoại",
-                  "address": "Địa chỉ (nếu có)",
-                  "linkedIn": "Link LinkedIn (nếu có)"
+                  "address": "Địa chỉ",
+                  "linkedIn": "Link LinkedIn"
                 },
-                "skills": ["Kỹ năng A", "Kỹ năng B", ...],
+                "skills": ["Kỹ năng A", "Kỹ năng B"],
                 "experiences": [
                   {
                     "company": "Tên công ty",
                     "role": "Vị trí",
-                    "startDate": "dd/MM/yyyy hoặc MM/yyyy",
-                    "endDate": "dd/MM/yyyy hoặc Present",
-                    "description": "Mô tả công việc"
+                    "startDate": "Time bắt đầu",
+                    "endDate": "Time kết thúc",
+                    "description": "Mô tả"
                   }
-                ]
+                ],
+                "aboutMe": "Trích xuất đoạn giới thiệu/Summary/About Me/Profile/Objective. Nếu không có mục riêng, hãy tự tóm tắt ngắn gọn năng lực ứng viên."
               }
-              **LƯU Ý QUAN TRONG CHỈ TRẢ VỀ DỮ LIỆU JSON NGHIÊM CẤM CÁC DỮ LIỆU KHÁC
               """.formatted(rawText);
 
-
         return parseResponse(prompt, GeminiResponse.class, TEMP_STRICT);
-    }
+    };
+
+
 
     /**
      * CHỨC NĂNG 2: Tách Skill từ Job Description
@@ -191,5 +196,25 @@ public class GeminiService {
             log.error("Lỗi parse dữ liệu AI: ", e);
             throw new RuntimeException("AI Error: " + e.getMessage());
         }
+    }
+
+    /**
+     * [MỚI] CHỨC NĂNG: OCR thông minh (Ảnh -> Text có cấu trúc)
+     * Dùng để xử lý CV dạng ảnh (PNG, JPG)
+     */
+    public String convertImageToText(byte[] imageBytes, String mimeType) {
+        String prompt = """
+                Bạn là một công cụ OCR chuyên dụng cho CV (Hồ sơ xin việc).
+                Nhiệm vụ: Trích xuất TOÀN BỘ chữ trong hình ảnh này.
+                
+                YÊU CẦU QUAN TRỌNG:
+                1. Giữ nguyên cấu trúc phân đoạn (Header, Kinh nghiệm, Kỹ năng, Học vấn).
+                2. Không tóm tắt, phải lấy chi tiết từng gạch đầu dòng.
+                3. Chỉ trả về văn bản thô (Plain Text), không thêm Markdown (```), không thêm lời dẫn.
+                4. Nếu ảnh mờ hoặc không phải CV, hãy cố gắng đọc hết mức có thể.
+                """;
+        
+        // Dùng nhiệt độ thấp để OCR chính xác nhất
+        return geminiApiClient.generateContentWithImage(prompt, imageBytes, mimeType, 0.1f);
     }
 }

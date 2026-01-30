@@ -3,7 +3,6 @@ package app.admin.service;
 import app.admin.dto.response.RecentActivityResponse;
 import app.admin.repository.RecentActivityRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;

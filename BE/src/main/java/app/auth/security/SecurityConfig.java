@@ -132,7 +132,7 @@ public class SecurityConfig {
                 // 7. API THỬ NGHIỆM / DEBUG (Khóa chặt)
                 // ======================================================
                 // Chỉ Admin mới được gọi test Gemini hoặc các API test khác
-                .requestMatchers("/api/gemini/test/**", "/api/test/**").hasAuthority("ADMIN")
+                .requestMatchers("/api/gemini/test/**", "/api/test/**").hasAnyAuthority("ADMIN", "RECRUITER_VIP", "CANDIDATE_VIP")
 
                 // ======================================================
                 // 8. MẶC ĐỊNH
@@ -177,7 +177,7 @@ public class SecurityConfig {
             "http://localhost:5173", // Vite
             "http://localhost:8081"  // Khác
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH",  "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
