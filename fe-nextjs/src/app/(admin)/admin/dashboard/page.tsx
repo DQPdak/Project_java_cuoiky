@@ -75,6 +75,44 @@ type PageLike<T> = {
   size?: number;
 };
 
+type LeaderboardEntry = {
+  userId: number;
+  fullName: string;
+  score: number;
+  rank: number;
+};
+
+type LeaderboardLog = {
+  userId: number;
+  fullName: string;
+  role: string;
+  actionType: string;
+  points: number;
+  refId?: number | null;
+  createdAt: string; // ISO
+};
+
+function timeAgoVi(iso?: string) {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '';
+  const diff = Date.now() - t;
+
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return `${sec} giây trước`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} phút trước`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} giờ trước`;
+  const d = Math.floor(h / 24);
+  return `${d} ngày trước`;
+}
+
+function actionLabel(actionType: string) {
+  // bạn muốn đẹp hơn thì map tại đây
+  return actionType;
+}
+
 function normalizePage<T>(raw: any): PageLike<T> {
   const data = raw?.data ?? raw;
   if (Array.isArray(data)) return { content: data };
@@ -97,7 +135,15 @@ export default function AdminDashboard() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [chartData, setChartData] = useState<ApplicationsByDay[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [pointsLogs, setPointsLogs] = useState<LeaderboardLog[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Leaderboard + logs
+  const [lbPeriod, setLbPeriod] = useState<'WEEK' | 'MONTH' | 'YEAR'>('WEEK');
+  const [lbRole, setLbRole] = useState<'CANDIDATE' | 'RECRUITER'>('CANDIDATE');
+  const [lbLoading, setLbLoading] = useState(false);
+  const [logLoading, setLogLoading] = useState(false);
 
   // Quick action count
   const [pendingPostsCount, setPendingPostsCount] = useState(0);
@@ -108,6 +154,8 @@ export default function AdminDashboard() {
   // Violation reports
   const [pendingReportsCount, setPendingReportsCount] = useState(0);
   const [reportsModalOpen, setReportsModalOpen] = useState(false);
+
+
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -127,14 +175,49 @@ export default function AdminDashboard() {
 
       const pendingPage = normalizePage<JobPostingResponse>(pendingRes.data);
       setPendingPostsCount(pendingPage.totalElements ?? 0);
+
+      // ✅ thêm 2 call mới
+      await Promise.all([fetchLeaderboard(), fetchPointLogs()]);
+
     } catch (err) {
       console.error('Lỗi tải dữ liệu Dashboard:', err);
       setSummary(null);
       setChartData([]);
       setRecentActivities([]);
       setPendingPostsCount(0);
+      setLeaderboard([]);
+      setPointsLogs([]);
+
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLeaderboard = async (period = lbPeriod, role = lbRole) => {
+    setLbLoading(true);
+    try {
+      const res = await api.get('/admin/leaderboard', {
+        params: { role, period, limit: 10 },
+      });
+      setLeaderboard(res.data?.data ?? []);
+    } catch (e) {
+      console.error('Lỗi tải leaderboard:', e);
+      setLeaderboard([]);
+    } finally {
+      setLbLoading(false);
+    }
+  };
+
+  const fetchPointLogs = async () => {
+    setLogLoading(true);
+    try {
+      const res = await api.get('/admin/leaderboard/logs', { params: { limit: 5 } });
+      setPointsLogs(res.data?.data ?? []);
+    } catch (e) {
+      console.error('Lỗi tải logs:', e);
+      setPointsLogs([]);
+    } finally {
+      setLogLoading(false);
     }
   };
 
@@ -142,6 +225,12 @@ export default function AdminDashboard() {
     fetchDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!loading) fetchLeaderboard(lbPeriod, lbRole);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lbPeriod, lbRole]);
+
 
   if (loading) {
     return (
@@ -200,6 +289,158 @@ export default function AdminDashboard() {
           trend="7 ngày gần đây"
           color="bg-orange-50"
         />
+      </div>
+
+      {/* Leaderboard + Points Log */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Leaderboard */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800">Bảng xếp hạng (Top 10)</h3>
+            <button
+              type="button"
+              onClick={() => fetchLeaderboard()}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Tải lại
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            {/* Role switch */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLbRole('CANDIDATE')}
+                className={`px-3 py-1.5 rounded-lg text-sm border ${
+                  lbRole === 'CANDIDATE'
+                    ? 'bg-blue-50 text-blue-700 border-blue-100'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Ứng viên
+              </button>
+              <button
+                type="button"
+                onClick={() => setLbRole('RECRUITER')}
+                className={`px-3 py-1.5 rounded-lg text-sm border ${
+                  lbRole === 'RECRUITER'
+                    ? 'bg-blue-50 text-blue-700 border-blue-100'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Nhà tuyển dụng
+              </button>
+            </div>
+
+            {/* Period tabs */}
+            <div className="flex items-center gap-2">
+              {(['WEEK', 'MONTH', 'YEAR'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setLbPeriod(p)}
+                  className={`px-3 py-1.5 rounded-lg text-sm border ${
+                    lbPeriod === p
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {p === 'WEEK' ? 'Tuần' : p === 'MONTH' ? 'Tháng' : 'Năm'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-[260px]">
+            {lbLoading ? (
+              <div className="text-sm text-gray-500">Đang tải bảng xếp hạng...</div>
+            ) : leaderboard.length === 0 ? (
+              <div className="text-sm text-gray-500">Chưa có dữ liệu bảng xếp hạng.</div>
+            ) : (
+              <div className="space-y-3">
+                {leaderboard.map((x) => (
+                  <div
+                    key={`${x.userId}-${x.rank}`}
+                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                        {x.rank}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">{x.fullName}</div>
+                        <div className="text-xs text-gray-500">UserID: {x.userId}</div>
+                      </div>
+                    </div>
+                    <div className="text-sm font-bold text-gray-900">{x.score} điểm</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="w-full text-center text-sm text-blue-600 font-medium mt-4 hover:underline pt-4 border-t border-gray-100"
+            onClick={() => router.push('/admin/leaderboard')}
+          >
+            Xem tất cả bảng xếp hạng
+          </button>
+        </div>
+
+        {/* Points Logs */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800">Điểm gần đây</h3>
+            <button
+              type="button"
+              onClick={fetchPointLogs}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Tải lại
+            </button>
+          </div>
+
+          <div className="flex-1 min-h-[260px]">
+            {logLoading ? (
+              <div className="text-sm text-gray-500">Đang tải lịch sử cộng điểm...</div>
+            ) : pointsLogs.length === 0 ? (
+              <div className="text-sm text-gray-500">Chưa có log cộng điểm.</div>
+            ) : (
+              <div className="space-y-4">
+                {pointsLogs.map((l, idx) => (
+                  <div
+                    key={`${l.userId}-${l.createdAt}-${idx}`}
+                    className="flex items-start gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0"
+                  >
+                    <div className="w-2 h-2 mt-2 rounded-full bg-blue-500" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-gray-800 font-medium break-words">
+                        {l.fullName}{' '}
+                        <span className="font-bold text-gray-900">
+                          +{l.points}
+                        </span>{' '}
+                        ({actionLabel(l.actionType)})
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {timeAgoVi(l.createdAt)} • {l.role}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="w-full text-center text-sm text-blue-600 font-medium mt-4 hover:underline pt-4 border-t border-gray-100"
+            onClick={() => router.push('/admin/leaderboard/logs')}
+          >
+            Xem tất cả log cộng điểm
+          </button>
+        </div>
       </div>
 
       {/* Charts + Activity */}

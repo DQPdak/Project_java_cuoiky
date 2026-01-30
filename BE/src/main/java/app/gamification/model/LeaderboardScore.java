@@ -2,6 +2,7 @@ package app.gamification.model;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(
@@ -38,8 +39,9 @@ public class LeaderboardScore {
     @Column(name="score", nullable=false)
     private Integer score = 0;
 
+    @UpdateTimestamp
     @Column(name="updated_at", nullable=false)
-    private OffsetDateTime updatedAt = OffsetDateTime.now();
+    private OffsetDateTime updatedAt;
 
     // getters/setters
     public Long getId() { return id; }

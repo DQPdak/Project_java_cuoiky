@@ -2,6 +2,7 @@ package app.gamification.model;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(
@@ -34,8 +35,9 @@ public class LeaderboardPointsLog {
     @Column(name = "ref_id")
     private Long refId;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt = OffsetDateTime.now();
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
     // getters/setters
     public Long getId() { return id; }
