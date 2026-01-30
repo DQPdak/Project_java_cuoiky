@@ -59,11 +59,7 @@ public class TestGeminiController {
             return ResponseEntity.badRequest().body("Lỗi tách chữ: " + e.getMessage());
         }
 }
-/**
-     * [MỚI] API Test chức năng đọc ảnh CV
-     * Upload file ảnh (JPG, PNG) -> Trả về Text
-     */
-    @PostMapping("/ocr-image")
+@PostMapping("/ocr-image")
     public ResponseEntity<String> testOcrImage(@RequestParam("file") MultipartFile file) {
         try {
             // Kiểm tra định dạng ảnh

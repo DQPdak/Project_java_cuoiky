@@ -1,17 +1,12 @@
-//
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  Building,
-  MapPin,
-  Globe,
-  Users,
   Edit,
   Save,
   X,
-  Upload,
   Camera,
+  Loader2,
 } from "lucide-react";
 import { recruitmentService } from "@/services/recruitmentService";
 import { CompanyProfile } from "@/types/recruitment";
@@ -20,8 +15,13 @@ import { toast } from "react-hot-toast";
 export default function CompanyPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false); // State loading khi upload
   const [companyData, setCompanyData] = useState<CompanyProfile | null>(null);
   const [editData, setEditData] = useState<CompanyProfile | null>(null);
+
+  // Ref để kích hoạt input file ẩn
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchCompanyData();
@@ -31,7 +31,7 @@ export default function CompanyPage() {
     try {
       setLoading(true);
       const data = await recruitmentService.getMyCompany();
-      // Khởi tạo giá trị mặc định nếu server trả về null hoặc thiếu trường
+      // Khởi tạo giá trị mặc định để tránh lỗi null
       const formattedData: CompanyProfile = {
         ...data,
         name: data?.name || "",
@@ -60,6 +60,38 @@ export default function CompanyPage() {
     }
   };
 
+  // --- HÀM XỬ LÝ UPLOAD ẢNH ---
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "logoUrl" | "coverImageUrl"
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !editData) return;
+
+    // Validate kích thước (ví dụ 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File ảnh quá lớn (Max 5MB)");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      // Gọi API upload
+      const url = await recruitmentService.uploadImage(file);
+      
+      // Cập nhật URL trả về vào state editData để hiển thị ngay
+      setEditData({ ...editData, [field]: url });
+      toast.success("Upload ảnh thành công!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi upload ảnh");
+    } finally {
+      setUploading(false);
+      // Reset input để người dùng có thể chọn lại cùng 1 file nếu muốn
+      e.target.value = "";
+    }
+  };
+
   if (loading)
     return <div className="p-8 text-center">Đang tải thông tin...</div>;
   if (!editData)
@@ -67,6 +99,22 @@ export default function CompanyPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-4">
+      {/* Input File Ẩn cho Cover và Logo */}
+      <input
+        type="file"
+        ref={coverInputRef}
+        hidden
+        accept="image/*"
+        onChange={(e) => handleFileUpload(e, "coverImageUrl")}
+      />
+      <input
+        type="file"
+        ref={logoInputRef}
+        hidden
+        accept="image/*"
+        onChange={(e) => handleFileUpload(e, "logoUrl")}
+      />
+
       {/* Header & Buttons */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -86,16 +134,19 @@ export default function CompanyPage() {
           <div className="flex gap-2">
             <button
               onClick={handleSave}
-              className="flex items-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+              disabled={uploading}
+              className="flex items-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
             >
-              <Save className="w-4 h-4 mr-2" /> Lưu thay đổi
+              {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Save className="w-4 h-4 mr-2" />}
+              Lưu thay đổi
             </button>
             <button
               onClick={() => {
                 setEditData(companyData);
                 setIsEditing(false);
               }}
-              className="flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
+              disabled={uploading}
+              className="flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
             >
               <X className="w-4 h-4 mr-2" /> Hủy
             </button>
@@ -105,28 +156,44 @@ export default function CompanyPage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Cover Image */}
-        <div className="relative h-48 bg-gray-200">
+        <div className="relative h-48 bg-gray-200 group">
           <img
             src={editData.coverImageUrl}
             alt="Cover"
             className="w-full h-full object-cover"
           />
           {isEditing && (
-            <div className="absolute top-4 right-4 bg-black/50 p-2 rounded cursor-not-allowed text-white text-xs">
-              Tính năng upload ảnh sẽ cập nhật sau
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+               <button
+                onClick={() => coverInputRef.current?.click()}
+                className="bg-white/20 backdrop-blur-md border border-white/50 text-white px-4 py-2 rounded-full flex items-center hover:bg-white/30 transition"
+              >
+                <Camera className="w-5 h-5 mr-2" />
+                Thay đổi ảnh bìa
+              </button>
             </div>
           )}
         </div>
 
         <div className="p-6">
           <div className="flex items-start gap-6 mb-8">
-            <div className="w-24 h-24 rounded-lg bg-gray-100 border flex-shrink-0">
+            {/* Logo Image */}
+            <div className="relative w-24 h-24 rounded-lg bg-gray-100 border flex-shrink-0 group overflow-hidden">
               <img
                 src={editData.logoUrl}
                 alt="Logo"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain p-1"
               />
+              {isEditing && (
+                <div 
+                    className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    onClick={() => logoInputRef.current?.click()}
+                >
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              )}
             </div>
+
             <div className="flex-1 space-y-4">
               {isEditing ? (
                 <>
@@ -225,6 +292,8 @@ export default function CompanyPage() {
                 ) : (
                   <a
                     href={companyData?.website}
+                    target="_blank"
+                    rel="noreferrer"
                     className="text-blue-600 block mt-1"
                   >
                     {companyData?.website || "Chưa có website"}

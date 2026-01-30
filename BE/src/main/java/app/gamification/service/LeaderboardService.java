@@ -4,6 +4,7 @@ import app.gamification.repository.LeaderboardPointsLogRepository;
 import app.gamification.repository.LeaderboardScoreRepository;
 import app.gamification.dto.response.LeaderboardEntryResponse;
 import app.gamification.dto.response.LeaderboardMeResponse;
+import app.gamification.dto.response.LeaderboardLogResponse;
 import app.gamification.model.LeaderboardPointsLog;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,7 @@ public class LeaderboardService {
         "JOB_POST_APPROVED", 10
     );
 
-    public enum PeriodType { WEEK, MONTH, ALL_TIME }
+    public enum PeriodType { WEEK, MONTH, YEAR, ALL_TIME }
 
     /**
      * Gộp role VIP vào 2 nhóm: CANDIDATE / RECRUITER
@@ -55,6 +56,7 @@ public class LeaderboardService {
         LocalDate now = LocalDate.now(zoneId);
         if (type == PeriodType.ALL_TIME) return "ALL";
         if (type == PeriodType.MONTH) return now.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        if (type == PeriodType.YEAR) return now.format(DateTimeFormatter.ofPattern("yyyy"));
 
         // WEEK: yyyy-'W'ww (ISO week)
         WeekFields wf = WeekFields.ISO;
@@ -102,9 +104,11 @@ public class LeaderboardService {
         // 3) upsert score cho WEEK/MONTH/ALL_TIME
         String weekKey = currentPeriodKey(PeriodType.WEEK, zone);
         String monthKey = currentPeriodKey(PeriodType.MONTH, zone);
+        String yearKey = currentPeriodKey(PeriodType.YEAR, zone);
 
         scoreRepo.upsertAddScore(userId, roleGroup, "WEEK", weekKey, points);
         scoreRepo.upsertAddScore(userId, roleGroup, "MONTH", monthKey, points);
+        scoreRepo.upsertAddScore(userId, roleGroup, "YEAR", yearKey, points);
         scoreRepo.upsertAddScore(userId, roleGroup, "ALL_TIME", "ALL", points);
 
         return true;
@@ -121,4 +125,9 @@ public class LeaderboardService {
         String pType = periodType.toUpperCase(Locale.ROOT);
         return scoreRepo.me(userId, role, pType, periodKey);
     }
+
+    public List<LeaderboardLogResponse> getRecentLogs(int limit) {
+    int safeLimit = Math.max(1, Math.min(limit, 50));
+    return logRepo.recentLogs(safeLimit);
+}
 }
