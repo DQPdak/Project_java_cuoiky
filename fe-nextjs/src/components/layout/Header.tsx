@@ -13,7 +13,6 @@ import {
   Building,
   PlusCircle,
   Shield,
-  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/Authcontext";
 import UserMenu from "@/components/features/auth/UserMenu";
@@ -43,7 +42,6 @@ const RECRUITER_NAV: NavItem[] = [
   { label: "Đăng tin", href: "/recruiter/manage-jobs", icon: PlusCircle },
   { label: "Ứng viên", href: "/applications", icon: Users },
   { label: "Công ty", href: "/recruiter/company", icon: Building },
-  { label: "AI Matching", href: "/recruiter/candidates", icon: Sparkles },
 ];
 
 const ADMIN_NAV: NavItem[] = [
