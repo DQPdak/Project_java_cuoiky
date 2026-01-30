@@ -97,14 +97,16 @@ public class CandidateService {
                         .skills(new ArrayList<>())
                         .experiences(new ArrayList<>())
                         .build());
-
+        // GIỮ LẠI AVATAR CŨ TRƯỚC KHI CẬP NHẬT
+        String currentAvatar = profile.getAvatarUrl();
         // Update dữ liệu từ AI
         updateProfileFromAI(profile, aiResult);
+
+        profile.setAvatarUrl(currentAvatar);
         profile.setCvFilePath(cvOnlineUrl);
 
         // Xóa cache kết quả chấm điểm cũ (vì CV đã thay đổi)
         cvAnalysisResultRepository.deleteByUserId(userId);
-        log.info("Đã xóa cache phân tích cũ của user {} do upload CV mới", userId);
 
         return candidateProfileRepository.save(profile);
     }
@@ -119,7 +121,12 @@ public class CandidateService {
         // Lưu link vào DB
         profile.setAvatarUrl(avatarUrl);
         candidateProfileRepository.save(profile);
+        // 3. ĐỒNG BỘ: Lưu vào User entity để Header/Menu hiển thị đúng
+        User user = profile.getUser();
+        user.setProfileImageUrl(avatarUrl); // Giả định User.java có field avatar
+        userRepository.save(user);
 
+        candidateProfileRepository.save(profile);
         return avatarUrl;
     }
 
