@@ -29,8 +29,11 @@ public class Company {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    private String logoUrl;
-    private String coverImageUrl;
+    @Builder.Default
+    private String logoUrl = "https://res.cloudinary.com/dpym64zg9/image/upload/v1769752122/avatar_Company_guzrau.jpg";
+
+    @Builder.Default
+    private String coverImageUrl = "https://res.cloudinary.com/dpym64zg9/image/upload/v1769752140/cover_company_rydzha.jpg";
     private String website;
 
     private String industry;      // Ngành nghề

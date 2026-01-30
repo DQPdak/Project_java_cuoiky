@@ -103,11 +103,12 @@ export interface CompanyProfile {
   name: string;
   email?: string;
   phone?: string;
-  logo?: string;
+  logoUrl?: string; // Thay đổi từ 'logo' thành 'logoUrl'
+  coverImageUrl?: string; // Thêm mới trường này
   website?: string;
   description?: string;
   address?: string;
   industry?: string;
   size?: string;
-  foundedYear?: number;
+  foundedYear?: string; // Đồng bộ kiểu String với Backend DTO
 }
