@@ -111,9 +111,9 @@ export const recruitmentService = {
 
   // Xem chi tiết Job (Public - không cần login hoặc Candidate)
   getJobDetail: async (id: number): Promise<JobPosting> => {
-    // API Public trong SecurityConfig: /api/recruiter/jobs/public/**
-    const res = await api.get(`/recruiter/jobs/public/${id}`);
-    return res.data;
+
+      const response = await api.get(`/recruiter/jobs/public/${id}`); 
+      return response.data;
   },
 
   // Kiểm tra trạng thái ứng tuyển của Candidate với Job này

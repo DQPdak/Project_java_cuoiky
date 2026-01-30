@@ -84,7 +84,19 @@ List<JobApplicationResponse> list = applicationService.getApplicationsByCandidat
         ));
     }
 
-    // Trong file JobApplicationController.java
+    @GetMapping("/check/{jobId}")
+    public ResponseEntity<?> checkApplicationStatus(@PathVariable Long jobId) {
+        try {
+            Long candidateId = getCurrentUserId();
+            boolean hasApplied = applicationService.hasApplied(candidateId, jobId);
+
+            // Trả về JSON: { "hasApplied": true/false }
+            return ResponseEntity.ok(java.util.Collections.singletonMap("hasApplied", hasApplied));
+        } catch (Exception e) {
+            // Trường hợp chưa đăng nhập hoặc lỗi token -> Coi như chưa apply
+            return ResponseEntity.ok(java.util.Collections.singletonMap("hasApplied", false));
+        }
+    }
 
     @GetMapping("/job/{jobId}")
     public ResponseEntity<List<JobApplicationResponse>> listByJob(@PathVariable Long jobId) {

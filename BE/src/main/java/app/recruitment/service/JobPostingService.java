@@ -18,4 +18,5 @@ public interface JobPostingService {
     // Các hàm phục vụ Candidate
     List<JobPostingResponse> searchJobs(String keyword);
     List<JobPostingResponse> getAllJobPostings(); // Bổ sung hàm này
+    JobPostingResponse getJobDetailPublic(Long id);
 }

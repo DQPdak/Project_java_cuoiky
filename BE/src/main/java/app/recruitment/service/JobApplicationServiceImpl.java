@@ -249,6 +249,12 @@ public class JobApplicationServiceImpl implements JobApplicationService {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean hasApplied(Long candidateId, Long jobId) {
+        return appRepo.existsByCandidateIdAndJobPostingId(candidateId, jobId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public JobApplicationResponse getDetail(Long id) {
         JobApplication app = appRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ ID: " + id));

@@ -170,4 +170,13 @@ public class JobPostingServiceImpl implements JobPostingService {
                 .map(recruitmentMapper::toJobPostingResponse)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public JobPostingResponse getJobDetailPublic(Long id) {
+        JobPosting job = jobPostingRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found: " + id));
+
+        return recruitmentMapper.toJobPostingResponse(job);
+    }
 }
