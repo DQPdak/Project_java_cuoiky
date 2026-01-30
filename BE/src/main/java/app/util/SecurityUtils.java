@@ -8,6 +8,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 @RequiredArgsConstructor
 public class SecurityUtils {
@@ -62,5 +64,20 @@ public class SecurityUtils {
 
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng (Email: " + email + ")"));
+    }
+
+    public static Optional<String> getCurrentUserLogin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return Optional.empty();
+        }
+        String principal = null;
+        if (authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails springSecurityUser = (UserDetails) authentication.getPrincipal();
+            principal = springSecurityUser.getUsername();
+        } else if (authentication.getPrincipal() instanceof String) {
+            principal = (String) authentication.getPrincipal();
+        }
+        return Optional.ofNullable(principal);
     }
 }

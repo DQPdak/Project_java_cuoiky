@@ -36,6 +36,8 @@ export default function UserMenu() {
 
   // Check VIP
   const isVip = user.userRole?.includes('_VIP');
+  // Check if User is Candidate
+  const isCandidate = user.userRole === "CANDIDATE" || user.userRole?.includes("CANDIDATE");
 
   return (
     <div className="relative" ref={menuRef}>
@@ -99,6 +101,18 @@ export default function UserMenu() {
                 👤 Chỉnh sửa profile
               </Link>
             )}
+
+            {/* --- MỤC MỚI: CV BUILDER (CHỈ HIỆN VỚI CANDIDATE) --- */}
+            {isCandidate && (
+              <Link
+                href="/cv-builder"
+                className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                onClick={() => setIsOpen(false)}
+              >
+                📄 Tạo CV
+              </Link>
+            )}
+            {/* -------------------------------------------------- */}
 
             {user.userRole !== "ADMIN" && (
               <Link
