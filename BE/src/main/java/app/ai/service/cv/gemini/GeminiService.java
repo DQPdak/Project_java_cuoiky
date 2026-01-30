@@ -28,7 +28,7 @@ public class GeminiService {
      * CHỨC NĂNG 1: Phân tích CV (Raw Text -> JSON Profile)
      */
     public GeminiResponse parseCV(String rawText) {
-        String prompt = """
+         String prompt = """
               Bạn là một trợ lý nhân sự chuyên nghiệp (HR Assistant).
               Nhiệm vụ: Trích xuất thông tin từ văn bản CV dưới đây thành JSON hợp lệ.
 
@@ -57,12 +57,16 @@ public class GeminiService {
                     "description": "Mô tả công việc"
                   }
                 ]
+                "aboutMe": "Trích xuất nội dung từ các mục có tiêu đề: About Me, Profile, Summary, Introduction, Giới thiệu, Mục tiêu nghề nghiệp. Nếu không tìm thấy, hãy tự tóm tắt ngắn gọn dựa trên CV."
               }
+
               **LƯU Ý QUAN TRONG CHỈ TRẢ VỀ DỮ LIỆU JSON NGHIÊM CẤM CÁC DỮ LIỆU KHÁC
               """.formatted(rawText);
 
 
-        return parseResponse(prompt, GeminiResponse.class, TEMP_STRICT);
+        GeminiResponse geminiResponse = parseResponse(prompt, GeminiResponse.class, TEMP_STRICT);
+        log.info("Parsed Gemini CV Response: {}", geminiResponse);
+        return geminiResponse;
     }
 
     /**
@@ -191,5 +195,25 @@ public class GeminiService {
             log.error("Lỗi parse dữ liệu AI: ", e);
             throw new RuntimeException("AI Error: " + e.getMessage());
         }
+    }
+
+    /**
+     * [MỚI] CHỨC NĂNG: OCR thông minh (Ảnh -> Text có cấu trúc)
+     * Dùng để xử lý CV dạng ảnh (PNG, JPG)
+     */
+    public String convertImageToText(byte[] imageBytes, String mimeType) {
+        String prompt = """
+                Bạn là một công cụ OCR chuyên dụng cho CV (Hồ sơ xin việc).
+                Nhiệm vụ: Trích xuất TOÀN BỘ chữ trong hình ảnh này.
+                
+                YÊU CẦU QUAN TRỌNG:
+                1. Giữ nguyên cấu trúc phân đoạn (Header, Kinh nghiệm, Kỹ năng, Học vấn).
+                2. Không tóm tắt, phải lấy chi tiết từng gạch đầu dòng.
+                3. Chỉ trả về văn bản thô (Plain Text), không thêm Markdown (```), không thêm lời dẫn.
+                4. Nếu ảnh mờ hoặc không phải CV, hãy cố gắng đọc hết mức có thể.
+                """;
+        
+        // Dùng nhiệt độ thấp để OCR chính xác nhất
+        return geminiApiClient.generateContentWithImage(prompt, imageBytes, mimeType, 0.1f);
     }
 }

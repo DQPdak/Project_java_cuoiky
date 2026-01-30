@@ -58,4 +58,27 @@ public class TestGeminiController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi tách chữ: " + e.getMessage());
         }
-}}
+}
+/**
+     * [MỚI] API Test chức năng đọc ảnh CV
+     * Upload file ảnh (JPG, PNG) -> Trả về Text
+     */
+    @PostMapping("/ocr-image")
+    public ResponseEntity<String> testOcrImage(@RequestParam("file") MultipartFile file) {
+        try {
+            // Kiểm tra định dạng ảnh
+            String mimeType = file.getContentType();
+            if (mimeType == null || !mimeType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body("Vui lòng upload file ảnh (JPG, PNG)!");
+            }
+
+            // Gọi Gemini convert
+            String extractedText = geminiService.convertImageToText(file.getBytes(), mimeType);
+            
+            return ResponseEntity.ok(extractedText);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi OCR: " + e.getMessage());
+        }
+    }
+}
