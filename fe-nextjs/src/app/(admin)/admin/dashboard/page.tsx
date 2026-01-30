@@ -148,13 +148,8 @@ export default function AdminDashboard() {
   // Quick action count
   const [pendingPostsCount, setPendingPostsCount] = useState(0);
 
-  // Modal for approval
-  const [approveModalOpen, setApproveModalOpen] = useState(false);
-
   // Violation reports
   const [pendingReportsCount, setPendingReportsCount] = useState(0);
-  const [reportsModalOpen, setReportsModalOpen] = useState(false);
-
 
 
   const fetchDashboard = async () => {
@@ -250,6 +245,15 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold text-gray-800">Tổng quan hệ thống</h1>
           <p className="text-gray-500">Chào mừng trở lại, Administrator.</p>
         </div>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={fetchDashboard}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm flex items-center gap-2"
+        >
+          ↻ Tải lại
+        </button>
+
         <button
           type="button"
           className="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm flex items-center gap-2"
@@ -258,6 +262,7 @@ export default function AdminDashboard() {
           Hôm nay: {new Date().toLocaleDateString('vi-VN')}
         </button>
       </div>
+    </div>  
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -297,13 +302,6 @@ export default function AdminDashboard() {
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-800">Bảng xếp hạng (Top 10)</h3>
-            <button
-              type="button"
-              onClick={() => fetchLeaderboard()}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Tải lại
-            </button>
           </div>
 
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
@@ -352,18 +350,18 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="flex-1 min-h-[260px]">
+          <div className="flex-1 min-h-0">
             {lbLoading ? (
               <div className="text-sm text-gray-500">Đang tải bảng xếp hạng...</div>
             ) : leaderboard.length === 0 ? (
               <div className="text-sm text-gray-500">Chưa có dữ liệu bảng xếp hạng.</div>
             ) : (
-              <div className="space-y-3">
+              <div className="max-h-[360px] overflow-y-auto pr-2 space-y-3 scrollbar-thin">
                 {leaderboard.map((x) => (
-                  <div
-                    key={`${x.userId}-${x.rank}`}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50"
-                  >
+                <div
+                  key={`${x.userId}-${x.rank}`}
+                  className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50"
+                >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
                         {x.rank}
@@ -393,13 +391,6 @@ export default function AdminDashboard() {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-800">Điểm gần đây</h3>
-            <button
-              type="button"
-              onClick={fetchPointLogs}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Tải lại
-            </button>
           </div>
 
           <div className="flex-1 min-h-[260px]">
@@ -452,13 +443,6 @@ export default function AdminDashboard() {
               <Activity className="w-5 h-5 text-blue-500" />
               Biểu đồ Ứng tuyển (7 ngày qua)
             </h3>
-            <button
-              type="button"
-              onClick={fetchDashboard}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Tải lại
-            </button>
           </div>
 
           <div className="h-80 w-full">
@@ -490,14 +474,7 @@ export default function AdminDashboard() {
         {/* ✅ Recent activities (fixed footer button) */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800">Hoạt động gần đây</h3>
-            <button
-              type="button"
-              onClick={fetchDashboard}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Tải lại
-            </button>
+            <h3 className="text-lg font-bold text-gray-800">Hoạt động ứng tuyển gần đây</h3>
           </div>
 
           {/* Body co giãn để nút luôn dính đáy */}
@@ -545,13 +522,13 @@ export default function AdminDashboard() {
             label="Phê duyệt bài đăng"
             count={pendingPostsCount}
             color="text-yellow-600 bg-yellow-50"
-            onClick={() => setApproveModalOpen(true)}
+            onClick={() => router.push('/admin/content')}
           />
           <ActionButton
             label="Báo cáo vi phạm"
             count={pendingReportsCount}
             color="text-red-600 bg-red-50"
-            onClick={() => setReportsModalOpen(true)}
+            onClick={() => router.push('/admin/violation-reports?status=PENDING')}
           />
           <ActionButton
             label="Yêu cầu hỗ trợ"
@@ -561,647 +538,7 @@ export default function AdminDashboard() {
           />
         </div>
       </div>
-
-      {/* Modal phê duyệt tin (giữ như bản bạn đang dùng) */}
-      <ApproveJobPostingModal
-        open={approveModalOpen}
-        onClose={() => setApproveModalOpen(false)}
-        onAfterAction={async () => {
-          await fetchDashboard();
-        }}
-      />
-      {/* Modal báo cáo vi phạm (giữ nguyên phần bạn đang có) */}
-      <ViolationReportsModal
-        open={reportsModalOpen}
-        onClose={() => setReportsModalOpen(false)}
-        onAfterAction={async () => {
-          await fetchDashboard();
-        }}
-      />
     </div>
-  );
-}
-
-/** ====== MODAL (giữ nguyên phần bạn đang có) ====== */
-function ApproveJobPostingModal({
-  open,
-  onClose,
-  onAfterAction,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onAfterAction: () => Promise<void> | void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<JobPostingResponse[]>([]);
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState<number | undefined>(undefined);
-
-  const [selected, setSelected] = useState<JobPostingResponse | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const fetchPending = async (p = page, s = size) => {
-    setLoading(true);
-    try {
-      const res = await api.get('/admin/content/pending', { params: { page: p, size: s } });
-      const pageData = normalizePage<JobPostingResponse>(res.data);
-      setRows(pageData.content ?? []);
-      setTotalPages(pageData.totalPages ?? 1);
-      setTotalElements(pageData.totalElements);
-      setPage(pageData.number ?? p);
-      setSize(pageData.size ?? s);
-    } catch (e) {
-      console.error('Lỗi tải pending:', e);
-      setRows([]);
-      setTotalPages(1);
-      setTotalElements(undefined);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (open) {
-      fetchPending(0, size);
-    } else {
-      // reset state khi đóng modal
-      setRows([]);
-      setSelected(null);
-      setDrawerOpen(false);
-      setPage(0);
-      setTotalPages(1);
-      setTotalElements(undefined);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setSelected(null);
-  };
-
-  const openDetail = (jp: JobPostingResponse) => {
-    setSelected(jp);
-    setDrawerOpen(true);
-  };
-
-  const approve = async () => {
-    if (!selected?.id) return;
-    setActionLoading(true);
-    try {
-      await api.put(`/admin/content/posts/${selected.id}/approve`);
-      closeDrawer();
-      await fetchPending(page, size);
-      await onAfterAction();
-    } catch (e: any) {
-      alert(e?.response?.data?.message || 'Duyệt thất bại');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const reject = async () => {
-    if (!selected?.id) return;
-
-    const ok = confirm('Bạn chắc chắn muốn TỪ CHỐI tin này?');
-    if (!ok) return;
-
-    setActionLoading(true);
-    try {
-      // Reject 1 click - không lý do
-      await api.put(`/admin/content/posts/${selected.id}/reject`);
-      closeDrawer();
-      await fetchPending(page, size);
-      await onAfterAction();
-    } catch (e: any) {
-      alert(e?.response?.data?.message || 'Từ chối thất bại');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const paginationText = useMemo(() => {
-    if (typeof totalElements === 'number') {
-      const from = page * size + 1;
-      const to = Math.min((page + 1) * size, totalElements);
-      return `Hiển thị ${from}-${to} / ${totalElements}`;
-    }
-    return `Trang ${page + 1} / ${totalPages}`;
-  }, [page, size, totalPages, totalElements]);
-
-  if (!open) return null;
-
-  return (
-    <>
-      {/* Overlay */}
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
-
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-8">
-        <div
-          className="relative w-full max-w-5xl bg-white rounded-2xl shadow-xl border overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="px-6 py-4 border-b flex items-center justify-between">
-            <div>
-              <div className="text-lg font-bold text-gray-900">Phê duyệt bài đăng</div>
-              <div className="text-sm text-gray-500">
-                Click 1 tin để mở Drawer chi tiết bên phải.
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => fetchPending(page, size)}
-                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm"
-              >
-                Tải lại
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-
-          {/* Body */}
-          <div className="relative">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm text-gray-600">{paginationText}</div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={page <= 0 || loading}
-                    onClick={() => fetchPending(page - 1, size)}
-                    className="px-3 py-1.5 rounded-lg border bg-white text-sm disabled:opacity-40"
-                  >
-                    ← Trước
-                  </button>
-                  <button
-                    type="button"
-                    disabled={page >= totalPages - 1 || loading}
-                    onClick={() => fetchPending(page + 1, size)}
-                    className="px-3 py-1.5 rounded-lg border bg-white text-sm disabled:opacity-40"
-                  >
-                    Sau →
-                  </button>
-
-                  <select
-                    value={size}
-                    onChange={(e) => {
-                      const newSize = Number(e.target.value);
-                      setSize(newSize);
-                      fetchPending(0, newSize);
-                    }}
-                    className="px-3 py-2 rounded-lg bg-white border text-sm"
-                  >
-                    {[5, 10, 20, 50].map((n) => (
-                      <option key={n} value={n}>
-                        {n}/trang
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="p-6 text-sm text-gray-500">Đang tải danh sách...</div>
-              ) : rows.length === 0 ? (
-                <div className="p-6 text-sm text-gray-500">Không có tin nào đang chờ duyệt.</div>
-              ) : (
-                <div className="overflow-x-auto border rounded-xl">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-gray-50 text-gray-600">
-                      <tr>
-                        <th className="text-left px-4 py-3 font-semibold">Tiêu đề</th>
-                        <th className="text-left px-4 py-3 font-semibold">Địa điểm</th>
-                        <th className="text-left px-4 py-3 font-semibold">Lương</th>
-                        <th className="text-left px-4 py-3 font-semibold">Recruiter</th>
-                        <th className="text-left px-4 py-3 font-semibold">Ngày tạo</th>
-                        <th className="text-right px-4 py-3 font-semibold">Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r) => (
-                        <tr
-                          key={r.id}
-                          onClick={() => openDetail(r)}
-                          className="border-t hover:bg-gray-50 cursor-pointer"
-                        >
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-gray-900 line-clamp-1">{r.title}</div>
-                            <div className="text-xs text-gray-500">ID: {r.id}</div>
-                          </td>
-                          <td className="px-4 py-3 text-gray-700">{r.location || '-'}</td>
-                          <td className="px-4 py-3 text-gray-700">{r.salaryRange || '-'}</td>
-                          <td className="px-4 py-3 text-gray-700">{r.recruiterName || '-'}</td>
-                          <td className="px-4 py-3 text-gray-600">{fmtDate(r.createdAt)}</td>
-                          <td className="px-4 py-3 text-right">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-100">
-                              {r.status || 'PENDING'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Drawer */}
-            {drawerOpen && (
-              <>
-                <div className="fixed inset-0 z-50" onClick={closeDrawer} />
-
-                <div className="absolute top-0 right-0 h-full w-full sm:w-[520px] bg-white z-[60] shadow-2xl border-l flex flex-col">
-                  <div className="p-5 border-b flex items-start justify-between">
-                    <div>
-                      <div className="text-xs text-gray-500">Chi tiết tin</div>
-                      <div className="text-lg font-bold text-gray-900">{selected?.title}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        ID: {selected?.id} • Tạo lúc: {fmtDate(selected?.createdAt)}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={closeDrawer}
-                      className="px-3 py-1.5 rounded-lg border hover:bg-gray-50 text-sm"
-                    >
-                      Đóng
-                    </button>
-                  </div>
-
-                  <div className="p-5 overflow-y-auto space-y-4 flex-1">
-                    <InfoRow label="Địa điểm" value={selected?.location || '-'} />
-                    <InfoRow label="Mức lương" value={selected?.salaryRange || '-'} />
-                    <InfoRow label="Hạn tin" value={selected?.expiryDate ? fmtDate(selected.expiryDate) : '-'} />
-                    <InfoRow label="Recruiter" value={selected?.recruiterName || '-'} />
-                    <InfoRow label="Trạng thái" value={selected?.status || 'PENDING'} />
-
-                    <Section title="Mô tả">
-                      <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                        {selected?.description || '(Không có mô tả)'}
-                      </div>
-                    </Section>
-
-                    <Section title="Yêu cầu">
-                      <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                        {selected?.requirements || '(Không có yêu cầu)'}
-                      </div>
-                    </Section>
-                  </div>
-
-                  <div className="p-5 border-t flex items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={reject}
-                      disabled={actionLoading}
-                      className="px-4 py-2 rounded-lg border text-red-600 hover:bg-red-50 disabled:opacity-60"
-                    >
-                      {actionLoading ? 'Đang xử lý...' : 'Từ chối'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={approve}
-                      disabled={actionLoading}
-                      className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-                    >
-                      {actionLoading ? 'Đang xử lý...' : 'Duyệt tin'}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="px-6 py-3 border-t text-xs text-gray-500">
-            Tip: Duyệt/Từ chối ngay trong Drawer mà không rời Dashboard.
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-/** ====== MODAL (giữ nguyên phần bạn đang có) ====== */
-function ViolationReportsModal({
-  open,
-  onClose,
-  onAfterAction,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onAfterAction: () => Promise<void> | void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<ViolationReportResponse[]>([]);
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState<number | undefined>(undefined);
-
-  const [selected, setSelected] = useState<ViolationReportResponse | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const fetchPendingReports = async (p = page, s = size) => {
-    setLoading(true);
-    try {
-      const res = await api.get('/admin/violation-reports', {
-        params: { status: 'PENDING', page: p, size: s, sort: 'createdAt,desc' },
-      });
-      const pageData = normalizePage<ViolationReportResponse>(res.data);
-      setRows(pageData.content ?? []);
-      setTotalPages(pageData.totalPages ?? 1);
-      setTotalElements(pageData.totalElements);
-      setPage(pageData.number ?? p);
-      setSize(pageData.size ?? s);
-    } catch (e) {
-      console.error('Lỗi tải violation reports:', e);
-      setRows([]);
-      setTotalPages(1);
-      setTotalElements(undefined);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (open) {
-      fetchPendingReports(0, size);
-    } else {
-      setRows([]);
-      setSelected(null);
-      setDrawerOpen(false);
-      setPage(0);
-      setTotalPages(1);
-      setTotalElements(undefined);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const openDetail = (r: ViolationReportResponse) => {
-    setSelected(r);
-    setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setSelected(null);
-  };
-
-  // ⚠️ Tạm thời vẫn dùng adminId=1 giống backend của bạn
-  // Sau này bạn bỏ adminId param và lấy từ token thì xoá phần params này.
-  const updateStatus = async (reportId: number, status: 'VALID' | 'INVALID') => {
-    setActionLoading(true);
-    try {
-      await api.patch(
-        `/admin/violation-reports/${reportId}/status`,
-        { status, adminNote: status === 'VALID' ? 'Xác nhận vi phạm' : 'Từ chối báo cáo' },
-        { params: { adminId: 5 } }
-      );
-      closeDrawer();
-      await fetchPendingReports(page, size);
-      await onAfterAction();
-    } catch (e: any) {
-      alert(e?.response?.data?.message || 'Cập nhật trạng thái thất bại');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const paginationText = useMemo(() => {
-    if (typeof totalElements === 'number') {
-      const from = page * size + 1;
-      const to = Math.min((page + 1) * size, totalElements);
-      return `Hiển thị ${from}-${to} / ${totalElements}`;
-    }
-    return `Trang ${page + 1} / ${totalPages}`;
-  }, [page, size, totalPages, totalElements]);
-
-  if (!open) return null;
-
-  return (
-    <>
-      {/* Overlay */}
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
-
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-8">
-        <div
-          className="relative w-full max-w-5xl bg-white rounded-2xl shadow-xl border overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="px-6 py-4 border-b flex items-center justify-between">
-            <div>
-              <div className="text-lg font-bold text-gray-900">Báo cáo vi phạm</div>
-              <div className="text-sm text-gray-500">
-                Danh sách báo cáo đang chờ xử lý (PENDING). Click 1 dòng để mở Drawer.
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => fetchPendingReports(page, size)}
-                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm"
-              >
-                Tải lại
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-
-          {/* Body */}
-          <div className="relative">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm text-gray-600">{paginationText}</div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={page <= 0 || loading}
-                    onClick={() => fetchPendingReports(page - 1, size)}
-                    className="px-3 py-1.5 rounded-lg border bg-white text-sm disabled:opacity-40"
-                  >
-                    ← Trước
-                  </button>
-                  <button
-                    type="button"
-                    disabled={page >= totalPages - 1 || loading}
-                    onClick={() => fetchPendingReports(page + 1, size)}
-                    className="px-3 py-1.5 rounded-lg border bg-white text-sm disabled:opacity-40"
-                  >
-                    Sau →
-                  </button>
-
-                  <select
-                    value={size}
-                    onChange={(e) => {
-                      const newSize = Number(e.target.value);
-                      setSize(newSize);
-                      fetchPendingReports(0, newSize);
-                    }}
-                    className="px-3 py-2 rounded-lg bg-white border text-sm"
-                  >
-                    {[5, 10, 20, 50].map((n) => (
-                      <option key={n} value={n}>
-                        {n}/trang
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="p-6 text-sm text-gray-500">Đang tải danh sách...</div>
-              ) : rows.length === 0 ? (
-                <div className="p-6 text-sm text-gray-500">Không có báo cáo nào đang chờ xử lý.</div>
-              ) : (
-                <div className="overflow-x-auto border rounded-xl">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-gray-50 text-gray-600">
-                      <tr>
-                        <th className="text-left px-4 py-3 font-semibold">ID</th>
-                        <th className="text-left px-4 py-3 font-semibold">Lý do</th>
-                        <th className="text-left px-4 py-3 font-semibold">Target</th>
-                        <th className="text-left px-4 py-3 font-semibold">Reporter</th>
-                        <th className="text-left px-4 py-3 font-semibold">Ngày tạo</th>
-                        <th className="text-right px-4 py-3 font-semibold">Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r) => (
-                        <tr
-                          key={r.id}
-                          onClick={() => openDetail(r)}
-                          className="border-t hover:bg-gray-50 cursor-pointer"
-                        >
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-gray-900">#{r.id}</div>
-                          </td>
-                          <td className="px-4 py-3 text-gray-700">{r.reason}</td>
-                          <td className="px-4 py-3 text-gray-700">
-                            {r.targetType} (ID: {r.targetId})
-                          </td>
-                          <td className="px-4 py-3 text-gray-700">
-                            {r.reporterName} (ID: {r.reporterId})
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">{fmtDate(r.createdAt)}</td>
-                          <td className="px-4 py-3 text-right">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100">
-                              {r.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Drawer */}
-            {drawerOpen && (
-              <>
-                <div className="fixed inset-0 z-50" onClick={closeDrawer} />
-
-                <div className="absolute top-0 right-0 h-full w-full sm:w-[520px] bg-white z-[60] shadow-2xl border-l flex flex-col">
-                  <div className="p-5 border-b flex items-start justify-between">
-                    <div>
-                      <div className="text-xs text-gray-500">Chi tiết báo cáo</div>
-                      <div className="text-lg font-bold text-gray-900">Report #{selected?.id}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Tạo lúc: {fmtDate(selected?.createdAt)}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={closeDrawer}
-                      className="px-3 py-1.5 rounded-lg border hover:bg-gray-50 text-sm"
-                    >
-                      Đóng
-                    </button>
-                  </div>
-
-                  <div className="p-5 overflow-y-auto space-y-4 flex-1">
-                    <InfoRow label="Lý do" value={selected?.reason || '-'} />
-                    <InfoRow label="Target" value={`${selected?.targetType} (ID: ${selected?.targetId})`} />
-                    <InfoRow label="Reporter" value={`${selected?.reporterName} (ID: ${selected?.reporterId})`} />
-                    <InfoRow label="Trạng thái" value={selected?.status || 'PENDING'} />
-
-                    <Section title="Mô tả">
-                      <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                        {selected?.description || '(Không có mô tả)'}
-                      </div>
-                    </Section>
-
-                    <Section title="Bằng chứng">
-                      {selected?.evidenceUrl ? (
-                        <a
-                          className="text-sm text-blue-600 hover:underline break-all"
-                          href={selected.evidenceUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {selected.evidenceUrl}
-                        </a>
-                      ) : (
-                        <div className="text-sm text-gray-700">(Không có)</div>
-                      )}
-                    </Section>
-                  </div>
-
-                  <div className="p-5 border-t flex items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => selected?.id && updateStatus(selected.id, 'INVALID')}
-                      disabled={actionLoading}
-                      className="px-4 py-2 rounded-lg border text-red-600 hover:bg-red-50 disabled:opacity-60"
-                    >
-                      {actionLoading ? 'Đang xử lý...' : 'Từ chối'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => selected?.id && updateStatus(selected.id, 'VALID')}
-                      disabled={actionLoading}
-                      className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-                    >
-                      {actionLoading ? 'Đang xử lý...' : 'Xác nhận vi phạm'}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="px-6 py-3 border-t text-xs text-gray-500">
-            Tip: Xác nhận vi phạm sẽ tự động xử lý (ví dụ khoá User / block Job) theo backend của bạn.
-          </div>
-        </div>
-      </div>
-    </>
   );
 }
 
