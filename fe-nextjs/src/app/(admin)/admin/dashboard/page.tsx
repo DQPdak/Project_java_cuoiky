@@ -377,14 +377,6 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-
-          <button
-            type="button"
-            className="w-full text-center text-sm text-blue-600 font-medium mt-4 hover:underline pt-4 border-t border-gray-100"
-            onClick={() => router.push('/admin/leaderboard')}
-          >
-            Xem tất cả bảng xếp hạng
-          </button>
         </div>
 
         {/* Points Logs */}
@@ -427,7 +419,7 @@ export default function AdminDashboard() {
           <button
             type="button"
             className="w-full text-center text-sm text-blue-600 font-medium mt-4 hover:underline pt-4 border-t border-gray-100"
-            onClick={() => router.push('/admin/leaderboard/logs')}
+            onClick={() => router.push('/admin/point-logs')}
           >
             Xem tất cả log cộng điểm
           </button>
