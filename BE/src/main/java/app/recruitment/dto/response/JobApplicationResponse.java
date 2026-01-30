@@ -18,7 +18,10 @@ public class JobApplicationResponse {
     
     private Long studentId;
     private String studentName;
-    
+
+    private String email;
+    private String phone;
+
     private String companyName;
     private String cvUrl;
     

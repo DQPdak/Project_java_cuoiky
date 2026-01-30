@@ -7,6 +7,9 @@ import app.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import app.service.CloudinaryService; 
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/recruiter/company")
@@ -15,6 +18,7 @@ public class RecruiterCompanyController {
 
     private final CompanyService companyService;
     private final SecurityUtils securityUtils;
+    private final CloudinaryService cloudinaryService;
 
     // 1. API lấy thông tin công ty hiện tại
     // GET: /api/recruiter/company/me
@@ -32,5 +36,13 @@ public class RecruiterCompanyController {
         // Lấy ID của recruiter đang đăng nhập
         Long recruiterId = securityUtils.getCurrentUserId();
         return ResponseEntity.ok(companyService.updateCompany(recruiterId, request));
+    }
+
+    // 3. API Upload ảnh (Logo hoặc Cover)
+    // POST: /api/recruiter/company/upload-image
+    @PostMapping(value = "/upload-image", consumes = "multipart/form-data")
+    public ResponseEntity<Map<String, String>> uploadCompanyImage(@RequestParam("file") MultipartFile file) {
+        String url = cloudinaryService.uploadCompanyImage(file);
+        return ResponseEntity.ok(Map.of("url", url));
     }
 }

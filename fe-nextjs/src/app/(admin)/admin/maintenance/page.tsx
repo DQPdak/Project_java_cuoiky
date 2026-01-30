@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 
 export default function MaintenancePage() {
-  const [msg, setMsg] = useState('Hệ thống đang bảo trì, vui lòng thử lại sau.');
+  const [msg, setMsg] = useState('Hệ thống đang bảo trì, vui lòng thử lại sauuu.');
 
   useEffect(() => {
     const m = localStorage.getItem('maintenance_message');

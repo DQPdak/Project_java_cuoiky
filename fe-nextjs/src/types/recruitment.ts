@@ -67,18 +67,11 @@ export interface JobCreateRequest {
   expiryDate: string;
 }
 
-export interface CandidateSearchResult {
-  id: number;
-  fullName: string;
-  title: string;
-  skills: string[];
-  matchScore?: number;
-  avatar?: string;
-  cvUrl?: string;
-}
 
 export interface AIAnalysisDetail {
   id?: number;
+  email?: string;
+  phone?: string;
   matchPercentage?: number;
   evaluation?: string;
   learningPath?: string;
