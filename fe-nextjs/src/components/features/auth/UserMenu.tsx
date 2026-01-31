@@ -116,6 +116,16 @@ export default function UserMenu() {
 
             {!isAdmin && (
               <Link
+                href="/cv-builder"
+                className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                onClick={() => setIsOpen(false)}
+              >
+                📝 Tạo CV 
+              </Link>
+            )}
+
+            {!isAdmin && (
+              <Link
                 href="/profile"
                 className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                 onClick={() => setIsOpen(false)}
