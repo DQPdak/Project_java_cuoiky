@@ -1,16 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Edit,
-  Save,
-  X,
-  Camera,
-  Loader2,
-} from "lucide-react";
+import { Edit, Save, X, Camera, Loader2 } from "lucide-react";
 import { recruitmentService } from "@/services/recruitmentService";
 import { CompanyProfile } from "@/types/recruitment";
 import { toast } from "react-hot-toast";
+import { useConfirm } from "@/context/ConfirmDialogContext";
 
 export default function CompanyPage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -18,7 +13,7 @@ export default function CompanyPage() {
   const [uploading, setUploading] = useState(false); // State loading khi upload
   const [companyData, setCompanyData] = useState<CompanyProfile | null>(null);
   const [editData, setEditData] = useState<CompanyProfile | null>(null);
-
+  const confirm = useConfirm();
   // Ref để kích hoạt input file ẩn
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -50,6 +45,13 @@ export default function CompanyPage() {
 
   const handleSave = async () => {
     if (!editData) return;
+    const ok = await confirm({
+      title: "Lưu thay đổi",
+      message: "Bạn có chắc chắn muốn cập nhật thông tin công ty không?",
+      confirmLabel: "Lưu ngay",
+    });
+
+    if (!ok) return;
     try {
       const updated = await recruitmentService.updateCompany(editData);
       setCompanyData(updated);
@@ -63,7 +65,7 @@ export default function CompanyPage() {
   // --- HÀM XỬ LÝ UPLOAD ẢNH ---
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    field: "logoUrl" | "coverImageUrl"
+    field: "logoUrl" | "coverImageUrl",
   ) => {
     const file = e.target.files?.[0];
     if (!file || !editData) return;
@@ -78,7 +80,7 @@ export default function CompanyPage() {
       setUploading(true);
       // Gọi API upload
       const url = await recruitmentService.uploadImage(file);
-      
+
       // Cập nhật URL trả về vào state editData để hiển thị ngay
       setEditData({ ...editData, [field]: url });
       toast.success("Upload ảnh thành công!");
@@ -137,7 +139,11 @@ export default function CompanyPage() {
               disabled={uploading}
               className="flex items-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
             >
-              {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Save className="w-4 h-4 mr-2" />}
+              {uploading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
               Lưu thay đổi
             </button>
             <button
@@ -164,7 +170,7 @@ export default function CompanyPage() {
           />
           {isEditing && (
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-               <button
+              <button
                 onClick={() => coverInputRef.current?.click()}
                 className="bg-white/20 backdrop-blur-md border border-white/50 text-white px-4 py-2 rounded-full flex items-center hover:bg-white/30 transition"
               >
@@ -185,9 +191,9 @@ export default function CompanyPage() {
                 className="w-full h-full object-contain p-1"
               />
               {isEditing && (
-                <div 
-                    className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                    onClick={() => logoInputRef.current?.click()}
+                <div
+                  className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={() => logoInputRef.current?.click()}
                 >
                   <Camera className="w-6 h-6 text-white" />
                 </div>

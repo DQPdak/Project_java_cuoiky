@@ -7,6 +7,9 @@ import app.auth.model.enums.UserRole;
 import app.auth.repository.UserRepository;
 import app.auth.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDateTime;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,59 +24,77 @@ public class PaymentController {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
-    @PostMapping("/vip-upgrade")
-    public ResponseEntity<?> upgradeToVip() {
-        // 1. Lấy email user hiện tại
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    // BE/src/main/java/app/payment/controller/PaymentController.java
 
-        // 2. Tìm user
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+@PostMapping("/vip-upgrade")
+public ResponseEntity<?> upgradeToVip() {
+    String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UserRole currentRole = user.getUserRole();
-        String currentRoleName = currentRole.name();
+    UserRole currentRole = user.getUserRole();
+    String currentRoleName = currentRole.name();
 
-        // 3. Logic ghép role
-        if (currentRoleName.endsWith("_VIP")) {
-            return ResponseEntity.badRequest().body("Tài khoản đã là VIP.");
-        }
-        if (currentRole == UserRole.ADMIN) {
-            return ResponseEntity.badRequest().body("Admin không cần mua VIP.");
-        }
-
-        try {
-            // 4. Update Role mới
-            UserRole newRole = UserRole.valueOf(currentRoleName + "_VIP");
-            user.setUserRole(newRole);
-            userRepository.save(user);
-
-            // 5. Tạo Token mới
-            String newAccessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
-            String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
-
-            // 6. Tạo UserResponse object 
-            UserResponse userResponse = UserResponse.builder()
-                    .id(user.getId())
-                    .fullName(user.getFullName())
-                    .email(user.getEmail())
-                    .userRole(newRole) // Role mới đã update
-                    .status(user.getStatus())
-                    .profileImageUrl(user.getProfileImageUrl())
-                    .isEmailVerified(user.getIsEmailVerified())
-                    .createdAt(user.getCreatedAt())
-                    .lastLoginAt(user.getLastLoginAt())
-                    .build();
-
-            // 7. Trả về AuthResponse chứa UserResponse
-            return ResponseEntity.ok(AuthResponse.builder()
-                    .accessToken(newAccessToken)
-                    .refreshToken(newRefreshToken)
-                    .user(userResponse) // Gán object user vào đây
-                    .expiresIn(jwtTokenProvider.getAccessTokenExpiration()) // Optional nếu cần
-                    .build());
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Không tìm thấy gói VIP phù hợp: " + currentRoleName);
-        }
+    // 1. Kiểm tra Admin
+    if (currentRole == UserRole.ADMIN) {
+        return ResponseEntity.badRequest().body("Admin không cần mua VIP.");
     }
+
+    try {
+        UserRole newRole = currentRole;
+
+        // 2. Logic tính ngày hết hạn
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime newExpirationDate;
+
+        if (currentRoleName.endsWith("_VIP")) {
+            // Trường hợp GIA HẠN: Nếu đang là VIP, cộng thêm 30 ngày vào ngày hết hạn hiện tại
+            // (Nếu ngày hết hạn đã qua, thì tính từ thời điểm hiện tại)
+            if (user.getVipExpirationDate() != null && user.getVipExpirationDate().isAfter(now)) {
+                newExpirationDate = user.getVipExpirationDate().plusDays(30);
+            } else {
+                newExpirationDate = now.plusDays(30);
+            }
+            // Role giữ nguyên là VIP
+            newRole = currentRole; 
+        } else {
+            // Trường hợp NÂNG CẤP MỚI: Role thường -> Role VIP
+            newRole = UserRole.valueOf(currentRoleName + "_VIP");
+            newExpirationDate = now.plusDays(30);
+        }
+
+        // 3. Cập nhật vào User
+        user.setUserRole(newRole);
+        user.setVipExpirationDate(newExpirationDate); // <-- QUAN TRỌNG: Lưu ngày hết hạn
+        userRepository.save(user);
+
+        // 4. Tạo Token mới (để cập nhật Claims trong token nếu cần)
+        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+
+        // 5. Build UserResponse
+        UserResponse userResponse = UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .userRole(newRole)
+                .status(user.getStatus())
+                .profileImageUrl(user.getProfileImageUrl())
+                .isEmailVerified(user.getIsEmailVerified())
+                .createdAt(user.getCreatedAt())
+                .lastLoginAt(user.getLastLoginAt())
+                // .vipExpirationDate(user.getVipExpirationDate()) // Hãy đảm bảo UserResponse có field này
+                .build();
+
+        return ResponseEntity.ok(AuthResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .user(userResponse)
+                .expiresIn(jwtTokenProvider.getAccessTokenExpiration())
+                .build());
+
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body("Không tìm thấy gói VIP phù hợp cho role: " + currentRoleName);
+    }
+}
 }

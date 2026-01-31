@@ -185,17 +185,6 @@ export default function RolesPage() {
           </div>
         ))}
       </div>
-
-      {/* nút reload nếu muốn */}
-      <div>
-        <button
-          type="button"
-          onClick={fetchCounts}
-          className="text-sm text-blue-600 hover:underline"
-        >
-          Tải lại dữ liệu phân quyền
-        </button>
-      </div>
     </div>
   );
 }

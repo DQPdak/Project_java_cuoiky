@@ -25,7 +25,6 @@ import app.auth.repository.PasswordResetTokenRepository;
 import app.auth.repository.UserRepository;
 import app.auth.security.JwtTokenProvider;
 import app.service.CloudinaryService;
-import app.admin.service.SystemSettingService;
 import app.exception.MaintenanceModeException;
 
 
@@ -222,16 +221,20 @@ public class AuthService {
                 user.setGoogleId(googleId);
                 user.setAuthProvider(AuthProvider.GOOGLE);
             }
-            if (pictureUrl != null) {
+            if ((user.getProfileImageUrl() == null || user.getProfileImageUrl().isEmpty()) && pictureUrl != null) {
                 user.setProfileImageUrl(pictureUrl);
             }
-            if (user.getStatus() != UserStatus.ACTIVE) {
+            if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.BANNED) {
                 user.setStatus(UserStatus.ACTIVE);
                 user.setIsEmailVerified(true);
             }
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
         }
+
+            if (user.getStatus() != UserStatus.ACTIVE) {
+                throw new UnauthorizedException("Tài khoản đã bị khóa hoặc chưa được kích hoạt");
+            }
 
         // ✅ CHẶN NON-ADMIN KHI BẢO TRÌ
         if (systemSettingService.isMaintenanceEnabled()
@@ -313,6 +316,7 @@ public class AuthService {
                 .isEmailVerified(user.getIsEmailVerified())
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
+                .vipExpirationDate(user.getVipExpirationDate())
                 .build();
         return AuthResponse.builder()
                 .accessToken(accessToken)

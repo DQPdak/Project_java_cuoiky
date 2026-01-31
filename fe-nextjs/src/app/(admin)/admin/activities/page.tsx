@@ -35,8 +35,8 @@ export default function AdminAllActivitiesPage() {
     <div className="min-h-screen bg-gray-50 p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Tất cả hoạt động</h1>
-          <p className="text-gray-500">Danh sách toàn bộ hoạt động trong hệ thống.</p>
+          <h1 className="text-2xl font-bold text-gray-800">Tất cả hoạt động ứng tuyển</h1>
+          <p className="text-gray-500">Danh sách toàn bộ hoạt động ứng tuyển trong hệ thống.</p>
         </div>
 
         <button

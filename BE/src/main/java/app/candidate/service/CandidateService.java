@@ -43,6 +43,7 @@ public class CandidateService {
     public CandidateProfileResponse getProfileDTO(Long userId) {
         // 1. Lấy Entity (Đang chứa Skills Lazy)
         CandidateProfile p = getProfile(userId);
+        User user = p.getUser();
 
         // 2. Map Experience Entity -> DTO
         List<ExperienceDTO> expDTOs = new ArrayList<>();
@@ -62,6 +63,7 @@ public class CandidateService {
         // Tại dòng p.getSkills(), vì đang trong Transaction nên Hibernate sẽ lấy dữ liệu thật
         return CandidateProfileResponse.builder()
                 .id(p.getId())
+                .userFullName(user.getFullName())
                 .fullName(p.getFullName())
                 .email(p.getEmail())
                 .phoneNumber(p.getPhoneNumber())
@@ -69,7 +71,7 @@ public class CandidateService {
                 .aboutMe(p.getAboutMe())
                 .linkedInUrl(p.getLinkedInUrl())
                 .websiteUrl(p.getWebsiteUrl())
-                .avatarUrl(p.getAvatarUrl())
+                .avatarUrl(user.getProfileImageUrl())
                 .cvFilePath(p.getCvFilePath())
                 .skills(p.getSkills() != null ? new ArrayList<>(p.getSkills()) : new ArrayList<>()) 
                 .experiences(expDTOs)
@@ -104,20 +106,21 @@ public class CandidateService {
 
         // Xóa cache kết quả chấm điểm cũ (vì CV đã thay đổi)
         cvAnalysisResultRepository.deleteByUserId(userId);
-        log.info("Đã xóa cache phân tích cũ của user {} do upload CV mới", userId);
-
+        
         return candidateProfileRepository.save(profile);
     }
 
     @Transactional
     public String uploadAvatar(Long userId, MultipartFile file) {
         CandidateProfile profile = getProfile(userId);
+        User user = profile.getUser();
 
         // Upload lên Cloudinary (Dùng lại service đã có)
         String avatarUrl = cloudinaryService.uploadFile(file);
 
         // Lưu link vào DB
-        profile.setAvatarUrl(avatarUrl);
+        user.setProfileImageUrl(avatarUrl); // Cập nhật avatar URL trong User
+        userRepository.save(user); // Lưu lại User để cập nhật avatar URL
         candidateProfileRepository.save(profile);
 
         return avatarUrl;
@@ -141,6 +144,10 @@ public class CandidateService {
                         .build());
 
         // Map các trường cơ bản
+        if (request.getUserFullName() != null && !request.getUserFullName().isEmpty()) {
+            user.setFullName(request.getUserFullName());
+            userRepository.save(user);
+        }
         if (request.getFullName() != null && !request.getFullName().isEmpty()) {
             profile.setFullName(request.getFullName());
         }

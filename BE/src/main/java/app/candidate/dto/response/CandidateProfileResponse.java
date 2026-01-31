@@ -10,7 +10,8 @@ import java.util.List;
 public class CandidateProfileResponse {
     private Long id;
     private String avatarUrl;
-    private String fullName;
+    private String userFullName; // Trả về tên tài khoản để hiển thị/sửa
+    private String fullName;     // Tên hồ sơ
     private String email;
     private String phoneNumber;
     private String address;

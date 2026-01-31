@@ -1,8 +1,6 @@
 package app.gamification.dto.response;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
-
 
 public interface LeaderboardLogResponse {
   Long getUserId();

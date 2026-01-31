@@ -6,7 +6,8 @@ import java.util.Map;
 
 @Data
 public class CandidateProfileUpdateRequest {
-    private String fullName;
+    private String userFullName; // Tên tài khoản (User)
+    private String fullName;     // Tên hồ sơ ứng tuyển (Profile)
     private String email;
     private String aboutMe;
     private String phoneNumber;
