@@ -8,6 +8,7 @@ import app.gamification.dto.response.LeaderboardLogResponse;
 import app.gamification.model.LeaderboardPointsLog;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
@@ -65,12 +66,12 @@ public class LeaderboardService {
         return String.format(Locale.ROOT, "%d-W%02d", year, week);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean addPoints(Long userId, String userRoleFromUsersTable, String actionType, int points, Long refId) {
         if (userId == null || actionType == null || points == 0) return false;
 
         String roleGroup = normalizeRoleGroup(userRoleFromUsersTable);
-        ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh"); // theo timezone bạn dùng
+        ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
 
         // 1) limit/ngày
         Integer limit = DAILY_LIMIT.get(actionType);
@@ -79,9 +80,8 @@ public class LeaderboardService {
             if (used >= limit) return false;
         }
 
-        // 2) insert log (chống trùng ref_id nhờ unique index hoặc check trước)
+        // 2) insert log
         if (refId != null) {
-            // check trước để tránh exception spam (optional)
             if (logRepo.existsByUserIdAndActionTypeAndRefId(userId, actionType, refId)) {
                 return false;
             }
@@ -97,11 +97,12 @@ public class LeaderboardService {
         try {
             logRepo.save(log);
         } catch (DataIntegrityViolationException ex) {
-            // Trùng (user_id, action_type, ref_id) -> không cộng
+            // Nhờ REQUIRES_NEW, exception này chỉ rollback transaction con của addPoints
+            // Không làm hỏng transaction cha của việc Apply
             return false;
         }
 
-        // 3) upsert score cho WEEK/MONTH/ALL_TIME
+        // 3) upsert score
         String weekKey = currentPeriodKey(PeriodType.WEEK, zone);
         String monthKey = currentPeriodKey(PeriodType.MONTH, zone);
         String yearKey = currentPeriodKey(PeriodType.YEAR, zone);
@@ -113,7 +114,7 @@ public class LeaderboardService {
 
         return true;
     }
-
+    
     public List<LeaderboardEntryResponse> getTop(String roleGroup, String periodType, String periodKey, int limit) {
         String role = roleGroup.toUpperCase(Locale.ROOT);
         String pType = periodType.toUpperCase(Locale.ROOT);

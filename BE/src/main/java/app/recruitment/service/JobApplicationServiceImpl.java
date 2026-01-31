@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import app.notification.service.NotificationService;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,6 +42,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     
     // Service tính toán nhanh
     private final JobFastMatchingService fastMatchingService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -105,6 +107,19 @@ public class JobApplicationServiceImpl implements JobApplicationService {
 
         JobApplication saved = appRepo.save(appBuilder.build());
         leaderboardService.addPoints(candidateId, String.valueOf(candidate.getUserRole()), "APPLY", 10, saved.getId());
+
+        try {
+            notificationService.sendNotification(
+                    job.getRecruiter().getId(), // Sửa jobPosting -> job
+                    "Có ứng viên mới!",
+                    candidate.getFullName() + " vừa ứng tuyển vào vị trí " + job.getTitle(), // Sửa jobPosting -> job
+                    "/applications/" + saved.getId() // Sửa savedApplication -> saved
+            );
+        } catch (Exception e) {
+            log.error("Lỗi gửi thông báo: " + e.getMessage());
+            // Không throw exception để tránh rollback việc nộp đơn chỉ vì lỗi thông báo
+        }
+
         return saved;
     }
 

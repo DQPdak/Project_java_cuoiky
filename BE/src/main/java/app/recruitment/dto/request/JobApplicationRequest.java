@@ -11,7 +11,6 @@ public class JobApplicationRequest {
     // Có thể bỏ @NotNull nếu cho phép hệ thống tự lấy từ Profile
     private String cvUrl; 
 
-    // [FIX LỖI 1] Thêm trường này để Service gọi được getCoverLetter()
     private String coverLetter; 
     private Integer matchScore;
     private String aiEvaluation;

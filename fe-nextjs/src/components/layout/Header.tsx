@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/Authcontext";
 import UserMenu from "@/components/features/auth/UserMenu";
+import NotificationBell from "@/components/common/NotificationBell";
 
 interface NavItem {
   label: string;
@@ -132,12 +133,9 @@ export default function Header() {
           {/* Right Side: Bell & UserMenu */}
           <div className="flex items-center gap-4">
             {user && (
-              <button
-                aria-label="Thông báo"
-                className="p-2 rounded-full text-gray-400 hover:text-gray-500 transition-colors"
-              >
-                <Bell className="w-6 h-6" />
-              </button>
+
+                <NotificationBell />
+
             )}
             <UserMenu />
           </div>
