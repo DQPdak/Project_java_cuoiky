@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   Users,
   Settings,
-  Building,
   PlusCircle,
   Shield,
 } from "lucide-react";
