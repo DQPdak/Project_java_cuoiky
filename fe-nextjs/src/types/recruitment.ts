@@ -45,6 +45,8 @@ export interface CandidateApplication {
   id: number;
   studentName?: string;
   candidateName?: string; // Backend có thể trả về trường này
+  email?: string;
+  phone?: string;
   matchScore: number;
   status: ApplicationStatus;
   cvUrl: string;
@@ -67,13 +69,14 @@ export interface JobCreateRequest {
   expiryDate: string;
 }
 
-
 export interface AIAnalysisDetail {
   id?: number;
   email?: string;
   phone?: string;
   matchPercentage?: number;
+  matchScore?: number;
   evaluation?: string;
+  aiEvaluation?: string;
   learningPath?: string;
   careerAdvice?: string;
   matchedSkillsList?: string[];
@@ -89,6 +92,10 @@ export interface AIAnalysisDetail {
   candidateName?: string;
   studentName?: string;
   jobTitle?: string;
+  status?: ApplicationStatus; // <--- Quan trọng: Để fix lỗi appDetail.status
+  cvUrl?: string; // <--- Quan trọng: Để fix lỗi appDetail.cvUrl
+  appliedAt?: string; // <--- Quan trọng: Để fix lỗi appDetail.appliedAt
+  recruiterNote?: string;
 }
 
 export interface CompanyProfile {
@@ -104,4 +111,11 @@ export interface CompanyProfile {
   industry?: string;
   size?: string;
   foundedYear?: string; // Đồng bộ kiểu String với Backend DTO
+}
+
+export interface DashboardStats {
+  totalActiveJobs: number;
+  totalCandidates: number;
+  newCandidatesToday: number;
+  pipelineStats: { [key: string]: number };
 }

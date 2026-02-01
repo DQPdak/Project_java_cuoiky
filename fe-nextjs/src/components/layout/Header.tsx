@@ -7,7 +7,6 @@ import {
   Briefcase,
   FileText,
   LayoutDashboard,
-  Bell,
   Users,
   Settings,
   Building,
@@ -42,7 +41,6 @@ const RECRUITER_NAV: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard-recruiter", icon: LayoutDashboard },
   { label: "Đăng tin", href: "/recruiter/manage-jobs", icon: PlusCircle },
   { label: "Ứng viên", href: "/applications", icon: Users },
-  { label: "Công ty", href: "/recruiter/company", icon: Building },
 ];
 
 const ADMIN_NAV: NavItem[] = [
@@ -57,9 +55,9 @@ const ADMIN_NAV: NavItem[] = [
 const ROLE_MENUS: Record<string, NavItem[]> = {
   // Gói thường dùng menu rút gọn
   CANDIDATE: CANDIDATE_NAV_FREE,
-  
+
   // Gói VIP dùng menu đầy đủ
-  CANDIDATE_VIP: CANDIDATE_NAV_VIP, 
+  CANDIDATE_VIP: CANDIDATE_NAV_VIP,
 
   // Nhà tuyển dụng (Giữ nguyên logic cũ hoặc tách ra nếu cần sau này)
   RECRUITER: RECRUITER_NAV,
@@ -132,11 +130,7 @@ export default function Header() {
 
           {/* Right Side: Bell & UserMenu */}
           <div className="flex items-center gap-4">
-            {user && (
-
-                <NotificationBell />
-
-            )}
+            {user && <NotificationBell />}
             <UserMenu />
           </div>
         </div>

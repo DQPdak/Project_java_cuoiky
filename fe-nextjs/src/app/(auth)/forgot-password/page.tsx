@@ -4,7 +4,7 @@ import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { forgotPassword } from "@/services/authService";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
       await forgotPassword(email);
       toast.dismiss(loadingToast);
       toast.success("Mã xác nhận đã được gửi vào email!");
-      
+
       // Chuyển hướng sang trang nhập mã reset sau 2s
       setTimeout(() => {
         router.push("/reset-password");
@@ -36,7 +36,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="w-full max-w-md mx-auto p-6 mt-10 bg-white shadow-md rounded-lg">
-      <Toaster position="top-center" />
       <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">
         Quên mật khẩu
       </h2>
@@ -46,7 +45,10 @@ export default function ForgotPasswordPage() {
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
             Email đã đăng ký
           </label>
           <div className="mt-1">
@@ -71,7 +73,10 @@ export default function ForgotPasswordPage() {
       </form>
 
       <div className="mt-4 text-center">
-        <Link href="/login" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+        <Link
+          href="/login"
+          className="text-sm font-medium text-blue-600 hover:text-blue-500"
+        >
           Quay lại đăng nhập
         </Link>
       </div>

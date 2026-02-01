@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link"; // 👈 1. Import Link
 import { getMyProfile } from "@/services/candidateService";
 import { FileText, ArrowLeft } from "lucide-react"; // 👈 2. Import icon ArrowLeft

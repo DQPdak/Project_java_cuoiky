@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getMyApplications } from "@/services/candidateService";
 import { interviewService } from "@/services/interviewService";
-import { InterviewSession } from "@/types/interview"; 
-import toast, { Toaster } from "react-hot-toast";
+import { InterviewSession } from "@/types/interview";
+import toast from "react-hot-toast";
 import {
   Briefcase,
   Clock,
@@ -111,8 +111,6 @@ export default function InterviewHubPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <Toaster position="top-center" />
-
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
           <Briefcase className="text-blue-600" />

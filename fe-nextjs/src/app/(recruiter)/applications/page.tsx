@@ -30,7 +30,7 @@ import {
   Loader2,
   Filter,
 } from "lucide-react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 // --- HELPER: Xử lý chuỗi kỹ năng thành mảng an toàn ---
 const safeSplit = (input: any): string[] => {
@@ -475,7 +475,6 @@ export default function ApplicationsPage() {
 
   return (
     <div className="h-[calc(100vh-64px)] bg-gray-50 flex overflow-hidden">
-      <Toaster position="top-center" />
       {viewCVApp && (
         <CVDetailModal
           app={viewCVApp}

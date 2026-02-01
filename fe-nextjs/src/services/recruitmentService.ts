@@ -7,6 +7,7 @@ import {
   ApplicationStatus,
   AIAnalysisDetail,
   CompanyProfile, // Nhớ import thêm interface này
+  DashboardStats,
 } from "@/types/recruitment";
 
 // Alias type cho khớp với page.tsx
@@ -54,7 +55,7 @@ export const recruitmentService = {
   // ==========================================
   // 3. NHÓM DASHBOARD - RECRUITER
   // ==========================================
-  getDashboardStats: async (): Promise<any> => {
+  getDashboardStats: async (): Promise<DashboardStats> => {
     const response = await api.get("/recruiter/dashboard/stats");
     return response.data;
   },
@@ -96,16 +97,14 @@ export const recruitmentService = {
     return res.data.data || res.data;
   },
 
-
   // ==========================================
   // 5. NHÓM PUBLIC / CANDIDATE (XEM JOB)
   // ==========================================
 
   // Xem chi tiết Job (Public - không cần login hoặc Candidate)
   getJobDetail: async (id: number): Promise<JobPosting> => {
-
-      const response = await api.get(`/recruiter/jobs/public/${id}`); 
-      return response.data;
+    const response = await api.get(`/recruiter/jobs/public/${id}`);
+    return response.data;
   },
 
   // Kiểm tra trạng thái ứng tuyển của Candidate với Job này
