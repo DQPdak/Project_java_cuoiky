@@ -60,9 +60,9 @@ public class SecurityConfig {
                     "/api/public/**",     // Các API public chung
                     "/swagger-ui/**",     // Swagger UI
                     "/v3/api-docs/**", 
-                    "/api/recruiter/jobs/public/**"   // API Docs
+                    "/api/recruiter/jobs/public/**",   // API Docs
+                    "/api/chat/ask"
                 ).permitAll()
-
                 // ======================================================
                 // 2. PAYMENT (Cho phép mọi User đã login thực hiện thanh toán)
                 // ======================================================
