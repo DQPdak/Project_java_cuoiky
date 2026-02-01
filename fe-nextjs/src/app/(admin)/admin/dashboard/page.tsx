@@ -140,8 +140,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   // Leaderboard + logs
-  // const [lbPeriod, setLbPeriod] = useState<'WEEK' | 'MONTH' | 'YEAR'>('WEEK');
-  // const [lbRole, setLbRole] = useState<'CANDIDATE' | 'RECRUITER'>('CANDIDATE');
+  const [lbPeriod, setLbPeriod] = useState<'WEEK' | 'MONTH' | 'YEAR'>('WEEK');
+  const [lbRole, setLbRole] = useState<'CANDIDATE' | 'RECRUITER'>('CANDIDATE');
   const [lbLoading, setLbLoading] = useState(false);
   const [logLoading, setLogLoading] = useState(false);
 
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
       setPendingPostsCount(pendingPage.totalElements ?? 0);
 
       // ✅ thêm 2 call mới
-      // await Promise.all([fetchLeaderboard(), fetchPointLogs()]);
+      await Promise.all([fetchLeaderboard(), fetchPointLogs()]);
 
     } catch (err) {
       console.error('Lỗi tải dữ liệu Dashboard:', err);
@@ -180,51 +180,51 @@ export default function AdminDashboard() {
       setChartData([]);
       setRecentActivities([]);
       setPendingPostsCount(0);
-      // setLeaderboard([]);
-      // setPointsLogs([]);
+      setLeaderboard([]);
+      setPointsLogs([]);
 
     } finally {
       setLoading(false);
     }
   };
 
-  // const fetchLeaderboard = async (period = lbPeriod, role = lbRole) => {
-  //   setLbLoading(true);
-  //   try {
-  //     const res = await api.get('/admin/leaderboard', {
-  //       params: { role, period, limit: 10 },
-  //     });
-  //     setLeaderboard(res.data?.data ?? []);
-  //   } catch (e) {
-  //     console.error('Lỗi tải leaderboard:', e);
-  //     setLeaderboard([]);
-  //   } finally {
-  //     setLbLoading(false);
-  //   }
-  // };
+  const fetchLeaderboard = async (period = lbPeriod, role = lbRole) => {
+    setLbLoading(true);
+    try {
+      const res = await api.get('/admin/leaderboard', {
+        params: { role, period, limit: 10 },
+      });
+      setLeaderboard(res.data?.data ?? []);
+    } catch (e) {
+      console.error('Lỗi tải leaderboard:', e);
+      setLeaderboard([]);
+    } finally {
+      setLbLoading(false);
+    }
+  };
 
-  // const fetchPointLogs = async () => {
-  //   setLogLoading(true);
-  //   try {
-  //     const res = await api.get('/admin/leaderboard/logs', { params: { limit: 5 } });
-  //     setPointsLogs(res.data?.data ?? []);
-  //   } catch (e) {
-  //     console.error('Lỗi tải logs:', e);
-  //     setPointsLogs([]);
-  //   } finally {
-  //     setLogLoading(false);
-  //   }
-  // };
+  const fetchPointLogs = async () => {
+    setLogLoading(true);
+    try {
+      const res = await api.get('/admin/leaderboard/logs', { params: { limit: 5 } });
+      setPointsLogs(res.data?.data ?? []);
+    } catch (e) {
+      console.error('Lỗi tải logs:', e);
+      setPointsLogs([]);
+    } finally {
+      setLogLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // useEffect(() => {
-  //   if (!loading) fetchLeaderboard(lbPeriod, lbRole);
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [lbPeriod, lbRole]);
+  useEffect(() => {
+    if (!loading) fetchLeaderboard(lbPeriod, lbRole);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lbPeriod, lbRole]);
 
 
   if (loading) {
@@ -297,15 +297,15 @@ export default function AdminDashboard() {
       </div>
 
       {/* Leaderboard + Points Log */}
-     {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Leaderboard
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Leaderboard */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-800">Bảng xếp hạng (Top 10)</h3>
           </div>
 
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-            {/* Role switch 
+            {/* Role switch */}
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -331,7 +331,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Period tabs 
+            {/* Period tabs */}
             <div className="flex items-center gap-2">
               {(['WEEK', 'MONTH', 'YEAR'] as const).map((p) => (
                 <button
@@ -379,7 +379,7 @@ export default function AdminDashboard() {
           </div>
         </div> 
 
-        {/* Points Logs 
+        {/* Points Logs */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-800">Điểm gần đây</h3>
@@ -424,7 +424,7 @@ export default function AdminDashboard() {
             Xem tất cả log cộng điểm
           </button>
         </div>
-      </div> */}
+      </div>
 
       {/* Charts + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
