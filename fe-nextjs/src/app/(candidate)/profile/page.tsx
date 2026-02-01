@@ -7,7 +7,6 @@ import {
 } from "@/services/candidateService";
 import {
   User,
-  Phone,
   Globe,
   Linkedin,
   Book,
@@ -15,7 +14,6 @@ import {
   Save,
   Loader2,
   Camera,
-  MapPin,
   Briefcase,
   Plus,
   Trash2,

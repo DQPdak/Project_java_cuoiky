@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { login } from "@/services/authService";
 import { useAuth } from "@/context/Authcontext";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import GoogleLoginButton from "@/components/features/auth/GoogleLoginButton";
 import { UserRole } from "@/types/auth";
 
@@ -199,8 +199,6 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="w-full max-w-md mx-auto p-6">
-      <Toaster position="top-center" reverseOrder={false} />
-
       <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">
         Đăng nhập vào tài khoản
       </h2>

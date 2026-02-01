@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
   // Không cần state isScrolled cho màu nền nữa vì ta sẽ để nền trắng cố định
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const router = useRouter();
 
   // Xử lý hiệu ứng Fade-in khi cuộn (Intersection Observer)
   useEffect(() => {

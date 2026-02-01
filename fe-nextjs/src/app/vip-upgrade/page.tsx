@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/Authcontext";
 import { useRouter } from "next/navigation";
 import { paymentService } from "@/services/paymentService";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { useConfirm } from "@/context/ConfirmDialogContext";
 import { ArrowLeft, Clock } from "lucide-react";
 
@@ -215,8 +215,6 @@ export default function VipUpgradePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
-      <Toaster position="top-center" reverseOrder={false} />
-
       <div className="max-w-5xl mx-auto">
         {/* --- NÚT QUAY LẠI --- */}
         <div className="mb-6">

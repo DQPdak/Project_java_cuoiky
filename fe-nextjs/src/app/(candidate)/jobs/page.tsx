@@ -5,7 +5,6 @@ import { useAuth } from "@/context/Authcontext";
 import * as candidateService from "@/services/candidateService";
 import { useRouter, useSearchParams } from "next/navigation";
 import ApplyModal from "@/components/features/jobs/ApplyModal";
-import { getMyApplications } from "@/services/candidateService";
 import {
   Search,
   MapPin,
@@ -33,9 +32,12 @@ export default function JobsPage() {
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedJob, setSelectedJob] = useState<{id: number, title: string, company: string} | null>(null);
+  const [selectedJob, setSelectedJob] = useState<{
+    id: number;
+    title: string;
+    company: string;
+  } | null>(null);
   const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
-  
 
   // Logic bắt URL
   useEffect(() => {
@@ -153,7 +155,9 @@ export default function JobsPage() {
     try {
       const myApps = await candidateService.getMyApplications();
       // Map ra danh sách ID từ response
-      const ids = Array.isArray(myApps) ? myApps.map((app: any) => app.job?.id || app.jobId || app.id) : [];
+      const ids = Array.isArray(myApps)
+        ? myApps.map((app: any) => app.job?.id || app.jobId || app.id)
+        : [];
       setAppliedJobIds(ids);
     } catch (error) {
       console.error("Lỗi lấy trạng thái ứng tuyển", error);
@@ -164,7 +168,7 @@ export default function JobsPage() {
   useEffect(() => {
     if (user?.id) {
       fetchJobs();
-      fetchAppliedStatus(); 
+      fetchAppliedStatus();
     }
   }, [user, activeTab]);
 
@@ -172,7 +176,7 @@ export default function JobsPage() {
     setSelectedJob({
       id: job.id,
       title: job.title,
-      company: job.company || "Công ty ẩn danh"
+      company: job.company || "Công ty ẩn danh",
     });
   };
 
@@ -375,7 +379,6 @@ export default function JobsPage() {
 
                   {/* Actions */}
                   <div className="flex flex-col gap-3 min-w-[200px] border-l border-gray-100 pl-6 md:justify-center">
-                    
                     <button
                       onClick={() => router.push(`/jobs/${job.id}`)}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-colors border border-blue-100"
@@ -398,16 +401,15 @@ export default function JobsPage() {
                       <Building2 className="h-4 w-4" />
                       Phỏng vấn thử
                     </button>
-                    
+
                     <button
                       onClick={() => handleApply(job)}
                       disabled={appliedJobIds.includes(job.id)}
-                      
                       className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all shadow-sm
                         ${
                           appliedJobIds.includes(job.id)
                             ? "bg-green-50 text-green-700 border border-green-200 cursor-not-allowed" // Style Đã nộp
-                            : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200"   // Style Chưa nộp
+                            : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200" // Style Chưa nộp
                         }`}
                     >
                       {appliedJobIds.includes(job.id) ? (
@@ -468,8 +470,8 @@ export default function JobsPage() {
           jobTitle={selectedJob.title}
           companyName={selectedJob.company}
           onSuccess={() => {
-              fetchAppliedStatus(); // Load lại danh sách appliedIds để nút chuyển sang màu xanh ngay lập tức
-              setSelectedJob(null); // Đóng modal
+            fetchAppliedStatus(); // Load lại danh sách appliedIds để nút chuyển sang màu xanh ngay lập tức
+            setSelectedJob(null); // Đóng modal
           }}
         />
       )}

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/Authcontext";
 import { useRouter } from "next/navigation";
+import { Building } from "lucide-react";
 
 export default function UserMenu() {
   const { user, logout } = useAuth();
@@ -38,6 +39,12 @@ export default function UserMenu() {
   // Check VIP
   const isVip = user.userRole?.includes("_VIP");
   const isAdmin = user.userRole === "ADMIN"; // Biến tiện ích kiểm tra admin
+  const isRecruiter =
+    user.userRole?.includes("RECRUITER") ||
+    user.userRole?.includes("RECRUITER_VIP");
+  const isCandidate =
+    user.userRole?.includes("CANDIDATE") ||
+    user.userRole?.includes("CANDIDATE_VIP");
 
   return (
     <div className="relative" ref={menuRef}>
@@ -114,23 +121,32 @@ export default function UserMenu() {
               </Link>
             )}
 
-            {!isAdmin && (
+            {isCandidate && (
               <Link
                 href="/cv-builder"
                 className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                 onClick={() => setIsOpen(false)}
               >
-                📝 Tạo CV 
+                📝 Tạo CV
               </Link>
             )}
 
-            {!isAdmin && (
+            {isCandidate && (
               <Link
                 href="/profile"
                 className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                 onClick={() => setIsOpen(false)}
               >
                 👤 Xem hồ sơ
+              </Link>
+            )}
+            {isRecruiter && (
+              <Link
+                href="/recruiter/company"
+                className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                onClick={() => setIsOpen(false)}
+              >
+                <Building className="w-4 h-4 mr-2" /> Công ty của tôi
               </Link>
             )}
 

@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { resetPassword } from "@/services/authService";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -43,7 +43,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="w-full max-w-md mx-auto p-6 mt-10 bg-white shadow-md rounded-lg">
-      <Toaster position="top-center" />
+     
       <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">
         Đặt lại mật khẩu
       </h2>

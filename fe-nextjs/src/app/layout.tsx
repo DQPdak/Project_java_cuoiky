@@ -24,36 +24,46 @@ export default function RootLayout({
             <ConfirmDialogProvider>
               {/* Cấu hình Toaster để thông báo tự động tắt */}
               <Toaster
-                position="top-center"
+                position="top-right" // Đổi vị trí sang góc phải trên (chuẩn Web App)
                 reverseOrder={false}
-                containerStyle={{
-                  zIndex: 999999,
-                }}
                 toastOptions={{
-                  // Thời gian hiển thị mặc định: 3 giây (3000ms)
-                  duration: 3000,
-
-                  // Style mặc định (nền tối, chữ trắng)
+                  // Cấu hình chung cho khung thông báo
+                  className: "",
                   style: {
-                    background: "#363636",
-                    color: "#fff",
+                    border: "1px solid #E5E7EB", // Viền xám nhẹ
+                    padding: "16px",
+                    color: "#1F2937", // Chữ màu xám đậm
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)", // Đổ bóng mềm
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    fontWeight: "500",
                   },
-
-                  // Cấu hình riêng cho thông báo thành công (Success)
+                  // Cấu hình Success (Thành công)
                   success: {
                     duration: 3000,
+                    iconTheme: {
+                      primary: "#10B981", // Màu xanh Emerald chuẩn
+                      secondary: "white",
+                    },
                     style: {
-                      background: "green",
-                      color: "white",
+                      borderLeft: "4px solid #10B981", // Vạch màu xanh bên trái tạo điểm nhấn
                     },
                   },
-
-                  // Cấu hình riêng cho thông báo lỗi (Error) - hiện lâu hơn 1 chút
+                  // Cấu hình Error (Lỗi)
                   error: {
                     duration: 4000,
+                    iconTheme: {
+                      primary: "#EF4444", // Màu đỏ chuẩn
+                      secondary: "white",
+                    },
                     style: {
-                      background: "#ef4444", // Màu đỏ
-                      color: "white",
+                      borderLeft: "4px solid #EF4444", // Vạch màu đỏ bên trái
+                    },
+                  },
+                  // Cấu hình Loading
+                  loading: {
+                    style: {
+                      borderLeft: "4px solid #3B82F6", // Vạch màu xanh dương
                     },
                   },
                 }}

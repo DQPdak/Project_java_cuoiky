@@ -1,7 +1,5 @@
 // src/components/common/ConfirmDialog.tsx
-'use client';
-
-import React from 'react';
+"use client";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -18,8 +16,8 @@ export default function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = 'Đồng ý',
-  cancelLabel = 'Hủy bỏ',
+  confirmLabel = "Đồng ý",
+  cancelLabel = "Hủy bỏ",
   onConfirm,
   onCancel,
   isDanger = false,
@@ -29,24 +27,51 @@ export default function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all animate-scale-in border border-gray-100">
-        
         {/* Header */}
-        <div className={`p-6 flex items-start gap-4 ${isDanger ? 'bg-red-50' : 'bg-indigo-50'}`}>
-          <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
-            isDanger ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'
-          }`}>
-             {isDanger ? (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-             ) : (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-             )}
+        <div
+          className={`p-6 flex items-start gap-4 ${isDanger ? "bg-red-50" : "bg-indigo-50"}`}
+        >
+          <div
+            className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+              isDanger
+                ? "bg-red-100 text-red-600"
+                : "bg-indigo-100 text-indigo-600"
+            }`}
+          >
+            {isDanger ? (
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            )}
           </div>
           <div>
-            <h3 className={`text-lg font-bold ${isDanger ? 'text-red-900' : 'text-indigo-900'}`}>
+            <h3
+              className={`text-lg font-bold ${isDanger ? "text-red-900" : "text-indigo-900"}`}
+            >
               {title}
             </h3>
             <p className="mt-2 text-sm text-gray-600 leading-relaxed">
@@ -66,9 +91,9 @@ export default function ConfirmDialog({
           <button
             onClick={onConfirm}
             className={`px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all transform active:scale-95 ${
-              isDanger 
-                ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' 
-                : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'
+              isDanger
+                ? "bg-red-600 hover:bg-red-700 focus:ring-red-500"
+                : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
             }`}
           >
             {confirmLabel}
