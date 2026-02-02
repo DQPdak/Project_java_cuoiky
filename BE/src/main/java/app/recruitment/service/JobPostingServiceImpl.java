@@ -13,8 +13,13 @@ import app.recruitment.repository.JobPostingRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher; // MỚI: Import Publisher
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+// --- MỚI: Import Event & Enum Action ---
+import app.gamification.event.PointEvent;
+import app.gamification.model.UserPointAction;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -33,6 +38,9 @@ public class JobPostingServiceImpl implements JobPostingService {
     private final UserRepository userRepository;
     private final RecruitmentMapper recruitmentMapper;
     private final GeminiService geminiService;
+    
+    // --- THAY ĐỔI: Dùng EventPublisher thay vì LeaderboardService ---
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -45,16 +53,15 @@ public class JobPostingServiceImpl implements JobPostingService {
              throw new RuntimeException("Only recruiter can create job postings");
         }
 
-        // 2. Xử lý AI an toàn (Safe AI call) - Logic từ Gemini
+        // 2. Xử lý AI an toàn (Safe AI call)
         List<String> skills = new ArrayList<>();
         try {
             skills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
         } catch (Exception e) {
-            // Log lỗi nhưng không chặn quy trình tạo Job
             log.error("Lỗi khi trích xuất kỹ năng bằng AI (Vẫn tiếp tục tạo Job): {}", e.getMessage());
         }
 
-        // 3. Convert LocalDate -> LocalDateTime (Hết hạn vào cuối ngày đó: 23:59:59)
+        // 3. Convert LocalDate -> LocalDateTime
         LocalDateTime expiryDateTime = request.getExpiryDate().atTime(LocalTime.MAX);
 
         // 4. Tạo Entity
@@ -64,13 +71,30 @@ public class JobPostingServiceImpl implements JobPostingService {
                 .requirements(request.getRequirements())
                 .salaryRange(request.getSalaryRange())
                 .location(request.getLocation())
-                .expiryDate(expiryDateTime) // Lưu LocalDateTime đã convert
+                .expiryDate(expiryDateTime)
                 .extractedSkills(skills)
                 .recruiter(recruiter)
                 .status(JobStatus.PENDING)
                 .build();
 
-        return jobPostingRepository.save(j);
+        JobPosting savedJob = jobPostingRepository.save(j);
+
+        // --- MỚI: Bắn Event tính điểm ---
+        try {
+            eventPublisher.publishEvent(new PointEvent(
+                this,
+                recruiterId,
+                "RECRUITER",
+                UserPointAction.JOB_POST_APPROVED, // Sử dụng Enum chuẩn
+                savedJob.getId() // RefId là ID của Job
+            ));
+        } catch (Exception e) {
+            // Log lỗi nhưng không làm fail luồng tạo Job
+            log.error("Lỗi bắn event tính điểm JOB_POST_APPROVED: {}", e.getMessage());
+        }
+        // -------------------------------------------------------
+
+        return savedJob;
     }
 
     @Override
@@ -83,28 +107,23 @@ public class JobPostingServiceImpl implements JobPostingService {
             throw new IllegalArgumentException("Unauthorized: cannot edit job of another recruiter");
         }
 
-        // Cập nhật các trường thông tin cơ bản
         job.setTitle(request.getTitle());
         job.setDescription(request.getDescription());
         job.setRequirements(request.getRequirements());
         job.setSalaryRange(request.getSalaryRange());
         job.setLocation(request.getLocation());
 
-        // Cập nhật ExpiryDate (Nếu có thay đổi)
         if (request.getExpiryDate() != null) {
             job.setExpiryDate(request.getExpiryDate().atTime(LocalTime.MAX));
         }
 
-        // Cập nhật kỹ năng qua AI an toàn (Safe AI call cho Update)
         try {
             List<String> newSkills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
             job.setExtractedSkills(newSkills);
         } catch (Exception e) {
             log.error("Lỗi khi cập nhật kỹ năng bằng AI (Giữ nguyên kỹ năng cũ): {}", e.getMessage());
-            // Không set lại skills để giữ nguyên dữ liệu cũ nếu AI lỗi
         }
 
-        // Cập nhật trạng thái
         if (request.getStatus() != null) {
             try {
                 job.setStatus(JobStatus.valueOf(request.getStatus()));
@@ -133,11 +152,9 @@ public class JobPostingServiceImpl implements JobPostingService {
     }
 
     @Override
-    @Transactional(readOnly = true) // Transaction bao trọn cả quá trình lấy và map
+    @Transactional(readOnly = true)
     public List<JobPostingResponse> listByRecruiter(Long recruiterId) {
         List<JobPosting> jobs = jobPostingRepository.findByRecruiterId(recruiterId);
-        
-        // Map sang DTO ngay tại đây, khi kết nối DB vẫn còn sống
         return jobs.stream()
                 .map(recruitmentMapper::toJobPostingResponse)
                 .collect(Collectors.toList());

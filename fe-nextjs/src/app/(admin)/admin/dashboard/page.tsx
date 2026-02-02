@@ -1,8 +1,13 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
-import api from '@/services/api';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from "react";
+import api from "@/services/api";
+import { useRouter } from "next/navigation";
+import {
+  leaderboardService,
+  LeaderboardLog,
+} from "@/services/leaderboardService";
+import { LeaderboardEntry } from "@/types/gamification";
 import {
   Users,
   Briefcase,
@@ -10,7 +15,7 @@ import {
   TrendingUp,
   Activity,
   Calendar,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   XAxis,
   YAxis,
@@ -19,8 +24,8 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-} from 'recharts';
-import { DashboardSummary, ApplicationsByDay } from '@/types/admin';
+} from "recharts";
+import { DashboardSummary, ApplicationsByDay } from "@/types/admin";
 
 type RecentActivity = {
   refId: number;
@@ -44,58 +49,11 @@ type JobPostingResponse = {
   updatedAt?: string;
 };
 
-type ViolationReportResponse = {
-  id: number;
-  reporterId: number;
-  reporterName: string;
-
-  targetType: 'JOB_POSTING' | 'COMPANY' | 'USER';
-  targetId: number;
-
-  reason: 'SPAM' | 'SCAM' | 'FAKE_INFORMATION' | 'HARASSMENT' | 'INAPPROPRIATE_CONTENT' | 'OTHER';
-  description?: string;
-  evidenceUrl?: string;
-
-  status: 'PENDING' | 'VALID' | 'INVALID' | 'RESOLVED';
-
-  handledById?: number | null;
-  handledByName?: string | null;
-  adminNote?: string | null;
-
-  createdAt?: string;
-  updatedAt?: string;
-  handledAt?: string | null;
-};
-
-type PageLike<T> = {
-  content: T[];
-  totalElements?: number;
-  totalPages?: number;
-  number?: number;
-  size?: number;
-};
-
-type LeaderboardEntry = {
-  userId: number;
-  fullName: string;
-  score: number;
-  rank: number;
-};
-
-type LeaderboardLog = {
-  userId: number;
-  fullName: string;
-  role: string;
-  actionType: string;
-  points: number;
-  refId?: number | null;
-  createdAt: string; // ISO
-};
-
+// Hàm tiện ích format thời gian
 function timeAgoVi(iso?: string) {
-  if (!iso) return '';
+  if (!iso) return "";
   const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '';
+  if (Number.isNaN(t)) return "";
   const diff = Date.now() - t;
 
   const sec = Math.floor(diff / 1000);
@@ -109,24 +67,23 @@ function timeAgoVi(iso?: string) {
 }
 
 function actionLabel(actionType: string) {
-  // bạn muốn đẹp hơn thì map tại đây
-  return actionType;
+  const map: Record<string, string> = {
+    LOGIN_DAILY: "Đăng nhập",
+    APPLY: "Ứng tuyển",
+    UPLOAD_CV: "Tải CV",
+    INTERVIEW_PRACTICE: "Phỏng vấn AI",
+    JOB_POST_APPROVED: "Đăng tin",
+    REVIEW_CV: "Duyệt hồ sơ",
+    HIRED: "Tuyển dụng",
+  };
+  return map[actionType] || actionType;
 }
 
-function normalizePage<T>(raw: any): PageLike<T> {
+function normalizePage<T>(raw: any) {
   const data = raw?.data ?? raw;
-  if (Array.isArray(data)) return { content: data };
-  if (data?.content && Array.isArray(data.content)) return data as PageLike<T>;
-  return { content: [] };
-}
-
-function fmtDate(dt?: string) {
-  if (!dt) return '-';
-  try {
-    return new Date(dt).toLocaleString('vi-VN');
-  } catch {
-    return dt;
-  }
+  if (Array.isArray(data)) return { content: data, totalElements: data.length };
+  if (data?.content && Array.isArray(data.content)) return data;
+  return { content: [], totalElements: 0 };
 }
 
 export default function AdminDashboard() {
@@ -134,34 +91,41 @@ export default function AdminDashboard() {
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [chartData, setChartData] = useState<ApplicationsByDay[]>([]);
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(
+    [],
+  );
+
+  // State cho Gamification
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [pointsLogs, setPointsLogs] = useState<LeaderboardLog[]>([]);
+
   const [loading, setLoading] = useState(true);
 
-  // Leaderboard + logs
-  const [lbPeriod, setLbPeriod] = useState<'WEEK' | 'MONTH' | 'YEAR'>('WEEK');
-  const [lbRole, setLbRole] = useState<'CANDIDATE' | 'RECRUITER'>('CANDIDATE');
+  // Leaderboard filters
+  const [lbPeriod, setLbPeriod] = useState<"WEEK" | "MONTH" | "YEAR">("WEEK");
+  const [lbRole, setLbRole] = useState<"CANDIDATE" | "RECRUITER">("CANDIDATE");
   const [lbLoading, setLbLoading] = useState(false);
   const [logLoading, setLogLoading] = useState(false);
 
   // Quick action count
   const [pendingPostsCount, setPendingPostsCount] = useState(0);
-
-  // Violation reports
   const [pendingReportsCount, setPendingReportsCount] = useState(0);
-
 
   const fetchDashboard = async () => {
     setLoading(true);
     try {
-      const [summaryRes, chartRes, recentRes, pendingRes, reportSummaryRes] = await Promise.all([
-        api.get('/admin/dashboard/summary'),
-        api.get('/admin/dashboard/applications-chart', { params: { days: 7 } }),
-        api.get('/admin/dashboard/recent-activities', { params: { limit: 5 } }),
-        api.get('/admin/content/pending', { params: { page: 0, size: 1 } }),
-        api.get('/admin/violation-reports/summary'),
-      ]);
+      const [summaryRes, chartRes, recentRes, pendingRes, reportSummaryRes] =
+        await Promise.all([
+          api.get("/admin/dashboard/summary"),
+          api.get("/admin/dashboard/applications-chart", {
+            params: { days: 7 },
+          }),
+          api.get("/admin/dashboard/recent-activities", {
+            params: { limit: 5 },
+          }),
+          api.get("/admin/content/pending", { params: { page: 0, size: 1 } }),
+          api.get("/admin/violation-reports/summary"),
+        ]);
 
       setSummary(summaryRes.data?.data ?? null);
       setChartData(chartRes.data?.data ?? []);
@@ -171,18 +135,12 @@ export default function AdminDashboard() {
       const pendingPage = normalizePage<JobPostingResponse>(pendingRes.data);
       setPendingPostsCount(pendingPage.totalElements ?? 0);
 
-      // ✅ thêm 2 call mới
+      // Gọi dữ liệu Gamification
       await Promise.all([fetchLeaderboard(), fetchPointLogs()]);
-
     } catch (err) {
-      console.error('Lỗi tải dữ liệu Dashboard:', err);
+      console.error("Lỗi tải dữ liệu Dashboard:", err);
       setSummary(null);
       setChartData([]);
-      setRecentActivities([]);
-      setPendingPostsCount(0);
-      setLeaderboard([]);
-      setPointsLogs([]);
-
     } finally {
       setLoading(false);
     }
@@ -191,12 +149,11 @@ export default function AdminDashboard() {
   const fetchLeaderboard = async (period = lbPeriod, role = lbRole) => {
     setLbLoading(true);
     try {
-      const res = await api.get('/admin/leaderboard', {
-        params: { role, period, limit: 10 },
-      });
-      setLeaderboard(res.data?.data ?? []);
+      // Gọi API lấy Top 10 cho Dashboard
+      const data = await leaderboardService.getTop(role, period);
+      setLeaderboard(data || []);
     } catch (e) {
-      console.error('Lỗi tải leaderboard:', e);
+      console.error("Lỗi tải leaderboard:", e);
       setLeaderboard([]);
     } finally {
       setLbLoading(false);
@@ -206,10 +163,10 @@ export default function AdminDashboard() {
   const fetchPointLogs = async () => {
     setLogLoading(true);
     try {
-      const res = await api.get('/admin/leaderboard/logs', { params: { limit: 5 } });
-      setPointsLogs(res.data?.data ?? []);
+      const data = await leaderboardService.getRecentLogs(5);
+      setPointsLogs(data || []);
     } catch (e) {
-      console.error('Lỗi tải logs:', e);
+      console.error("Lỗi tải logs:", e);
       setPointsLogs([]);
     } finally {
       setLogLoading(false);
@@ -226,7 +183,6 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lbPeriod, lbRole]);
 
-
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
@@ -242,27 +198,28 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Tổng quan hệ thống</h1>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Tổng quan hệ thống
+          </h1>
           <p className="text-gray-500">Chào mừng trở lại, Administrator.</p>
         </div>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={fetchDashboard}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm flex items-center gap-2"
-        >
-          ↻ Tải lại
-        </button>
-
-        <button
-          type="button"
-          className="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm flex items-center gap-2"
-        >
-          <Calendar className="w-4 h-4" />
-          Hôm nay: {new Date().toLocaleDateString('vi-VN')}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={fetchDashboard}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm flex items-center gap-2"
+          >
+            ↻ Tải lại
+          </button>
+          <button
+            type="button"
+            className="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm flex items-center gap-2"
+          >
+            <Calendar className="w-4 h-4" />
+            Hôm nay: {new Date().toLocaleDateString("vi-VN")}
+          </button>
+        </div>
       </div>
-    </div>  
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -301,7 +258,15 @@ export default function AdminDashboard() {
         {/* Leaderboard */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800">Bảng xếp hạng (Top 10)</h3>
+            <h3 className="text-lg font-bold text-gray-800">
+              Bảng xếp hạng (Top 10)
+            </h3>
+            <button
+              onClick={() => router.push("/admin/leaderboard")}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Xem chi tiết
+            </button>
           </div>
 
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
@@ -309,22 +274,22 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setLbRole('CANDIDATE')}
+                onClick={() => setLbRole("CANDIDATE")}
                 className={`px-3 py-1.5 rounded-lg text-sm border ${
-                  lbRole === 'CANDIDATE'
-                    ? 'bg-blue-50 text-blue-700 border-blue-100'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  lbRole === "CANDIDATE"
+                    ? "bg-blue-50 text-blue-700 border-blue-100"
+                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 Ứng viên
               </button>
               <button
                 type="button"
-                onClick={() => setLbRole('RECRUITER')}
+                onClick={() => setLbRole("RECRUITER")}
                 className={`px-3 py-1.5 rounded-lg text-sm border ${
-                  lbRole === 'RECRUITER'
-                    ? 'bg-blue-50 text-blue-700 border-blue-100'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  lbRole === "RECRUITER"
+                    ? "bg-blue-50 text-blue-700 border-blue-100"
+                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 Nhà tuyển dụng
@@ -333,18 +298,18 @@ export default function AdminDashboard() {
 
             {/* Period tabs */}
             <div className="flex items-center gap-2">
-              {(['WEEK', 'MONTH', 'YEAR'] as const).map((p) => (
+              {(["WEEK", "MONTH", "YEAR"] as const).map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setLbPeriod(p)}
                   className={`px-3 py-1.5 rounded-lg text-sm border ${
                     lbPeriod === p
-                      ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      ? "bg-gray-900 text-white border-gray-900"
+                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                   }`}
                 >
-                  {p === 'WEEK' ? 'Tuần' : p === 'MONTH' ? 'Tháng' : 'Năm'}
+                  {p === "WEEK" ? "Tuần" : p === "MONTH" ? "Tháng" : "Năm"}
                 </button>
               ))}
             </div>
@@ -352,32 +317,57 @@ export default function AdminDashboard() {
 
           <div className="flex-1 min-h-0">
             {lbLoading ? (
-              <div className="text-sm text-gray-500">Đang tải bảng xếp hạng...</div>
+              <div className="text-sm text-gray-500 text-center py-4">
+                Đang tải bảng xếp hạng...
+              </div>
             ) : leaderboard.length === 0 ? (
-              <div className="text-sm text-gray-500">Chưa có dữ liệu bảng xếp hạng.</div>
+              <div className="text-sm text-gray-500 text-center py-4">
+                Chưa có dữ liệu bảng xếp hạng.
+              </div>
             ) : (
               <div className="max-h-[360px] overflow-y-auto pr-2 space-y-3 scrollbar-thin">
-                {leaderboard.map((x) => (
-                <div
-                  key={`${x.userId}-${x.rank}`}
-                  className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50"
-                >
+                {leaderboard.map((x, idx) => (
+                  <div
+                    key={x.userId}
+                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
-                        {x.rank}
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
+                        ${
+                          idx === 0
+                            ? "bg-yellow-100 text-yellow-700"
+                            : idx === 1
+                              ? "bg-gray-200 text-gray-700"
+                              : idx === 2
+                                ? "bg-orange-100 text-orange-800"
+                                : "bg-blue-50 text-blue-700"
+                        }`}
+                      >
+                        {idx + 1}
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">{x.fullName}</div>
-                        <div className="text-xs text-gray-500">UserID: {x.userId}</div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {x.fullName}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          ID: {x.userId}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-gray-900">{x.score} điểm</div>
+
+                    {/* --- SỬA CHỖ NÀY: Thêm fallback hiển thị điểm --- */}
+                    <div className="text-sm font-bold text-gray-900">
+                      {/* Ưu tiên totalPoints, nếu null thì hiện 0 */}
+                      {x.score?.toLocaleString() ?? 0} điểm
+                    </div>
+                    {/* ----------------------------------------------- */}
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </div> 
+        </div>
 
         {/* Points Logs */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
@@ -387,9 +377,13 @@ export default function AdminDashboard() {
 
           <div className="flex-1 min-h-[260px]">
             {logLoading ? (
-              <div className="text-sm text-gray-500">Đang tải lịch sử cộng điểm...</div>
+              <div className="text-sm text-gray-500 text-center py-4">
+                Đang tải lịch sử...
+              </div>
             ) : pointsLogs.length === 0 ? (
-              <div className="text-sm text-gray-500">Chưa có log cộng điểm.</div>
+              <div className="text-sm text-gray-500 text-center py-4">
+                Chưa có log cộng điểm.
+              </div>
             ) : (
               <div className="space-y-4">
                 {pointsLogs.map((l, idx) => (
@@ -400,14 +394,13 @@ export default function AdminDashboard() {
                     <div className="w-2 h-2 mt-2 rounded-full bg-blue-500" />
                     <div className="min-w-0">
                       <p className="text-sm text-gray-800 font-medium break-words">
-                        {l.fullName}{' '}
-                        <span className="font-bold text-gray-900">
+                        {l.fullName}{" "}
+                        <span className="font-bold text-blue-600">
                           +{l.points}
-                        </span>{' '}
-                        ({actionLabel(l.actionType)})
+                        </span>{" "}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {timeAgoVi(l.createdAt)} • {l.role}
+                        {actionLabel(l.actionType)} • {timeAgoVi(l.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -415,14 +408,6 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-
-          <button
-            type="button"
-            className="w-full text-center text-sm text-blue-600 font-medium mt-4 hover:underline pt-4 border-t border-gray-100"
-            onClick={() => router.push('/admin/point-logs')}
-          >
-            Xem tất cả log cộng điểm
-          </button>
         </div>
       </div>
 
@@ -446,34 +431,54 @@ export default function AdminDashboard() {
                     <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#E5E7EB"
+                />
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#6B7280" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#6B7280" }}
+                />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#fff',
-                    borderRadius: '8px',
-                    border: 'none',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    backgroundColor: "#fff",
+                    borderRadius: "8px",
+                    border: "none",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                   }}
                 />
-                <Area type="monotone" dataKey="count" stroke="#3B82F6" fillOpacity={1} fill="url(#colorCount)" />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#3B82F6"
+                  fillOpacity={1}
+                  fill="url(#colorCount)"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* ✅ Recent activities (fixed footer button) */}
+        {/* Recent activities */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800">Hoạt động ứng tuyển gần đây</h3>
+            <h3 className="text-lg font-bold text-gray-800">
+              Hoạt động ứng tuyển
+            </h3>
           </div>
 
-          {/* Body co giãn để nút luôn dính đáy */}
           <div className="flex-1 min-h-[220px]">
             {recentActivities.length === 0 ? (
               <div className="text-sm text-gray-500">
-                Chưa có hoạt động ứng tuyển gần đây.
+                Chưa có hoạt động gần đây.
               </div>
             ) : (
               <div className="space-y-4">
@@ -484,7 +489,9 @@ export default function AdminDashboard() {
                   >
                     <div className="w-2 h-2 mt-2 rounded-full bg-blue-500" />
                     <div>
-                      <p className="text-sm text-gray-800 font-medium">{a.message}</p>
+                      <p className="text-sm text-gray-800 font-medium">
+                        {a.message}
+                      </p>
                       <p className="text-xs text-gray-500">{a.timeAgo}</p>
                     </div>
                   </div>
@@ -493,11 +500,10 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* ✅ Footer dính đáy + chuyển trang */}
           <button
             type="button"
             className="w-full text-center text-sm text-blue-600 font-medium mt-4 hover:underline pt-4 border-t border-gray-100"
-            onClick={() => router.push('/admin/activities')}
+            onClick={() => router.push("/admin/activities")}
           >
             Xem tất cả hoạt động
           </button>
@@ -514,46 +520,27 @@ export default function AdminDashboard() {
             label="Phê duyệt bài đăng"
             count={pendingPostsCount}
             color="text-yellow-600 bg-yellow-50"
-            onClick={() => router.push('/admin/content')}
+            onClick={() => router.push("/admin/content")}
           />
           <ActionButton
             label="Báo cáo vi phạm"
             count={pendingReportsCount}
             color="text-red-600 bg-red-50"
-            onClick={() => router.push('/admin/violation-reports?status=PENDING')}
+            onClick={() =>
+              router.push("/admin/violation-reports?status=PENDING")
+            }
           />
           <ActionButton
             label="Yêu cầu hỗ trợ"
             count={0}
             color="text-gray-600 bg-gray-50"
-            onClick={() => alert('TODO: mở modal yêu cầu hỗ trợ')}
+            onClick={() => alert("Chức năng đang phát triển")}
           />
         </div>
       </div>
     </div>
   );
 }
-
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="text-sm text-gray-500">{label}</div>
-      <div className="text-sm text-gray-900 font-medium text-right max-w-[70%]">
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="border rounded-xl p-4">
-      <div className="text-sm font-semibold text-gray-900 mb-2">{title}</div>
-      {children}
-    </div>
-  );
-}
-
 
 function StatCard({ title, value, icon, trend, color }: any) {
   return (
@@ -566,8 +553,10 @@ function StatCard({ title, value, icon, trend, color }: any) {
         <div className={`p-3 rounded-lg ${color}`}>{icon}</div>
       </div>
       <p className="text-xs text-gray-500 flex items-center gap-1">
-        {String(trend).includes('+') ? (
-          <span className="text-green-600 font-medium bg-green-50 px-1 rounded">{trend}</span>
+        {String(trend).includes("+") ? (
+          <span className="text-green-600 font-medium bg-green-50 px-1 rounded">
+            {trend}
+          </span>
         ) : (
           <span className="text-gray-600">{trend}</span>
         )}

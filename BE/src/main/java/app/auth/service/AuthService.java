@@ -27,7 +27,10 @@ import app.auth.security.JwtTokenProvider;
 import app.service.CloudinaryService;
 import app.exception.MaintenanceModeException;
 
-
+// --- MỚI: Import Event & Enum ---
+import org.springframework.context.ApplicationEventPublisher;
+import app.gamification.event.PointEvent;
+import app.gamification.model.UserPointAction;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -49,6 +52,8 @@ public class AuthService {
     private final CloudinaryService cloudinaryService;
     private final SystemSettingService systemSettingService;
     
+    // --- THAY ĐỔI: Dùng EventPublisher thay vì LeaderboardService ---
+    private final ApplicationEventPublisher eventPublisher;
 
     
     // --- ĐĂNG KÝ ---
@@ -180,6 +185,20 @@ public class AuthService {
 
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
+
+        // --- MỚI: Logic Gamification - Bắn Event ---
+        try {
+            eventPublisher.publishEvent(new PointEvent(
+                this, 
+                user.getId(), 
+                user.getUserRole().name(), 
+                UserPointAction.LOGIN_DAILY, 
+                null // Login không cần RefId
+            ));
+        } catch (Exception e) {
+            log.error("Lỗi bắn event Login: {}", e.getMessage());
+        }
+        // ----------------------------------------------------
         
         String accessToken = jwtTokenProvider.generateAccessToken(authentication);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
@@ -241,6 +260,20 @@ public class AuthService {
             && user.getUserRole() != UserRole.ADMIN) {
         throw new MaintenanceModeException(systemSettingService.maintenanceMessage());
         }
+
+        // --- MỚI: Logic Gamification - Bắn Event ---
+        try {
+            eventPublisher.publishEvent(new PointEvent(
+                this, 
+                user.getId(), 
+                user.getUserRole().name(), 
+                UserPointAction.LOGIN_DAILY, 
+                null
+            ));
+        } catch (Exception e) {
+            log.error("Lỗi bắn event Google Login: {}", e.getMessage());
+        }
+        // -----------------------------------------------------------
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);

@@ -1,7 +1,5 @@
 package app.ai.service;
 
-
-
 import app.ai.dto.InterviewChatRequest;
 import app.ai.dto.InterviewMessage;
 import app.ai.models.InterviewSession;
@@ -21,6 +19,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// --- MỚI: Import Event & Enum ---
+import org.springframework.context.ApplicationEventPublisher;
+import app.gamification.event.PointEvent;
+import app.gamification.model.UserPointAction;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +42,9 @@ public class InterviewService {
     private final GeminiService geminiService;
     private final InterviewPromptBuilder promptBuilder;
     private final ObjectMapper objectMapper;
+    
+    // --- SỬA: Dùng EventPublisher thay vì LeaderboardService ---
+    private final ApplicationEventPublisher eventPublisher;
 
     // --- 1. KHỞI TẠO SESSION ---
     @Transactional
@@ -48,7 +54,6 @@ public class InterviewService {
         JobPosting job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new RuntimeException("Job not found"));
 
-        // Tạo Session mới (Chỉ để track trạng thái và lưu điểm sau này)
         InterviewSession session = InterviewSession.builder()
                 .user(user)
                 .jobPosting(job)
@@ -57,7 +62,6 @@ public class InterviewService {
         return sessionRepository.save(session);
     }
     
-    // Hàm phụ trợ để lấy lời chào (không lưu DB)
     public String getInitialGreeting(Long userId, Long jobId) {
         JobPosting job = jobRepository.findById(jobId).orElseThrow();
         String candidateName = getCandidateName(userId);
@@ -68,8 +72,6 @@ public class InterviewService {
     }
 
     // --- 2. XỬ LÝ CHAT (STATELESS) ---
-    // Nhận: SessionID, Tin mới, Lịch sử cũ
-    // Trả về: Câu trả lời của AI
     public String chat(Long sessionId, String newMessage, List<InterviewChatRequest.MessageItem> historyDtos) {
         InterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
@@ -78,7 +80,6 @@ public class InterviewService {
             return "Phiên phỏng vấn đã kết thúc.";
         }
 
-        // 1. Convert DTO history sang List<InterviewMessage> (POJO) để dùng cho PromptBuilder
         List<InterviewMessage> context = new ArrayList<>();
         if (historyDtos != null) {
             context = historyDtos.stream()
@@ -86,10 +87,8 @@ public class InterviewService {
                     .collect(Collectors.toList());
         }
         
-        // 2. Thêm tin nhắn mới nhất vào ngữ cảnh (RAM only)
         context.add(new InterviewMessage("USER", newMessage));
 
-        // 3. Build Prompt & Gọi AI
         String prompt = promptBuilder.buildChatPrompt(session.getJobPosting(), context);
         return geminiService.callAiChat(prompt);
     }
@@ -100,7 +99,6 @@ public class InterviewService {
         InterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
-        // 1. Convert DTO sang POJO để chấm điểm
         List<InterviewMessage> fullContext = new ArrayList<>();
         if (fullHistoryDtos != null) {
             fullContext = fullHistoryDtos.stream()
@@ -108,11 +106,9 @@ public class InterviewService {
                     .collect(Collectors.toList());
         }
 
-        // 2. Gọi AI chấm điểm
         String gradingPrompt = promptBuilder.buildGradingPrompt(fullContext);
         String resultJson = geminiService.callAiChat(gradingPrompt);
 
-        // 3. Parse JSON & Lưu vào Session
         try {
             if (resultJson.contains("```json")) {
                 resultJson = resultJson.replace("```json", "").replace("```", "").trim();
@@ -133,16 +129,30 @@ public class InterviewService {
             session.setStatus("COMPLETED");
         }
 
-        // Chỉ lưu Session (Score, Feedback), không lưu messages
-        return sessionRepository.save(session);
+        InterviewSession savedSession = sessionRepository.save(session);
+        
+        // --- SỬA: Bắn Event INTERVIEW_PRACTICE ---
+        try {
+            eventPublisher.publishEvent(new PointEvent(
+                this,
+                session.getUser().getId(),
+                "CANDIDATE",
+                UserPointAction.INTERVIEW_PRACTICE,
+                savedSession.getId() // RefId để tránh cộng nhiều lần cho 1 session
+            ));
+        } catch (Exception e) {
+            log.error("Lỗi bắn event INTERVIEW_PRACTICE: {}", e.getMessage());
+        }
+        // --------------------------------------------------------
+
+        return savedSession;
     }
 
-    // --- Helper ---
     public List<InterviewSession> getCompletedHistory(Long jobId, Long userId) {
         return sessionRepository.findByUserIdAndJobPostingIdAndStatusOrderByCreatedAtDesc(
             userId, 
             jobId, 
-            "COMPLETED" // 👈 Chỉ lấy trạng thái này
+            "COMPLETED"
         );
     }
     

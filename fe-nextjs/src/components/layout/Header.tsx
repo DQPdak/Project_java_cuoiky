@@ -11,6 +11,7 @@ import {
   Settings,
   PlusCircle,
   Shield,
+  Trophy,
 } from "lucide-react";
 import { useAuth } from "@/context/Authcontext";
 import UserMenu from "@/components/features/auth/UserMenu";
@@ -26,6 +27,7 @@ interface NavItem {
 const CANDIDATE_NAV_FREE: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard-candidate", icon: LayoutDashboard },
   { label: "Việc làm", href: "/jobs", icon: Briefcase },
+  { label: "Xếp hạng", href: "/leaderboard", icon: Trophy },
   // Đã ẩn "Phỏng vấn" ở đây
 ];
 
@@ -34,18 +36,21 @@ const CANDIDATE_NAV_VIP: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard-candidate", icon: LayoutDashboard },
   { label: "Việc làm", href: "/jobs", icon: Briefcase },
   { label: "Phỏng vấn", href: "/interview", icon: Users }, // Chỉ VIP mới thấy
+  { label: "Xếp hạng", href: "/leaderboard", icon: Trophy },
 ];
 
 const RECRUITER_NAV: NavItem[] = [
   { label: "Tổng quan", href: "/dashboard-recruiter", icon: LayoutDashboard },
   { label: "Đăng tin", href: "/recruiter/manage-jobs", icon: PlusCircle },
   { label: "Ứng viên", href: "/applications", icon: Users },
+  { label: "Xếp hạng", href: "/leaderboard", icon: Trophy },
 ];
 
 const ADMIN_NAV: NavItem[] = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Người dùng", href: "/admin/users", icon: Users },
   { label: "Nội dung", href: "/admin/content", icon: FileText },
+  { label: "Xếp hạng", href: "/admin/leaderboard", icon: Trophy },
   { label: "Cài đặt", href: "/admin/settings", icon: Settings },
   { label: "Phân quyền", href: "/admin/roles", icon: Shield },
 ];

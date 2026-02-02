@@ -6,7 +6,6 @@ import app.gamification.dto.response.LeaderboardMeResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,67 +16,64 @@ public interface LeaderboardScoreRepository extends JpaRepository<LeaderboardSco
     @Modifying
     @Transactional
     @Query(value = """
-        insert into leaderboard_scores(user_id, role, period_type, period_key, score, updated_at)
-        values (:userId, :role, :periodType, :periodKey, :points, now())
-        on conflict (user_id, role, period_type, period_key)
-        do update set
-          score = leaderboard_scores.score + excluded.score,
-          updated_at = now()
+        INSERT INTO leaderboard_scores (user_id, role, period_type, period_key, score, updated_at)
+        VALUES (:userId, :role, :periodType, :periodKey, :points, NOW())
+        ON CONFLICT (user_id, role, period_type, period_key)
+        DO UPDATE SET
+            score = leaderboard_scores.score + EXCLUDED.score,
+            updated_at = NOW();
     """, nativeQuery = true)
-    void upsertAddScore(
-        @Param("userId") Long userId,
-        @Param("role") String role,
-        @Param("periodType") String periodType,
-        @Param("periodKey") String periodKey,
-        @Param("points") int points
-    );
+    void upsertScore(@Param("userId") Long userId,
+                     @Param("role") String role,
+                     @Param("periodType") String periodType,
+                     @Param("periodKey") String periodKey,
+                     @Param("points") int points);
 
-    /**
-     * Top N (join users để lấy full_name)
-     * Lưu ý: tuỳ DB bạn đặt cột tên là full_name hay fullName.
-     * Mình assume users.full_name (theo đoạn lỗi bạn từng gửi).
-     */
+    // --- CẬP NHẬT QUERY: Thêm u.profile_image_url as avatarUrl ---
     @Query(value = """
-        select
-          ls.user_id as userId,
-          u.full_name as fullName,
-          ls.score as score,
-          dense_rank() over (order by ls.score desc, ls.updated_at asc) as rank
-        from leaderboard_scores ls
-        join users u on u.id = ls.user_id
-        where ls.role = :role
-          and ls.period_type = :periodType
-          and ls.period_key = :periodKey
-        order by ls.score desc, ls.updated_at asc
-        limit :limit
-    """, nativeQuery = true)
-    List<LeaderboardEntryResponse> top(
-        @Param("role") String role,
-        @Param("periodType") String periodType,
-        @Param("periodKey") String periodKey,
-        @Param("limit") int limit
-    );
-
-    @Query(value = """
-        select *
-        from (
-          select
+        SELECT
             ls.user_id as userId,
             u.full_name as fullName,
+            u.profile_image_url as avatarUrl, 
             ls.score as score,
-            dense_rank() over (order by ls.score desc, ls.updated_at asc) as rank
-          from leaderboard_scores ls
-          join users u on u.id = ls.user_id
-          where ls.role = :role
-            and ls.period_type = :periodType
-            and ls.period_key = :periodKey
-        ) t
-        where t.userId = :userId
+            CAST(RANK() OVER (ORDER BY ls.score DESC, ls.updated_at ASC) AS INTEGER) as rank
+        FROM leaderboard_scores ls
+        JOIN users u ON u.id = ls.user_id
+        WHERE ls.role = :role
+          AND ls.period_type = :periodType
+          AND ls.period_key = :periodKey
+        ORDER BY ls.score DESC
+        LIMIT :limit
     """, nativeQuery = true)
-    LeaderboardMeResponse me(
-        @Param("userId") Long userId,
-        @Param("role") String role,
-        @Param("periodType") String periodType,
-        @Param("periodKey") String periodKey
-    );
+    List<LeaderboardEntryResponse> findTopRankings(@Param("role") String role,
+                                                   @Param("periodType") String periodType,
+                                                   @Param("periodKey") String periodKey,
+                                                   @Param("limit") int limit);
+
+    // --- CẬP NHẬT QUERY: Thêm u.profile_image_url as avatarUrl ---
+    @Query(value = """
+        WITH RankedScores AS (
+            SELECT
+                ls.user_id,
+                ls.score,
+                RANK() OVER (ORDER BY ls.score DESC, ls.updated_at ASC) as rk
+            FROM leaderboard_scores ls
+            WHERE ls.role = :role
+              AND ls.period_type = :periodType
+              AND ls.period_key = :periodKey
+        )
+        SELECT
+            rs.user_id as userId,
+            u.full_name as fullName,
+            u.profile_image_url as avatarUrl,
+            rs.score as score,
+            CAST(rs.rk AS INTEGER) as rank
+        FROM RankedScores rs
+        JOIN users u ON u.id = rs.user_id
+        WHERE rs.user_id = :userId
+    """, nativeQuery = true)
+    LeaderboardMeResponse findMyRank(@Param("userId") Long userId,
+                                     @Param("role") String role,
+                                     @Param("periodType") String periodType,
+                                     @Param("periodKey") String periodKey);
 }
