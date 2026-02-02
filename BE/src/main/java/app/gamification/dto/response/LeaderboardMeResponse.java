@@ -5,4 +5,5 @@ public interface LeaderboardMeResponse {
     String getFullName();
     Integer getScore();
     Integer getRank();
+    String getAvatarUrl();
 }

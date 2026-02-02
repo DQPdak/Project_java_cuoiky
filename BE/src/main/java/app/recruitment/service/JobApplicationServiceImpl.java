@@ -7,7 +7,8 @@ import app.auth.model.User;
 import app.auth.repository.UserRepository;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
-import app.gamification.service.LeaderboardService;
+// --- BỎ: import LeaderboardService ---
+// import app.gamification.service.LeaderboardService; 
 import app.recruitment.dto.request.JobApplicationRequest;
 import app.recruitment.dto.response.JobApplicationResponse;
 import app.recruitment.entity.CVAnalysisResult;
@@ -24,6 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import app.notification.service.NotificationService;
 
+// --- MỚI: Import Event Publisher & Enum ---
+import org.springframework.context.ApplicationEventPublisher;
+import app.gamification.event.PointEvent;
+import app.gamification.model.UserPointAction;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,7 +44,9 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     private final CandidateProfileRepository profileRepository;
     private final CVAnalysisResultRepository analysisResultRepo;
     private final ObjectMapper objectMapper;
-    private final LeaderboardService leaderboardService;
+    
+    // --- THAY ĐỔI: Dùng EventPublisher ---
+    private final ApplicationEventPublisher eventPublisher;
     
     // Service tính toán nhanh
     private final JobFastMatchingService fastMatchingService;
@@ -91,7 +99,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                         appBuilder.otherHardSkillsCount(matchResult.getOtherHardSkillsCount());
                         appBuilder.otherSoftSkillsCount(matchResult.getOtherSoftSkillsCount());
                         
-                        // Convert List -> String để lưu vào Entity (nếu Entity lưu String)
+                        // Convert List -> String để lưu vào Entity
                         if (matchResult.getMissingSkillsList() != null) 
                             appBuilder.missingSkillsList(String.join(", ", matchResult.getMissingSkillsList()));
                         if (matchResult.getMatchedSkillsList() != null) 
@@ -106,18 +114,31 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         }
 
         JobApplication saved = appRepo.save(appBuilder.build());
-        leaderboardService.addPoints(candidateId, String.valueOf(candidate.getUserRole()), "APPLY", 10, saved.getId());
+        
+        // --- CỘNG ĐIỂM APPLY (Candidate) ---
+        try {
+            // Thay đổi logic cũ: leaderboardService.addPoints(...) -> Bắn Event
+            eventPublisher.publishEvent(new PointEvent(
+                this, 
+                candidateId, 
+                "CANDIDATE", 
+                UserPointAction.APPLY, 
+                saved.getId()
+            ));
+        } catch (Exception e) {
+            log.error("Lỗi bắn event điểm APPLY: {}", e.getMessage());
+        }
+        // ------------------------------------
 
         try {
             notificationService.sendNotification(
-                    job.getRecruiter().getId(), // Sửa jobPosting -> job
+                    job.getRecruiter().getId(),
                     "Có ứng viên mới!",
-                    candidate.getFullName() + " vừa ứng tuyển vào vị trí " + job.getTitle(), // Sửa jobPosting -> job
-                    "/applications/" + saved.getId() // Sửa savedApplication -> saved
+                    candidate.getFullName() + " vừa ứng tuyển vào vị trí " + job.getTitle(),
+                    "/applications/" + saved.getId()
             );
         } catch (Exception e) {
             log.error("Lỗi gửi thông báo: " + e.getMessage());
-            // Không throw exception để tránh rollback việc nộp đơn chỉ vì lỗi thông báo
         }
 
         return saved;
@@ -137,22 +158,48 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         application.setRecruiterNote(recruiterNote);
         JobApplication saved = appRepo.save(application);
 
-        // [SỬA LỖI 2] OFFERED -> OFFER (theo file Enum bạn gửi)
-        int points = switch (newStatus) {
-            case SCREENING -> 1;
-            case INTERVIEW -> 3;
-            case OFFER -> 5; 
-            case REJECTED -> 1;
-            default -> 0;
-        };
+        // --- LOGIC CỘNG ĐIỂM MỚI (REVIEW_CV / HIRED) ---
+        if (recruiterId != null) {
+            try {
+                UserPointAction action = null;
 
-        if (points > 0) {
-            leaderboardService.addPoints(saved.getJobPosting().getRecruiter().getId(), "RECRUITER", "APP_STATUS_" + newStatus.name(), points, saved.getId());
+                switch (newStatus) {
+                    // Nhóm 1: Duyệt hồ sơ -> REVIEW_CV
+                    case SCREENING:
+                    case INTERVIEW:
+                    case REJECTED:
+                        action = UserPointAction.REVIEW_CV;
+                        break;
+                    
+                    // Nhóm 2: Tuyển thành công -> HIRED
+                    case OFFER: 
+                        action = UserPointAction.HIRED;
+                        break;
+                        
+                    default:
+                        break;
+                }
+
+                if (action != null) {
+                    // Bắn event thay vì gọi service trực tiếp
+                    eventPublisher.publishEvent(new PointEvent(
+                        this,
+                        recruiterId, 
+                        "RECRUITER", 
+                        action, 
+                        saved.getId()
+                    ));
+                }
+            } catch (Exception e) {
+                log.error("Lỗi bắn event điểm Recruiter update status: {}", e.getMessage());
+            }
         }
+        // ------------------------------------------------
+
         return saved;
     }
 
-    // --- HÀM LẤY DANH SÁCH (FAST MATCHING) ---
+    // --- HÀM LẤY DANH SÁCH (FAST MATCHING) - KHÔNG ĐỔI ---
     @Override
     @Transactional(readOnly = true)
     public List<JobApplicationResponse> listByJob(Long jobId) {
@@ -179,10 +226,8 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                     
                     FastMatchResult result = batchResult.get(jobId);
                     
-                    // [SỬA LỖI 4] Dùng getMatchScore() thay vì getScore()
                     int score = (result != null) ? result.getMatchScore() : 0;
                     
-                    // [SỬA LỖI 5, 6] Convert List<String> -> String để gán vào Response DTO
                     String matchedStr = (result != null && result.getMatchedSkills() != null) 
                                         ? String.join(", ", result.getMatchedSkills()) : "";
                     String missingStr = (result != null && result.getMissingSkills() != null) 
@@ -204,10 +249,10 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                             .status(app.getStatus().name())
                             .appliedAt(app.getAppliedAt())
                             
-                            // Gán dữ liệu Fast Match đã sửa lỗi
+                            // Gán dữ liệu Fast Match
                             .matchScore(score)
-                            .matchedSkillsList(matchedStr) // Đã join thành chuỗi
-                            .missingSkillsList(missingStr) // Đã join thành chuỗi
+                            .matchedSkillsList(matchedStr) 
+                            .missingSkillsList(missingStr)
                             
                             .aiEvaluation("Đánh giá nhanh từ khóa")
                             .recruiterNote(app.getRecruiterNote())
@@ -221,8 +266,6 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 .collect(Collectors.toList());
     }
 
-    // [SỬA LỖI 1] Implement hàm scanAndSuggestCandidates để thỏa mãn Interface
-    // Vì bạn muốn dùng Fast Match cho mọi thứ, hàm này có thể gọi lại listByJob
     @Override
     public List<JobApplicationResponse> scanAndSuggestCandidates(Long jobId) {
         return listByJob(jobId);
@@ -302,6 +345,5 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                 .matchedSkillsList(app.getMatchedSkillsList())
                 .recruiterNote(app.getRecruiterNote())
                 .build();
-
-        }
     }
+}

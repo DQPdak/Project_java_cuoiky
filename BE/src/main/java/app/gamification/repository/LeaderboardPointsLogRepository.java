@@ -11,31 +11,28 @@ import java.util.List;
 
 public interface LeaderboardPointsLogRepository extends JpaRepository<LeaderboardPointsLog, Long> {
 
-    @Query("""
-        select count(l)
-        from LeaderboardPointsLog l
-        where l.userId = :userId
-          and l.actionType = :actionType
-          and l.createdAt >= :fromTime
-    """)
-    long countTodayActions(Long userId, String actionType, OffsetDateTime fromTime);
+    @Query("SELECT COUNT(l) FROM LeaderboardPointsLog l WHERE l.userId = :userId AND l.actionType = :actionType AND l.createdAt >= :startOfDay")
+    long countActionsToday(@Param("userId") Long userId,
+                           @Param("actionType") String actionType,
+                           @Param("startOfDay") OffsetDateTime startOfDay);
 
     boolean existsByUserIdAndActionTypeAndRefId(Long userId, String actionType, Long refId);
 
-    // --- recent logs for admin view
+    // --- CẬP NHẬT QUERY: Thêm u.profile_image_url as avatarUrl ---
     @Query(value = """
-    select
-        l.user_id as userId,
-        u.full_name as fullName,
-        l.role as role,
-        l.action_type as actionType,
-        l.points as points,
-        l.ref_id as refId,
-        l.created_at as createdAt
-    from leaderboard_points_log l
-    join users u on u.id = l.user_id
-    order by l.created_at desc
-    limit :limit
+        SELECT
+            l.user_id as userId,
+            u.full_name as fullName,
+            u.profile_image_url as avatarUrl,
+            l.role as role,
+            l.action_type as actionType,
+            l.points as points,
+            l.ref_id as refId,
+            l.created_at as createdAt
+        FROM leaderboard_points_log l
+        JOIN users u ON u.id = l.user_id
+        ORDER BY l.created_at DESC
+        LIMIT :limit
     """, nativeQuery = true)
-    List<LeaderboardLogResponse> recentLogs(@Param("limit") int limit);
+    List<LeaderboardLogResponse> findRecentLogs(@Param("limit") int limit);
 }

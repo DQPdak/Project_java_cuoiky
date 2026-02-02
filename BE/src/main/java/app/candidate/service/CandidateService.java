@@ -19,6 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+// --- MỚI: Import Event & Enum ---
+import org.springframework.context.ApplicationEventPublisher;
+import app.gamification.event.PointEvent;
+import app.gamification.model.UserPointAction;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,17 +40,15 @@ public class CandidateService {
     private final CloudinaryService cloudinaryService;
     private final CVAnalysisResultRepository cvAnalysisResultRepository;
     private final ObjectMapper objectMapper;
+    
+    // --- SỬA: Dùng EventPublisher thay vì LeaderboardService ---
+    private final ApplicationEventPublisher eventPublisher;
 
-    /**
-     * Dùng @Transactional(readOnly = true) để Hibernate mở cửa kho lấy Skills (Lazy)
-     */
     @Transactional(readOnly = true)
     public CandidateProfileResponse getProfileDTO(Long userId) {
-        // 1. Lấy Entity (Đang chứa Skills Lazy)
         CandidateProfile p = getProfile(userId);
         User user = p.getUser();
 
-        // 2. Map Experience Entity -> DTO
         List<ExperienceDTO> expDTOs = new ArrayList<>();
         if (p.getExperiences() != null) {
             expDTOs = p.getExperiences().stream()
@@ -59,8 +62,6 @@ public class CandidateService {
                     .collect(Collectors.toList());
         }
 
-        // 3. Đóng gói vào Response DTO
-        // Tại dòng p.getSkills(), vì đang trong Transaction nên Hibernate sẽ lấy dữ liệu thật
         return CandidateProfileResponse.builder()
                 .id(p.getId())
                 .userFullName(user.getFullName())
@@ -104,10 +105,26 @@ public class CandidateService {
         updateProfileFromAI(profile, aiResult);
         profile.setCvFilePath(cvOnlineUrl);
 
-        // Xóa cache kết quả chấm điểm cũ (vì CV đã thay đổi)
+        // Xóa cache kết quả chấm điểm cũ
         cvAnalysisResultRepository.deleteByUserId(userId);
         
-        return candidateProfileRepository.save(profile);
+        CandidateProfile savedProfile = candidateProfileRepository.save(profile);
+
+        // --- SỬA: Bắn Event UPLOAD_CV ---
+        try {
+            eventPublisher.publishEvent(new PointEvent(
+                this, 
+                userId, 
+                "CANDIDATE", 
+                UserPointAction.UPLOAD_CV, 
+                savedProfile.getId()
+            ));
+        } catch (Exception e) {
+            log.error("Lỗi bắn event UPLOAD_CV: {}", e.getMessage());
+        }
+        // ---------------------------------
+        
+        return savedProfile;
     }
 
     @Transactional
@@ -115,27 +132,20 @@ public class CandidateService {
         CandidateProfile profile = getProfile(userId);
         User user = profile.getUser();
 
-        // Upload lên Cloudinary (Dùng lại service đã có)
         String avatarUrl = cloudinaryService.uploadFile(file);
 
-        // Lưu link vào DB
-        user.setProfileImageUrl(avatarUrl); // Cập nhật avatar URL trong User
-        userRepository.save(user); // Lưu lại User để cập nhật avatar URL
+        user.setProfileImageUrl(avatarUrl);
+        userRepository.save(user);
         candidateProfileRepository.save(profile);
 
         return avatarUrl;
     }
 
-    /**
-     * Cập nhật Profile thủ công từ Form
-     */
     @Transactional
     public CandidateProfile updateProfile(Long userId, CandidateProfileUpdateRequest request) {
-        // Lấy User
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // TÌM HOẶC TẠO MỚI
         CandidateProfile profile = candidateProfileRepository.findByUserId(userId)
                 .orElse(CandidateProfile.builder()
                         .user(user)
@@ -143,7 +153,6 @@ public class CandidateService {
                         .experiences(new ArrayList<>())
                         .build());
 
-        // Map các trường cơ bản
         if (request.getUserFullName() != null && !request.getUserFullName().isEmpty()) {
             user.setFullName(request.getUserFullName());
             userRepository.save(user);
@@ -160,12 +169,10 @@ public class CandidateService {
         if (request.getLinkedInUrl() != null) profile.setLinkedInUrl(request.getLinkedInUrl());
         if (request.getWebsiteUrl() != null) profile.setWebsiteUrl(request.getWebsiteUrl());
 
-        // Map Skills
         if (request.getSkills() != null) {
             profile.setSkills(request.getSkills());
         }
 
-        // Map Experience (Xóa cũ thêm mới)
         if (request.getExperiences() != null) {
             if (profile.getExperiences() != null) profile.getExperiences().clear();
             else profile.setExperiences(new ArrayList<>());
@@ -183,7 +190,6 @@ public class CandidateService {
             }
         }
 
-        // ap Education (Lưu dạng JSON String)
         if (request.getEducations() != null) {
             try {
                 String educationJson = objectMapper.writeValueAsString(request.getEducations());
@@ -193,20 +199,16 @@ public class CandidateService {
             }
         }
 
-        // Xóa cache chấm điểm cũ để tính lại điểm matching
         cvAnalysisResultRepository.deleteByUserId(userId);
 
         return candidateProfileRepository.save(profile);
     }
-
-    // --- CÁC HÀM HELPER (Private/Internal) ---
 
     public CandidateProfile getProfile(Long userId) {
         return candidateProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Chưa có hồ sơ ứng viên cho user: " + userId));
     }
     
-    // Hàm này có thể được JobMatchingService sử dụng để lấy skill nhanh (JOIN FETCH)
     public CandidateProfile getProfileForMatching(Long userId) {
         return candidateProfileRepository.findByUserIdWithSkills(userId)
                 .orElse(null);
@@ -214,7 +216,6 @@ public class CandidateService {
 
     private void updateProfileFromAI(CandidateProfile profile, GeminiResponse result) {
         try {
-            // 1. Map Contact (Thông tin liên hệ)
             if (result.getContact() != null) {
                 if (result.getContact().getName() != null) profile.setFullName(result.getContact().getName());
                 if (result.getContact().getEmail() != null) profile.setEmail(result.getContact().getEmail());
@@ -223,14 +224,11 @@ public class CandidateService {
                 if (result.getContact().getLinkedIn() != null) profile.setLinkedInUrl(result.getContact().getLinkedIn());
             }
 
-            // 2. Map Skills (Kỹ năng)
             if (result.getSkills() != null && !result.getSkills().isEmpty()) {
                 profile.setSkills(new ArrayList<>(result.getSkills()));
             }
 
-            // 3. Map Experience (Kinh nghiệm làm việc)
             if (result.getExperiences() != null) {
-                // Xóa danh sách cũ để cập nhật danh sách mới từ CV
                 if (profile.getExperiences() != null) profile.getExperiences().clear();
                 else profile.setExperiences(new ArrayList<>());
 
@@ -241,19 +239,15 @@ public class CandidateService {
                     entity.setStartDate(dto.getStartDate());
                     entity.setEndDate(dto.getEndDate());
                     entity.setDescription(dto.getDescription());
-                    entity.setCandidateProfile(profile); // Set quan hệ 2 chiều
+                    entity.setCandidateProfile(profile);
                     profile.getExperiences().add(entity);
                 }
             }
 
-            // 4. [MỚI] Map About Me (Giới thiệu bản thân)
-            // Lấy trực tiếp từ kết quả AI nếu có
             if (result.getAboutMe() != null && !result.getAboutMe().isEmpty()) {
                 profile.setAboutMe(result.getAboutMe());
             }
 
-            // 5. Default About Me (Dự phòng)
-            // Chỉ tự sinh câu giới thiệu nếu sau bước 4 mà vẫn chưa có About Me
             if (profile.getAboutMe() == null || profile.getAboutMe().isEmpty()) {
                 String name = profile.getFullName() != null ? profile.getFullName() : "Ứng viên";
                 profile.setAboutMe("Hồ sơ của " + name + " được trích xuất tự động bởi CareerMate AI.");

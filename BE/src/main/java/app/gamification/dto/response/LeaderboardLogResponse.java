@@ -10,4 +10,5 @@ public interface LeaderboardLogResponse {
   Integer getPoints();
   Long getRefId();
   Instant getCreatedAt();
+  String getAvatarUrl();
 }

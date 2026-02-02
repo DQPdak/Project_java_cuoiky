@@ -67,7 +67,7 @@ public class SecurityConfig {
                 // 2. PAYMENT (Cho phép mọi User đã login thực hiện thanh toán)
                 // ======================================================
                 .requestMatchers("/api/payment/**").authenticated()
-
+                .requestMatchers("/api/leaderboard/**").authenticated()
                 // ======================================================
                 // 3. TÍNH NĂNG AI & VIP (CHỈ DÀNH CHO ROLE VIP & ADMIN)
                 // ======================================================
