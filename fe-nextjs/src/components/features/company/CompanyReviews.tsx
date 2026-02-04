@@ -11,12 +11,13 @@ interface Props {
 }
 
 export default function CompanyReviews({ companyId }: Props) {
-  const { isAuthenticated } = useAuth(); // Kiểm tra đăng nhập
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [average, setAverage] = useState(0);
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+    const { user } = useAuth();
+    const isAuthenticated = !!user; 
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [average, setAverage] = useState(0);
+    const [rating, setRating] = useState(0);
+    const [comment, setComment] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
