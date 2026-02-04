@@ -9,15 +9,15 @@ import app.recruitment.dto.response.JobPostingResponse;
 import app.recruitment.entity.JobPosting;
 import app.recruitment.entity.enums.JobStatus;
 import app.recruitment.mapper.RecruitmentMapper;
+import app.recruitment.repository.JobApplicationRepository; // MỚI: Import Repo này
 import app.recruitment.repository.JobPostingRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher; // MỚI: Import Publisher
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// --- MỚI: Import Event & Enum Action ---
 import app.gamification.event.PointEvent;
 import app.gamification.model.UserPointAction;
 
@@ -36,10 +36,10 @@ public class JobPostingServiceImpl implements JobPostingService {
 
     private final JobPostingRepository jobPostingRepository;
     private final UserRepository userRepository;
+    // MỚI: Thêm Repository này để đếm số lượng đơn ứng tuyển
+    private final JobApplicationRepository jobApplicationRepository; 
     private final RecruitmentMapper recruitmentMapper;
     private final GeminiService geminiService;
-    
-    // --- THAY ĐỔI: Dùng EventPublisher thay vì LeaderboardService ---
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -48,12 +48,10 @@ public class JobPostingServiceImpl implements JobPostingService {
         User recruiter = userRepository.findById(recruiterId)
                 .orElseThrow(() -> new IllegalArgumentException("Recruiter not found: " + recruiterId));
         
-        // 1. Kiểm tra quyền
         if (recruiter.getUserRole() != UserRole.RECRUITER && recruiter.getUserRole() != UserRole.RECRUITER_VIP) {
              throw new RuntimeException("Only recruiter can create job postings");
         }
 
-        // 2. Xử lý AI an toàn (Safe AI call)
         List<String> skills = new ArrayList<>();
         try {
             skills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
@@ -61,10 +59,8 @@ public class JobPostingServiceImpl implements JobPostingService {
             log.error("Lỗi khi trích xuất kỹ năng bằng AI (Vẫn tiếp tục tạo Job): {}", e.getMessage());
         }
 
-        // 3. Convert LocalDate -> LocalDateTime
         LocalDateTime expiryDateTime = request.getExpiryDate().atTime(LocalTime.MAX);
 
-        // 4. Tạo Entity
         JobPosting j = JobPosting.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -79,20 +75,17 @@ public class JobPostingServiceImpl implements JobPostingService {
 
         JobPosting savedJob = jobPostingRepository.save(j);
 
-        // --- MỚI: Bắn Event tính điểm ---
         try {
             eventPublisher.publishEvent(new PointEvent(
                 this,
                 recruiterId,
                 "RECRUITER",
-                UserPointAction.JOB_POST_APPROVED, // Sử dụng Enum chuẩn
-                savedJob.getId() // RefId là ID của Job
+                UserPointAction.JOB_POST_APPROVED,
+                savedJob.getId()
             ));
         } catch (Exception e) {
-            // Log lỗi nhưng không làm fail luồng tạo Job
             log.error("Lỗi bắn event tính điểm JOB_POST_APPROVED: {}", e.getMessage());
         }
-        // -------------------------------------------------------
 
         return savedJob;
     }
@@ -156,7 +149,13 @@ public class JobPostingServiceImpl implements JobPostingService {
     public List<JobPostingResponse> listByRecruiter(Long recruiterId) {
         List<JobPosting> jobs = jobPostingRepository.findByRecruiterId(recruiterId);
         return jobs.stream()
-                .map(recruitmentMapper::toJobPostingResponse)
+                .map(job -> {
+                    JobPostingResponse res = recruitmentMapper.toJobPostingResponse(job);
+                    // MỚI: Đếm số lượng hồ sơ cho từng job trong danh sách
+                    int count = (int) jobApplicationRepository.countByJobPostingId(job.getId());
+                    res.setApplicationCount(count);
+                    return res;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -194,6 +193,11 @@ public class JobPostingServiceImpl implements JobPostingService {
         JobPosting job = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + id));
 
-        return recruitmentMapper.toJobPostingResponse(job);
+        JobPostingResponse response = recruitmentMapper.toJobPostingResponse(job);
+
+        int applicationCount = (int) jobApplicationRepository.countByJobPostingId(id);
+        response.setApplicationCount(applicationCount);
+
+        return response;
     }
 }

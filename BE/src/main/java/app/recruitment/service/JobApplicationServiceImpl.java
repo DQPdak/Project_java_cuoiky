@@ -172,7 +172,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                         break;
                     
                     // Nhóm 2: Tuyển thành công -> HIRED
-                    case OFFER: 
+                    case OFFERED: 
                         action = UserPointAction.HIRED;
                         break;
                         

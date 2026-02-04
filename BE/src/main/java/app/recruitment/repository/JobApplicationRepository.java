@@ -15,15 +15,27 @@ import org.springframework.data.domain.Pageable;
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long> {
 
     boolean existsByCandidateIdAndJobPostingId(Long candidateId, Long jobPostingId);
+
     Optional<JobApplication> findByCandidateIdAndJobPostingId(Long candidateId, Long jobPostingId);
+
     long countByJobPostingRecruiterId(Long recruiterId);
+
     long countByJobPostingRecruiterIdAndAppliedAtAfter(Long recruiterId, LocalDateTime date);
+
     @Query("SELECT a.status, COUNT(a) FROM JobApplication a WHERE a.jobPosting.recruiter.id = :recruiterId GROUP BY a.status")
     List<Object[]> countApplicationsByStatus(@Param("recruiterId") Long recruiterId);
+
     List<JobApplication> findByJobPostingId(Long jobPostingId);
+
+    // Giữ lại hàm chuẩn này (trả về long)
     long countByJobPostingId(Long jobPostingId);
+
     List<JobApplication> findByJobPostingIdAndMatchScoreGreaterThanEqualOrderByMatchScoreDesc(Long jobPostingId, Integer minScore);
+
     List<JobApplication> findByCandidateId(Long candidateId);
+
     @Query("SELECT j FROM JobApplication j WHERE j.jobPosting.recruiter.id = :recruiterId ORDER BY j.appliedAt DESC")
     List<JobApplication> findRecentApplicationsByRecruiter(@Param("recruiterId") Long recruiterId, Pageable pageable);
+
+    // ĐÃ XÓA dòng int countByJobPostingId(...) bị thừa ở đây
 }

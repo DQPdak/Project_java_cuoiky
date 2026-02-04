@@ -32,4 +32,5 @@ public class JobPostingResponse {
     private String companyWebsite;    // Website công ty
     private String companyDescription;// Mô tả công ty
     private String companyAddress;    // Địa chỉ công ty
+    private int applicationCount; // Số lượng ứng tuyển
 }
