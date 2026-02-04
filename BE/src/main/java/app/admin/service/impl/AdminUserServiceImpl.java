@@ -12,17 +12,29 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import app.admin.dto.request.CreateAdminUserRequest;
+import app.admin.dto.response.CreateAdminUserResponse;
+import app.auth.model.enums.AuthProvider;
+
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.util.Locale;
 import java.util.List;
 
 @Service
 public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private static final String PW_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    public AdminUserServiceImpl(UserRepository userRepository) {
+
+    public AdminUserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     private Long getCurrentAdminId() {
@@ -36,6 +48,14 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .orElseThrow(() ->
                         new IllegalStateException("Không tìm thấy user theo email đăng nhập: " + email))
                 .getId();
+    }
+
+    private String generateTempPassword(int length) {
+    StringBuilder sb = new StringBuilder(length);
+    for (int i = 0; i < length; i++) {
+        sb.append(PW_CHARS.charAt(SECURE_RANDOM.nextInt(PW_CHARS.length())));
+    }
+    return sb.toString();
     }
 
     @Override
@@ -101,4 +121,48 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);
     }
+
+    @Override
+    public CreateAdminUserResponse createUser(CreateAdminUserRequest request) {
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalStateException("Email đã tồn tại trong hệ thống");
+        }
+
+        String rawPassword = request.getPassword();
+        boolean generated = false;
+
+        if (rawPassword == null || rawPassword.isBlank()) {
+            rawPassword = generateTempPassword(12);
+            generated = true;
+        }
+
+        User user = User.builder()
+                .fullName(request.getFullName().trim())
+                .email(email)
+                .password(passwordEncoder.encode(rawPassword))
+                .userRole(request.getUserRole())
+                .authProvider(AuthProvider.LOCAL)
+                .status(UserStatus.ACTIVE)          // admin tạo -> active luôn
+                .isEmailVerified(true)              // khỏi phải xác thực email
+                .build();
+
+        User saved = userRepository.save(user);
+
+        AdminUserResponse dto = AdminUserResponse.builder()
+                .id(saved.getId())
+                .fullName(saved.getFullName())
+                .email(saved.getEmail())
+                .userRole(saved.getUserRole())
+                .status(saved.getStatus())
+                .createdAt(saved.getCreatedAt())
+                .build();
+
+        return CreateAdminUserResponse.builder()
+                .user(dto)
+                .generatedPassword(generated ? rawPassword : null)
+                .build();
+    }
+
 }

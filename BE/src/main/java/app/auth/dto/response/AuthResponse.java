@@ -1,8 +1,6 @@
 
 package app.auth.dto.response;
 
-import app.auth.model.enums.UserRole;
-import app.auth.model.enums.UserStatus;
 // Lombok: cung cấp các annotation để tự động sinh code
 import lombok.AllArgsConstructor;  // Tạo constructor với tất cả các tham số
 import lombok.Builder;             // Cho phép sử dụng Builder pattern để khởi tạo đối tượng

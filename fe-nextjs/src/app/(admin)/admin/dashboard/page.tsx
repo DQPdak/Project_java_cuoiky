@@ -227,28 +227,28 @@ export default function AdminDashboard() {
           title="Ứng viên"
           value={summary?.totalCandidates ?? 0}
           icon={<Users className="w-6 h-6 text-blue-600" />}
-          trend="+12% so với tháng trước"
+          // trend="+12% so với tháng trước"
           color="bg-blue-50"
         />
         <StatCard
           title="Nhà tuyển dụng"
           value={summary?.totalRecruiters ?? 0}
           icon={<Briefcase className="w-6 h-6 text-purple-600" />}
-          trend="+5% so với tháng trước"
+          // trend="+5% so với tháng trước"
           color="bg-purple-50"
         />
         <StatCard
           title="Tin tuyển dụng"
           value={summary?.totalActiveJobs ?? 0}
           icon={<FileText className="w-6 h-6 text-green-600" />}
-          trend="Tin đang mở"
+          // trend="Tin đang mở"
           color="bg-green-50"
         />
         <StatCard
           title="Lượt ứng tuyển"
           value={summary?.totalApplications ?? 0}
           icon={<TrendingUp className="w-6 h-6 text-orange-600" />}
-          trend="7 ngày gần đây"
+          // trend="7 ngày gần đây"
           color="bg-orange-50"
         />
       </div>
