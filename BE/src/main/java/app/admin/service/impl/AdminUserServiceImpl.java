@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import app.admin.dto.request.CreateAdminUserRequest;
+import app.admin.dto.request.UpdateUserRoleRequest;
 import app.admin.dto.response.CreateAdminUserResponse;
 import app.auth.model.enums.AuthProvider;
 
@@ -59,13 +60,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
-    public Page<AdminUserResponse> getAllUsers(String keyword, Pageable pageable) {
+    public Page<AdminUserResponse> getAllUsers(String keyword, UserRole role, Pageable pageable) {
         Long excludeId = getCurrentAdminId();
 
         String k = (keyword == null) ? "" : keyword.trim();
 
         // ✅ loại trừ chính admin đang đăng nhập, vẫn search + paging
-        Page<User> usersPage = userRepository.searchUsersExcludeId(excludeId, k, pageable);
+        Page<User> usersPage = userRepository.searchUsersExcludeId(excludeId, k, role, pageable);
 
         // ✅ dùng PageImpl để tránh lỗi type inference trong VS Code
         List<AdminUserResponse> responseList = usersPage.getContent().stream()
@@ -165,4 +166,32 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .build();
     }
 
+    // Đổi vai trò người dùng
+    @Override
+    public AdminUserResponse updateUserRole(Long userId, UpdateUserRoleRequest request) {
+        Long currentAdminId = getCurrentAdminId();
+        if (userId.equals(currentAdminId)) {
+            throw new IllegalStateException("Không thể tự đổi vai trò của chính mình");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng với ID: " + userId));
+
+        // Không cho đổi role ADMIN (bạn có thể nới nếu muốn)
+        if (user.getUserRole() == UserRole.ADMIN) {
+            throw new IllegalStateException("Không thể đổi vai trò của tài khoản ADMIN");
+        }
+
+        user.setUserRole(request.getUserRole());
+        User saved = userRepository.save(user);
+
+        return AdminUserResponse.builder()
+                .id(saved.getId())
+                .fullName(saved.getFullName())
+                .email(saved.getEmail())
+                .userRole(saved.getUserRole())
+                .status(saved.getStatus())
+                .createdAt(saved.getCreatedAt())
+                .build();
+    }
 }
