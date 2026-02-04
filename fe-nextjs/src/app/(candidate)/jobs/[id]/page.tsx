@@ -12,6 +12,8 @@ import {
   CheckCircle,
   Briefcase,
   ArrowLeft,
+  Star, 
+  ExternalLink 
 } from "lucide-react";
 import { recruitmentService } from "@/services/recruitmentService";
 import { JobPosting } from "@/types/recruitment";
@@ -247,6 +249,24 @@ export default function JobDetailPage() {
                     >
                       {job.companyWebsite}
                     </a>
+                  </div>
+                )}
+              </div>
+
+              {/* MỚI: Link tới trang chi tiết công ty & Đánh giá */}
+              <div className="pt-4 border-t border-gray-100 mt-4">
+                {job.companyId ? (
+                  <Link
+                    href={`/companies/${job.companyId}`}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 font-medium transition-colors border border-indigo-100"
+                  >
+                    <Star size={18} className="text-indigo-500" /> 
+                    <span>Xem đánh giá & Chi tiết</span>
+                    <ExternalLink size={14} className="ml-auto opacity-50" />
+                  </Link>
+                ) : (
+                  <div className="text-center text-gray-400 text-sm py-2">
+                    Thông tin công ty đang cập nhật
                   </div>
                 )}
               </div>
