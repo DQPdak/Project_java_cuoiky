@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,18 +18,17 @@ public class CompanyService {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Lấy thông tin công ty của Recruiter đang đăng nhập
-     */
+    @Transactional(readOnly = true)
+    public Company getById(Long id) {
+        return companyRepository.findById(id).orElse(null);
+    }
+    @Transactional(readOnly = true)
     public Company getMyCompany(Long recruiterId) {
-        // Tìm công ty theo recruiterId
-        // Nếu chưa có, trả về null hoặc ném lỗi tùy logic (FE sẽ cần xử lý case null)
+
         return companyRepository.findByRecruiterId(recruiterId).orElse(null);
     }
 
-    /**
-     * Cập nhật (hoặc tạo mới) thông tin công ty
-     */
+
     @Transactional
     public Company updateCompany(Long recruiterId, UpdateCompanyRequest request) {
         // 1. Tìm công ty hiện tại của Recruiter
@@ -45,7 +44,6 @@ public class CompanyService {
                 });
 
         // 3. Map dữ liệu từ Request sang Entity
-        // Lưu ý: Đảm bảo class Company (Entity) đã có đủ các trường này
         company.setName(request.getName());
         company.setDescription(request.getDescription());
         company.setWebsite(request.getWebsite());

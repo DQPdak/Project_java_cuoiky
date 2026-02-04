@@ -121,6 +121,9 @@ public class SecurityConfig {
                 // Tìm kiếm ứng viên (Candidate Search): Dành cho Recruiter (Thường + VIP)
                 .requestMatchers("/api/recruitment/candidates/**")
                     .hasAnyAuthority("RECRUITER", "RECRUITER_VIP", "ADMIN")
+
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/companies/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/reviews/company/**").permitAll()
                 
                 // Các chức năng nộp đơn, xem đơn: Cần đăng nhập là dùng được
                 .requestMatchers("/api/recruitment/**").authenticated()
@@ -137,6 +140,7 @@ public class SecurityConfig {
                 // ======================================================
                 // 8. MẶC ĐỊNH
                 // ======================================================
+                
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
