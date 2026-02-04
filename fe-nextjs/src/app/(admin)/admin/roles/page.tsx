@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '@/services/api';
 import { Shield, Plus, Edit, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 
 type RoleKey =
   | 'ADMIN'
@@ -153,6 +154,7 @@ export default function RolesPage() {
                 <button className="p-2 text-gray-400 hover:text-blue-600 transition" title="Chỉnh sửa">
                   <Edit className="w-4 h-4" />
                 </button>
+
                 {!role.isSystem && (
                   <button
                     onClick={() => handleDelete(role.id)}
@@ -170,6 +172,16 @@ export default function RolesPage() {
 
             <div className="mt-4 flex items-center text-sm text-gray-600">
               <span className="font-semibold mr-1">{role.usersCount}</span> người dùng đang sở hữu
+            </div>
+
+            <div className="mt-2">
+              <Link
+                href={`/admin/users?role=${encodeURIComponent(role.key)}`}
+                className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Xem người dùng
+                <span aria-hidden>→</span>
+              </Link>
             </div>
 
             <div className="mt-6 pt-4 border-t border-gray-100">

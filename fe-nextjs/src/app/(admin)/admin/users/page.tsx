@@ -5,9 +5,11 @@ import api from "@/services/api";
 import { Search, Lock, Unlock } from "lucide-react";
 import toast from "react-hot-toast";
 import { useConfirm } from "@/context/ConfirmDialogContext";
+import { useSearchParams, useRouter } from "next/navigation";
 
 type UserStatus = "ACTIVE" | "BANNED" | "PENDING_VERIFICATION";
 type UserRole = "ADMIN" | "CANDIDATE" |"CANDIDATE_VIP" | "RECRUITER" |"RECRUITER_VIP" | string;
+type UpdateUserRolePayload = { userRole: UserRole };
 
 type CreateUserPayload = {
   fullName: string;
@@ -230,6 +232,80 @@ function AddUserModal({
   );
 }
 
+function ChangeRoleModal({
+  open,
+  user,
+  onClose,
+  onSave,
+  loading,
+}: {
+  open: boolean;
+  user: UserData | null;
+  onClose: () => void;
+  onSave: (newRole: UserRole) => void;
+  loading: boolean;
+}) {
+  const [role, setRole] = useState<UserRole>("CANDIDATE");
+
+  useEffect(() => {
+    if (open && user) setRole(user.userRole as UserRole);
+  }, [open, user]);
+
+  if (!open || !user) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="text-lg font-semibold">Đổi vai trò</h2>
+          <button onClick={onClose} className="px-2 py-1 rounded-lg hover:bg-gray-100">✕</button>
+        </div>
+
+        <div className="px-6 py-4 space-y-3">
+          <div className="text-sm text-gray-700">
+            <div className="font-medium">{user.fullName}</div>
+            <div className="text-gray-500">{user.email}</div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">Vai trò mới</label>
+            <select
+              className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
+              disabled={loading}
+            >
+              <option value="CANDIDATE">CANDIDATE</option>
+              <option value="CANDIDATE_VIP">CANDIDATE_VIP</option>
+              <option value="RECRUITER">RECRUITER</option>
+              <option value="RECRUITER_VIP">RECRUITER_VIP</option>
+              {/* nếu bạn muốn cho đổi ADMIN thì mở option này */}
+              {/* <option value="ADMIN">ADMIN</option> */}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-6 py-4 border-t">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg border text-sm hover:bg-gray-50"
+            disabled={loading}
+          >
+            Hủy
+          </button>
+          <button
+            onClick={() => onSave(role)}
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm disabled:opacity-50"
+            disabled={loading || role === (user.userRole as UserRole)}
+          >
+            {loading ? "Đang lưu..." : "Lưu"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -249,10 +325,27 @@ export default function UserManagementPage() {
   const [creating, setCreating] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
 
+  // modal đổi vai trò
+  const [openRoleModal, setOpenRoleModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [roleSaving, setRoleSaving] = useState(false);
+
+  // lấy tham số role từ URL
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const roleParam = searchParams.get("role"); // ví dụ "CANDIDATE_VIP"
+
+  // tạo người dùng
   const createUser = async (payload: CreateUserPayload) => {
     const res = await api.post<CreateUserResponse>("/admin/users", payload);
     return res.data;
   };
+
+  // thay đổi vai trò người dùng
+  const updateUserRole = async (userId: number, payload: UpdateUserRolePayload) => {
+  const res = await api.put(`/admin/users/${userId}/role`, payload);
+  return res.data;
+};
 
   const fetchUsers = async (opts?: {
     page?: number;
@@ -269,6 +362,7 @@ export default function UserManagementPage() {
       const res = await api.get<PageResponse<UserData>>("/admin/users", {
         params: {
           keyword: keyword?.trim() || undefined,
+          role: roleParam || undefined,
           page: p,
           size: s,
           sort: "createdAt,desc",
@@ -295,7 +389,7 @@ export default function UserManagementPage() {
   useEffect(() => {
     fetchUsers({ page: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [roleParam]);
 
   // debounce search
   useEffect(() => {
@@ -362,6 +456,7 @@ export default function UserManagementPage() {
     [],
   );
 
+  // xử lý tạo người dùng
   const handleCreateUser = async (payload: CreateUserPayload) => {
     try {
       setCreating(true);
@@ -387,6 +482,33 @@ export default function UserManagementPage() {
       setCreating(false);
     }
   };
+
+  // xử lý đổi vai trò
+  const handleSaveRole = async (newRole: UserRole) => {
+  if (!selectedUser) return;
+
+  const ok = await confirm({
+    title: "Xác nhận đổi vai trò",
+    message: `Bạn có chắc muốn đổi vai trò của ${selectedUser.fullName} từ ${selectedUser.userRole} → ${newRole}?`,
+    isDanger: false,
+    confirmLabel: "Đổi vai trò",
+  });
+  if (!ok) return;
+
+  try {
+    setRoleSaving(true);
+    await updateUserRole(selectedUser.id, { userRole: newRole });
+    toast.success("Đổi vai trò thành công!");
+    setOpenRoleModal(false);
+    setSelectedUser(null);
+    await fetchUsers(); // refresh list
+  } catch (err: any) {
+    console.error("update role error:", err);
+    toast.error(err?.response?.data?.message || "Đổi vai trò thất bại.");
+  } finally {
+    setRoleSaving(false);
+  }
+};
 
   return (
     <div className="space-y-6">
@@ -424,6 +546,23 @@ export default function UserManagementPage() {
         </div>
       </div>
 
+      {/* Banner lọc theo role */}
+      {roleParam && (
+        <div className="flex items-center justify-between rounded-xl border bg-blue-50 px-4 py-2 text-sm text-blue-800">
+          <div>
+            Đang lọc theo vai trò: <span className="font-semibold">{roleLabel(roleParam)}</span>
+          </div>
+          <button
+            type="button"
+            className="font-medium text-blue-700 hover:underline"
+            onClick={() => router.push("/admin/users")}
+          >
+            Bỏ lọc
+          </button>
+        </div>
+      )}
+
+      {/* Danh sách người dùng */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -480,27 +619,41 @@ export default function UserManagementPage() {
                   </td>
 
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => handleToggleStatus(user)}
-                      className="p-2 hover:bg-gray-200 rounded-full transition text-gray-500 disabled:opacity-50"
-                      title={
-                        user.status === "ACTIVE"
-                          ? "Khóa tài khoản"
-                          : user.status === "BANNED"
-                            ? "Mở khóa"
-                            : "Không hỗ trợ"
-                      }
-                      disabled={user.userRole === "ADMIN"} // tránh khóa admin từ UI
-                    >
-                      {user.status === "ACTIVE" ? (
-                        <Lock className="w-4 h-4" />
-                      ) : user.status === "BANNED" ? (
-                        <Unlock className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <Lock className="w-4 h-4 opacity-40" />
-                      )}
-                    </button>
-                  </td>
+                    <div className="inline-flex items-center gap-2 justify-end">
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setOpenRoleModal(true);
+                        }}
+                        className="px-3 py-2 border rounded-lg text-sm hover:bg-gray-50"
+                        disabled={user.userRole === "ADMIN"}
+                        title="Đổi vai trò"
+                      >
+                        Đổi vai trò
+                      </button>
+
+                      <button
+                        onClick={() => handleToggleStatus(user)}
+                        className="p-2 hover:bg-gray-200 rounded-full transition text-gray-500 disabled:opacity-50"
+                        title={
+                          user.status === "ACTIVE"
+                            ? "Khóa tài khoản"
+                            : user.status === "BANNED"
+                              ? "Mở khóa"
+                              : "Không hỗ trợ"
+                        }
+                        disabled={user.userRole === "ADMIN"} // tránh khóa admin từ UI
+                      >
+                        {user.status === "ACTIVE" ? (
+                          <Lock className="w-4 h-4" />
+                        ) : user.status === "BANNED" ? (
+                          <Unlock className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Lock className="w-4 h-4 opacity-40" />
+                        )}
+                      </button>
+                    </div>  
+                  </td>  
                 </tr>
               ))}
 
@@ -549,12 +702,24 @@ export default function UserManagementPage() {
           <div className="px-6 py-3 text-center text-gray-500">Đang tải...</div>
         )}
       </div>
+      {/*modal thêm người dùng*/}
       <AddUserModal
         open={openAdd}
         onClose={() => setOpenAdd(false)}
         onSubmit={handleCreateUser}
         loading={creating}
         generatedPassword={generatedPassword}
+      />
+      {/*modal đổi vai trò*/}
+      <ChangeRoleModal
+        open={openRoleModal}
+        user={selectedUser}
+        onClose={() => {
+          setOpenRoleModal(false);
+          setSelectedUser(null);
+        }}
+        onSave={handleSaveRole}
+        loading={roleSaving}
       />
     </div>
   );

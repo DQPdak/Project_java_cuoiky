@@ -5,9 +5,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import app.admin.dto.request.CreateAdminUserRequest;
+import app.admin.dto.request.UpdateUserRoleRequest;
 import app.admin.dto.response.AdminUserResponse;
 import app.admin.dto.response.CreateAdminUserResponse;
 import app.admin.service.AdminUserService;
+import app.auth.model.enums.UserRole;
 import jakarta.validation.Valid;
 
 import org.springframework.boot.CommandLineRunner;
@@ -27,9 +29,10 @@ public class AdminUserController {
     @GetMapping
     public Page<AdminUserResponse> getUsers(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) UserRole role,
             Pageable pageable
     ) {
-        return adminUserService.getAllUsers(keyword, pageable);
+        return adminUserService.getAllUsers(keyword, role, pageable);
     }
 
     @PutMapping("/{id}/lock")
@@ -55,5 +58,13 @@ public class AdminUserController {
                 System.out.println("MAPPING: " + k);
             }
         });
+    }
+
+    @PutMapping("/{id}/role")
+    public AdminUserResponse updateUserRole(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRoleRequest request
+    ) {
+        return adminUserService.updateUserRole(id, request);
     }
 }

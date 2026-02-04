@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 
 import app.auth.model.User;
 import app.auth.model.enums.UserStatus;
+import app.auth.model.enums.UserRole;
 
 import java.util.List;
 import java.util.Optional;
@@ -69,10 +70,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
             LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
             LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
           )
+          AND (:role IS NULL OR u.userRole = :role)
     """)
     Page<User> searchUsersExcludeId(
             @Param("excludeId") Long excludeId,
             @Param("keyword") String keyword,
+            @Param("role") UserRole role,
             Pageable pageable
     );
     @Query("select u.userRole, count(u) from User u group by u.userRole")
