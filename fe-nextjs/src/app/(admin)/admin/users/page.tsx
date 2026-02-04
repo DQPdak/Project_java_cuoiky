@@ -7,7 +7,19 @@ import toast from "react-hot-toast";
 import { useConfirm } from "@/context/ConfirmDialogContext";
 
 type UserStatus = "ACTIVE" | "BANNED" | "PENDING_VERIFICATION";
-type UserRole = "ADMIN" | "CANDIDATE" | "RECRUITER" | string;
+type UserRole = "ADMIN" | "CANDIDATE" |"CANDIDATE_VIP" | "RECRUITER" |"RECRUITER_VIP" | string;
+
+type CreateUserPayload = {
+  fullName: string;
+  email: string;
+  userRole: UserRole; // "ADMIN" | "CANDIDATE" | "RECRUITER" | ...
+  password?: string;  // optional, nếu rỗng backend tự sinh
+};
+
+type CreateUserResponse = {
+  user: UserData;
+  generatedPassword: string | null;
+};
 
 interface UserData {
   id: number;
@@ -47,6 +59,177 @@ function statusLabel(status: UserStatus) {
   }
 }
 
+function roleLabel(role: string) {
+  switch (role) {
+    case "ADMIN":
+      return "Administrator";
+    case "RECRUITER":
+      return "Recruiter";
+    case "RECRUITER_VIP":
+      return "Recruiter VIP";
+    case "CANDIDATE":
+      return "Candidate";
+    case "CANDIDATE_VIP":
+      return "Candidate VIP";
+    default:
+      return role;
+  }
+}
+
+function AddUserModal({
+  open,
+  onClose,
+  onSubmit,
+  loading,
+  generatedPassword,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (payload: CreateUserPayload) => void;
+  loading: boolean;
+  generatedPassword: string | null;
+}) {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [userRole, setUserRole] = useState<UserRole>("CANDIDATE");
+  const [autoPassword, setAutoPassword] = useState(true);
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    // reset form mỗi lần mở
+    setFullName("");
+    setEmail("");
+    setUserRole("CANDIDATE");
+    setAutoPassword(true);
+    setPassword("");
+  }, [open]);
+
+  if (!open) return null;
+
+  const canSubmit =
+    fullName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    (autoPassword || password.trim().length >= 6);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl border">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="text-lg font-semibold text-gray-800">Thêm người dùng</h2>
+          <button
+            onClick={onClose}
+            className="px-2 py-1 rounded-lg hover:bg-gray-100 text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="px-6 py-4 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700">Họ tên</label>
+            <input
+              className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Nguyễn Văn A"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">Email</label>
+            <input
+              className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="a@gmail.com"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">Vai trò</label>
+            <select
+              className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+              value={userRole}
+              onChange={(e) => setUserRole(e.target.value)}
+            >
+              <option value="CANDIDATE">CANDIDATE</option>
+              <option value="CANDIDATE_VIP">CANDIDATE_VIP</option>
+              <option value="RECRUITER">RECRUITER</option>
+              <option value="RECRUITER_VIP">RECRUITER_VIP</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={autoPassword}
+              onChange={(e) => setAutoPassword(e.target.checked)}
+            />
+            <span className="text-sm text-gray-700">Tự sinh mật khẩu tạm</span>
+          </div>
+
+          {!autoPassword && (
+            <div>
+              <label className="text-sm font-medium text-gray-700">Mật khẩu</label>
+              <input
+                type="password"
+                className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Tối thiểu 6 ký tự"
+              />
+            </div>
+          )}
+
+          {generatedPassword && (
+            <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-800">
+              <div className="font-medium">Mật khẩu tạm (copy gửi cho user):</div>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <code className="break-all">{generatedPassword}</code>
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(generatedPassword);
+                    toast.success("Đã copy mật khẩu tạm");
+                  }}
+                  className="shrink-0 px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 px-6 py-4 border-t">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg border text-sm hover:bg-gray-50"
+            disabled={loading}
+          >
+            Đóng
+          </button>
+          <button
+            onClick={() =>
+              onSubmit({
+                fullName: fullName.trim(),
+                email: email.trim(),
+                userRole,
+                password: autoPassword ? "" : password,
+              })
+            }
+            disabled={!canSubmit || loading}
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm disabled:opacity-50"
+          >
+            {loading ? "Đang tạo..." : "Tạo người dùng"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -61,6 +244,15 @@ export default function UserManagementPage() {
 
   const canPrev = page > 0;
   const canNext = page + 1 < totalPages;
+
+  const [openAdd, setOpenAdd] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+
+  const createUser = async (payload: CreateUserPayload) => {
+    const res = await api.post<CreateUserResponse>("/admin/users", payload);
+    return res.data;
+  };
 
   const fetchUsers = async (opts?: {
     page?: number;
@@ -142,13 +334,21 @@ export default function UserManagementPage() {
     }
   };
 
+  // className cho badge vai trò
   const roleBadgeClass = useMemo(
-    () => (role: string) =>
-      role === "RECRUITER"
-        ? "bg-purple-100 text-purple-700"
-        : role === "ADMIN"
-          ? "bg-amber-100 text-amber-800"
-          : "bg-blue-100 text-blue-700",
+    () => (role: string) => {
+      // VIP: nổi bật hơn
+      if (role === "RECRUITER_VIP") return "bg-fuchsia-100 text-fuchsia-800";
+      if (role === "CANDIDATE_VIP") return "bg-indigo-100 text-indigo-800";
+
+      // Thường
+      if (role === "RECRUITER") return "bg-purple-100 text-purple-700";
+      if (role === "ADMIN") return "bg-amber-100 text-amber-800";
+      if (role === "CANDIDATE") return "bg-blue-100 text-blue-700";
+
+      // fallback
+      return "bg-gray-100 text-gray-700";
+    },
     [],
   );
 
@@ -162,6 +362,32 @@ export default function UserManagementPage() {
     [],
   );
 
+  const handleCreateUser = async (payload: CreateUserPayload) => {
+    try {
+      setCreating(true);
+      setGeneratedPassword(null);
+
+      const data = await createUser(payload);
+
+      toast.success("Tạo người dùng thành công!");
+      setGeneratedPassword(data.generatedPassword ?? null);
+
+      // refresh list: quay về trang 0 để thấy user mới
+      await fetchUsers({ page: 0 });
+
+      // Nếu bạn muốn đóng modal ngay khi admin tự nhập mật khẩu:
+      // nếu không có generatedPassword thì đóng luôn
+      if (!data.generatedPassword) {
+        setOpenAdd(false);
+      }
+    } catch (err: any) {
+      console.error("create user error:", err);
+      toast.error(err?.response?.data?.message || "Tạo người dùng thất bại.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
@@ -174,15 +400,27 @@ export default function UserManagementPage() {
           </p>
         </div>
 
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Tìm kiếm tên hoặc email..."
-            className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-72"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Tìm kiếm tên hoặc email..."
+              className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-72"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+          </div>
+
+          <button
+            onClick={() => {
+            setGeneratedPassword(null);
+            setOpenAdd(true);
+          }}
+          className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+          >
+            + Thêm người dùng
+          </button>
         </div>
       </div>
 
@@ -225,7 +463,7 @@ export default function UserManagementPage() {
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-semibold ${roleBadgeClass(user.userRole)}`}
                     >
-                      {user.userRole}
+                      {roleLabel(user.userRole)}
                     </span>
                   </td>
 
@@ -311,6 +549,13 @@ export default function UserManagementPage() {
           <div className="px-6 py-3 text-center text-gray-500">Đang tải...</div>
         )}
       </div>
+      <AddUserModal
+        open={openAdd}
+        onClose={() => setOpenAdd(false)}
+        onSubmit={handleCreateUser}
+        loading={creating}
+        generatedPassword={generatedPassword}
+      />
     </div>
   );
 }

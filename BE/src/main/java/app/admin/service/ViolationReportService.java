@@ -90,7 +90,6 @@ public class ViolationReportService {
             case USER -> userRepo.findById(targetId)
                     .orElseThrow(() -> new RuntimeException("User not found: " + targetId));
             case COMPANY -> {
-                // TODO: nếu bạn có CompanyRepository thì check ở đây
             }
         }
     }

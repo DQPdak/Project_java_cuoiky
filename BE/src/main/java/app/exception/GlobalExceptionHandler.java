@@ -6,8 +6,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import app.auth.dto.response.MessageResponse;
 import app.auth.exception.*;
@@ -94,6 +96,11 @@ public class GlobalExceptionHandler {
                 .body(MessageResponse.error(ex.getMessage()));
     }
     
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public Map<String, Object> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        return Map.of("message", "Method not allowed: " + e.getMethod());
+    }
     
     // --- PHẦN SỬA ĐỔI QUAN TRỌNG Ở ĐÂY ---
 
