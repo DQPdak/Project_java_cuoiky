@@ -72,12 +72,12 @@ export default function JobDetailPage() {
           <ArrowLeft size={18} className="mr-1" /> Quay lại danh sách
         </button>
         
-        <div className="flex gap-3">
+        {/* <div className="flex gap-3">
           
           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-sm">
             <Edit size={18} /> Chỉnh sửa tin
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Main Content Card */}
