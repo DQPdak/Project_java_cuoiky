@@ -43,29 +43,32 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           {/* Logo */}
           <div
-            className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent flex items-center gap-2 cursor-pointer"
+            className="flex-shrink-0 flex items-center gap-2 cursor-pointer"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
-            🚀 CareerMate
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+              C
+            </div>
+            <span className="font-bold text-xl text-gray-800">CareerMate</span>
           </div>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-8 font-medium text-slate-600">
             <button
               onClick={() => scrollToSection("features")}
-              className="hover:text-indigo-600 transition"
+              className="hover:text-indigo-600 transition hover:cursor-pointer"
             >
               Tính năng
             </button>
             <button
               onClick={() => scrollToSection("how-it-works")}
-              className="hover:text-indigo-600 transition"
+              className="hover:text-indigo-600 transition hover:cursor-pointer"
             >
               Cách hoạt động
             </button>
             <button
               onClick={() => scrollToSection("pricing")}
-              className="hover:text-indigo-600 transition"
+              className="hover:text-indigo-600 transition hover:cursor-pointer"
             >
               Bảng giá
             </button>
@@ -100,19 +103,19 @@ export default function LandingPage() {
         >
           <button
             onClick={() => scrollToSection("features")}
-            className="text-lg font-medium text-slate-700"
+            className="text-lg font-medium text-slate-700 hover:cursor-pointer"
           >
             Tính năng
           </button>
           <button
             onClick={() => scrollToSection("how-it-works")}
-            className="text-lg font-medium text-slate-700"
+            className="text-lg font-medium text-slate-700 hover:cursor-pointer"
           >
             Cách hoạt động
           </button>
           <button
             onClick={() => scrollToSection("pricing")}
-            className="text-lg font-medium text-slate-700"
+            className="text-lg font-medium text-slate-700 hover:cursor-pointer"
           >
             Bảng giá
           </button>
@@ -153,7 +156,7 @@ export default function LandingPage() {
               </Link>
               <button
                 onClick={() => scrollToSection("how-it-works")}
-                className="border-2 border-white text-white px-8 py-3 rounded-full font-bold hover:bg-white/10 transition"
+                className="border-2 border-white text-white px-8 py-3 rounded-full font-bold hover:bg-white/10 transition hover: cursor-pointer"
               >
                 Tìm hiểu thêm
               </button>
@@ -275,8 +278,8 @@ export default function LandingPage() {
               },
               {
                 icon: "📚",
-                title: "Trung tâm Học tập",
-                desc: "Khóa học và lộ trình được chọn lọc kỹ để nâng cao kỹ năng chuyên môn.",
+                title: "Gợi ý mẫu CV",
+                desc: "Dựa trên CV hiện có của bạn, thiết kế lại CV với các mẫu chuyên nghiệp và phù hợp ngành nghề.",
               },
               {
                 icon: "🏆",
@@ -305,7 +308,7 @@ export default function LandingPage() {
       <section id="how-it-works" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-800 mb-4">
+            <h2 className="text-4xl font-bold text-slate-800 mb-4 ">
               Cách hoạt động
             </h2>
             <p className="text-xl text-slate-500">4 bước đơn giản để bắt đầu</p>
@@ -475,67 +478,6 @@ export default function LandingPage() {
 
       {/* --- FOOTER --- */}
       <footer className="bg-slate-900 text-slate-300 py-16">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-12 mb-12">
-          <div>
-            <div className="text-2xl font-bold text-white mb-4">
-              🚀 CareerMate
-            </div>
-            <p className="text-slate-400 leading-relaxed">
-              Bạn đồng hành ứng tuyển thông minh với AI - Giải pháp toàn diện
-              cho sinh viên và nhà tuyển dụng.
-            </p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold text-lg mb-6">Sản phẩm</h4>
-            <ul className="space-y-3">
-              {[
-                "Phân tích CV",
-                "AI Career Coach",
-                "Sàn việc làm",
-                "Khóa học",
-              ].map((item) => (
-                <li key={item}>
-                  <a href="#" className="hover:text-white transition">
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-bold text-lg mb-6">Hỗ trợ</h4>
-            <ul className="space-y-3">
-              {[
-                "Trung tâm trợ giúp",
-                "Hướng dẫn sử dụng",
-                "FAQ",
-                "Liên hệ",
-              ].map((item) => (
-                <li key={item}>
-                  <a href="#" className="hover:text-white transition">
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-bold text-lg mb-6">Pháp lý</h4>
-            <ul className="space-y-3">
-              {[
-                "Điều khoản dịch vụ",
-                "Chính sách bảo mật",
-                "Cookie Policy",
-              ].map((item) => (
-                <li key={item}>
-                  <a href="#" className="hover:text-white transition">
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
         <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-slate-800 text-center text-slate-500">
           &copy; 2026 CareerMate. All rights reserved.
         </div>
