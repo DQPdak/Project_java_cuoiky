@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Star, User } from "lucide-react";
 import { reviewService, Review } from "@/services/reviewService";
-import { useAuth } from "@/context/Authcontext"; // Giả sử bạn có AuthContext
+import { useAuth } from "@/context/Authcontext";
 import toast from "react-hot-toast";
 
 interface Props {
@@ -11,13 +11,17 @@ interface Props {
 }
 
 export default function CompanyReviews({ companyId }: Props) {
-    const { user } = useAuth();
-    const isAuthenticated = !!user; 
-    const [reviews, setReviews] = useState<Review[]>([]);
-    const [average, setAverage] = useState(0);
-    const [rating, setRating] = useState(0);
-    const [comment, setComment] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
+
+  // Xác định vai trò người dùng (Cập nhật theo logic đề xuất)
+  const isCandidate = user?.userRole === 'CANDIDATE' || user?.userRole === 'CANDIDATE_VIP';
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [average, setAverage] = useState(0);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -39,14 +43,14 @@ export default function CompanyReviews({ companyId }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) return toast.error("Vui lòng chọn số sao!");
-    
+
     setIsSubmitting(true);
     try {
       await reviewService.createReview({ companyId, rating, comment });
       toast.success("Cảm ơn đánh giá của bạn!");
       setComment("");
       setRating(0);
-      loadData(); // Reload lại danh sách
+      loadData();
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Lỗi khi gửi đánh giá");
     } finally {
@@ -76,38 +80,48 @@ export default function CompanyReviews({ companyId }: Props) {
         </div>
       </div>
 
-      {/* Form viết đánh giá */}
+      {/* Logic hiển thị Form hoặc Thông báo */}
       {isAuthenticated ? (
-        <form onSubmit={handleSubmit} className="mb-10 border-b pb-8">
-          <h3 className="font-semibold mb-3">Viết đánh giá của bạn</h3>
-          <div className="flex gap-2 mb-4">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                type="button"
-                onClick={() => setRating(star)}
-                className={`transition-colors ${rating >= star ? "text-yellow-400" : "text-gray-300 hover:text-yellow-200"}`}
-              >
-                <Star size={28} fill="currentColor" />
-              </button>
-            ))}
+        isCandidate ? (
+          /* Form dành cho Ứng viên */
+          <form onSubmit={handleSubmit} className="mb-10 border-b pb-8">
+            <h3 className="font-semibold mb-3">Viết đánh giá của bạn</h3>
+            <div className="flex gap-2 mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className={`transition-colors ${rating >= star ? "text-yellow-400" : "text-gray-300 hover:text-yellow-200"}`}
+                >
+                  <Star size={28} fill="currentColor" />
+                </button>
+              ))}
+            </div>
+            <textarea
+              className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+              rows={4}
+              placeholder="Chia sẻ trải nghiệm của bạn về công ty này..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              required
+            />
+            <button
+              disabled={isSubmitting}
+              className="mt-3 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {isSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
+            </button>
+          </form>
+        ) : (
+          /* Thông báo dành cho Nhà tuyển dụng hoặc vai trò khác */
+          <div className="bg-blue-50 p-4 rounded-lg text-center mb-8 border border-blue-100">
+            <p className="text-blue-700 font-medium">Bạn đang xem đánh giá với tư cách Nhà tuyển dụng.</p>
+            <p className="text-blue-500 text-sm">Chỉ ứng viên mới có quyền đăng bài đánh giá.</p>
           </div>
-          <textarea
-            className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 outline-none"
-            rows={4}
-            placeholder="Chia sẻ trải nghiệm của bạn về công ty này..."
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            required
-          />
-          <button 
-            disabled={isSubmitting}
-            className="mt-3 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {isSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
-          </button>
-        </form>
+        )
       ) : (
+        /* Thông báo cho người dùng chưa đăng nhập */
         <div className="bg-gray-50 p-4 rounded-lg text-center mb-8">
           <p className="text-gray-600">Vui lòng <span className="font-bold">Đăng nhập</span> để viết đánh giá.</p>
         </div>
