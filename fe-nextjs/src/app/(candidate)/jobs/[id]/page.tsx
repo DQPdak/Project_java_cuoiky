@@ -186,7 +186,7 @@ export default function JobDetailPage() {
                     Địa điểm
                   </p>
                   <p
-                    className="font-bold text-gray-900 truncate"
+                    className="font-bold text-gray-900 "
                     title={job.location}
                   >
                     {job.location}

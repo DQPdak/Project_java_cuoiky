@@ -195,7 +195,7 @@ export default function ManageJobsPage() {
                     className="flex items-center gap-2 text-blue-600 font-medium hover:underline"
                   >
                     <Users size={18} />
-                    Xem {job.applicationCount || 0} hồ sơ ứng tuyển
+                    Đã có  {job.applicationCount || 0} hồ sơ ứng tuyển
                   </Link>
                   <button
                     onClick={() => handleDeleteJob(job.id)}
