@@ -60,11 +60,12 @@ export const leaderboardService = {
   },
 
   // Lấy danh sách nhiệm vụ
-  getMissions: async (role: "CANDIDATE" | "RECRUITER") => {
+  getMissions: async (role: "CANDIDATE" | "RECRUITER", userId?: number) => {
+    // Thêm userId?: number
     const response = await api.get<LeaderboardResponse<Mission[]>>(
       "/leaderboard/missions",
       {
-        params: { role },
+        params: { role, userId }, // Truyền userId vào params
       },
     );
     return response.data.data;

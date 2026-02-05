@@ -24,8 +24,8 @@ export interface Mission {
   description: string;
   points: number;
   dailyLimit: number;
-  // Backend hiện tại trả về danh sách tĩnh, chưa có progress
-  // nên ta tạm ẩn field completedCount
+  completedCount: number;
+  isFinished?: boolean;
 }
 
 export interface LeaderboardResponse<T> {

@@ -43,10 +43,13 @@ public class LeaderboardController {
     }
 
     @GetMapping("/missions")
-    public ResponseEntity<?> getMissions(@RequestParam(defaultValue = "CANDIDATE") String role) {
+    public ResponseEntity<?> getMissions(
+        @RequestParam(defaultValue = "CANDIDATE") String role,
+        @RequestParam(required = false) Long userId // <--- Thêm tham số này (không bắt buộc để tránh lỗi nếu chưa login)
+    ) {
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "data", leaderboardService.getMissions(role)
+            "data", leaderboardService.getMissions(role, userId) // Truyền userId vào service
         ));
     }
     

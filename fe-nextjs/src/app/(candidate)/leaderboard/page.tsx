@@ -34,7 +34,7 @@ export default function LeaderboardPage() {
       try {
         const [topData, missionData] = await Promise.all([
           leaderboardService.getTop(apiRole, period),
-          leaderboardService.getMissions(apiRole),
+          leaderboardService.getMissions(apiRole, user?.id), // Truyền userId vào đây
         ]);
         setTopUsers(topData || []);
         setMissions(missionData || []);
