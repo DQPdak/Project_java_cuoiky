@@ -114,12 +114,14 @@ public class LeaderboardService {
         return logRepo.findRecentLogs(limit);
     }
 
-    public List<Map<String, Object>> getMissions(String roleGroup) {
+    public List<Map<String, Object>> getMissions(String roleGroup, Long userId) {
         List<Map<String, Object>> missions = new ArrayList<>();
         String role = normalizeRole(roleGroup);
         boolean isRecruiter = "RECRUITER".equals(role);
 
-        // Filter Actions based on Role (Mapping cứng hoặc logic động)
+        // Lấy thời gian bắt đầu ngày hôm nay (dùng lại logic của hàm processAddPoints)
+        OffsetDateTime startOfToday = LocalDate.now(VN_ZONE).atStartOfDay(VN_ZONE).toOffsetDateTime();
+
         for (UserPointAction action : UserPointAction.values()) {
             boolean forRecruiter = action == UserPointAction.JOB_POST_APPROVED 
                                 || action == UserPointAction.REVIEW_CV 
@@ -132,12 +134,24 @@ public class LeaderboardService {
                                 || action == UserPointAction.LOGIN_DAILY;
 
             if ((isRecruiter && forRecruiter) || (!isRecruiter && forCandidate)) {
+                // LOGIC MỚI: Kiểm tra tiến độ
+                long currentCount = 0;
+                if (userId != null) {
+                    // Tận dụng hàm countActionsToday đã có sẵn trong Repo (đang dùng ở processAddPoints)
+                    currentCount = logRepo.countActionsToday(userId, action.name(), startOfToday);
+                }
+                
+                // Đảm bảo không hiển thị quá giới hạn (ví dụ làm 6/5 thì chỉ hiện 5/5)
+                long displayCount = Math.min(currentCount, action.getDailyLimit());
+
                 missions.add(Map.of(
                     "code", action.name(),
                     "name", action.getDescription(),
                     "description", "Giới hạn: " + action.getDailyLimit() + " lần/ngày",
                     "points", action.getPoints(),
-                    "dailyLimit", action.getDailyLimit()
+                    "dailyLimit", action.getDailyLimit(),
+                    "completedCount", displayCount, // <--- TRƯỜNG MỚI THÊM
+                    "isFinished", displayCount >= action.getDailyLimit() // <--- TRƯỜNG MỚI THÊM
                 ));
             }
         }

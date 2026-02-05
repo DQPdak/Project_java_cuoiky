@@ -34,9 +34,13 @@ interface AnalysisData {
 
 interface CVAnalysisResultProps {
   result: AnalysisData | null;
+  isRecruiterView?: boolean;
 }
 
-export default function CVAnalysisResult({ result }: CVAnalysisResultProps) {
+export default function CVAnalysisResult({
+  result,
+  isRecruiterView = false,
+}: CVAnalysisResultProps) {
   if (!result) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
@@ -53,8 +57,8 @@ export default function CVAnalysisResult({ result }: CVAnalysisResultProps) {
     result.matchPercentage >= 80
       ? "text-green-600 border-green-500 bg-green-50"
       : result.matchPercentage >= 50
-      ? "text-yellow-600 border-yellow-500 bg-yellow-50"
-      : "text-red-600 border-red-500 bg-red-50";
+        ? "text-yellow-600 border-yellow-500 bg-yellow-50"
+        : "text-red-600 border-red-500 bg-red-50";
   // Component phụ render thẻ kỹ năng để tái sử dụng
   const SkillCard = ({
     title,
@@ -96,7 +100,7 @@ export default function CVAnalysisResult({ result }: CVAnalysisResultProps) {
               key={i}
               className={`px-3 py-1.5 bg-white border ${borderClass} ${colorClass.replace(
                 "bg-",
-                "text-"
+                "text-",
               )} rounded-lg text-xs font-bold shadow-sm`}
             >
               {skill}
@@ -216,69 +220,73 @@ export default function CVAnalysisResult({ result }: CVAnalysisResultProps) {
         </div>
 
         {/* HÀNG 3: GỢI Ý NÂNG CAO (AI RECOMMENDED) */}
-        <div className="bg-gradient-to-br from-amber-600 to-orange-700 p-8 rounded-[2rem] text-white shadow-lg relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-            <Lightbulb size={120} />
-          </div>
-          <div className="relative z-10 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
-                <Zap size={24} className="text-amber-300 fill-amber-300" />
-              </div>
-              <div>
-                <h4 className="text-xl font-black uppercase tracking-tight">
-                  Kỹ năng gợi ý từ chuyên gia AI
-                </h4>
-                <p className="text-amber-100 text-xs font-medium">
-                  Cần thiết cho công việc thực tế (ngoài JD & CV)
-                </p>
-              </div>
+        {isRecruiterView && (
+          <div className="bg-gradient-to-br from-amber-600 to-orange-700 p-8 rounded-[2rem] text-white shadow-lg relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+              <Lightbulb size={120} />
             </div>
+            <div className="relative z-10 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                  <Zap size={24} className="text-amber-300 fill-amber-300" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-black uppercase tracking-tight">
+                    Kỹ năng gợi ý từ chuyên gia AI
+                  </h4>
+                  <p className="text-amber-100 text-xs font-medium">
+                    Cần thiết cho công việc thực tế (ngoài JD & CV)
+                  </p>
+                </div>
+              </div>
 
-            <div className="flex flex-wrap gap-3">
-              {result.recommendedSkillsList?.length > 0 ? (
-                result.recommendedSkillsList.map((skill, i) => (
-                  <span
-                    key={i}
-                    className="px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-white/20 transition-colors"
-                  >
-                    <TrendingUp size={14} /> {skill}
-                  </span>
-                ))
-              ) : (
-                <p className="text-sm opacity-80 italic">
-                  Không có gợi ý bổ sung tại thời điểm này.
-                </p>
-              )}
+              <div className="flex flex-wrap gap-3">
+                {result.recommendedSkillsList?.length > 0 ? (
+                  result.recommendedSkillsList.map((skill, i) => (
+                    <span
+                      key={i}
+                      className="px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-white/20 transition-colors"
+                    >
+                      <TrendingUp size={14} /> {skill}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-sm opacity-80 italic">
+                    Không có gợi ý bổ sung tại thời điểm này.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* 3. LỘ TRÌNH HÀNH ĐỘNG (ACTION PLAN) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Lộ trình học tập */}
-        <div className="bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm space-y-5">
-          <div className="flex items-center gap-3 text-blue-700">
-            <BookOpen size={24} />
-            <h4 className="text-lg font-bold">Lộ trình học tập chi tiết</h4>
+      {isRecruiterView && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Lộ trình học tập */}
+          <div className="bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm space-y-5">
+            <div className="flex items-center gap-3 text-blue-700">
+              <BookOpen size={24} />
+              <h4 className="text-lg font-bold">Lộ trình học tập chi tiết</h4>
+            </div>
+            <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              {result.learningPath}
+            </div>
           </div>
-          <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
-            {result.learningPath}
-          </div>
-        </div>
 
-        {/* Lời khuyên sự nghiệp */}
-        <div className="bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm space-y-5">
-          <div className="flex items-center gap-3 text-green-700">
-            <TrendingUp size={24} />
-            <h4 className="text-lg font-bold">Lời khuyên phát triển</h4>
-          </div>
-          <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
-            {result.careerAdvice}
+          {/* Lời khuyên sự nghiệp */}
+          <div className="bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm space-y-5">
+            <div className="flex items-center gap-3 text-green-700">
+              <TrendingUp size={24} />
+              <h4 className="text-lg font-bold">Lời khuyên phát triển</h4>
+            </div>
+            <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              {result.careerAdvice}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

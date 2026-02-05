@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { aiService } from "@/services/aiService";
 import { Sparkles } from "lucide-react";
+import { useAuth } from "@/context/Authcontext"; // [1] Import Context
 
 interface Message {
   role: "user" | "ai";
@@ -10,6 +11,8 @@ interface Message {
 }
 
 export default function AIChatWidget() {
+  const { user } = useAuth(); // [2] Lấy thông tin user
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -30,17 +33,13 @@ export default function AIChatWidget() {
     if (!inputValue.trim()) return;
 
     const userText = inputValue;
-    setInputValue(""); // Xóa ô nhập ngay lập tức
+    setInputValue("");
 
-    // 1. Hiển thị tin nhắn của User
     setMessages((prev) => [...prev, { role: "user", content: userText }]);
     setIsLoading(true);
 
     try {
-      // 2. Gọi API Backend
       const aiResponse = await aiService.askAI(userText);
-
-      // 3. Hiển thị phản hồi của AI
       setMessages((prev) => [...prev, { role: "ai", content: aiResponse }]);
     } catch (error) {
       setMessages((prev) => [
@@ -52,15 +51,19 @@ export default function AIChatWidget() {
     }
   };
 
-  // Xử lý đóng khung chat -> XÓA SẠCH LỊCH SỬ
   const handleCloseChat = () => {
     setIsOpen(false);
-    setMessages([]); // Reset về mảng rỗng
+    setMessages([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") handleSendMessage();
   };
+
+  // [3] Kiểm tra điều kiện: Nếu chưa đăng nhập thì ẩn widget
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2 font-sans">
@@ -99,7 +102,9 @@ export default function AIChatWidget() {
           <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-3">
             {messages.length === 0 && (
               <div className="text-center text-gray-400 mt-10 text-sm">
-                Xin chào! Tôi là CareerAI tôi có thể giúp gì cho bạn?
+                Xin chào, <strong>{user.fullName}</strong>! <br />{" "}
+                {/* Hiện tên user cho thân thiện */}
+                Tôi là CareerAI, tôi có thể giúp gì cho bạn?
               </div>
             )}
 
@@ -115,7 +120,6 @@ export default function AIChatWidget() {
                       : "bg-white text-gray-800 border border-gray-200 rounded-bl-none"
                   }`}
                 >
-                  {/* Nếu muốn render Markdown đẹp hơn thì dùng thư viện react-markdown, ở đây render text thuần */}
                   {msg.content}
                 </div>
               </div>
@@ -178,7 +182,6 @@ export default function AIChatWidget() {
           onClick={() => setIsOpen(true)}
           className="bg-purple-70 text-purple-700 font-semibold p-4 rounded-full shadow-lg hover:bg-purple-700 hover:scale-110 hover:text-white transition-all duration-300 group"
         >
-          {/* Icon Chat Bubble */}
           <Sparkles />
         </button>
       )}
