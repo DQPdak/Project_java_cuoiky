@@ -1,4 +1,4 @@
-package app.admin.model.enums;
+package app.admin.report.model.enums;
 
 public enum ReportStatus {
     PENDING,     // chờ xử lý (hiện badge)

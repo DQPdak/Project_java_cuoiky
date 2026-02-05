@@ -1,27 +1,28 @@
-package app.auth.security;
+package app.admin.security;
 
 import app.admin.service.SystemSettingService;
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
-import org.springframework.security.core.*;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-public class MaintenanceModeFilter extends OncePerRequestFilter {
+@Component
+@RequiredArgsConstructor
+public class MaintenanceFilter extends OncePerRequestFilter {
 
     private final SystemSettingService settingService;
-
-    public MaintenanceModeFilter(SystemSettingService settingService) {
-        this.settingService = settingService;
-    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
-        // nếu không bật bảo trì => cho qua
         if (!settingService.isMaintenanceEnabled()) {
             chain.doFilter(request, response);
             return;
@@ -29,41 +30,34 @@ public class MaintenanceModeFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Cho phép admin settings + swagger (tuỳ bạn)
-        if (path.startsWith("/api/admin/")) {
-            chain.doFilter(request, response);
-            return;
-        }
-
-        // Auth login/refresh vẫn đi qua, nhưng login sẽ bị chặn ở AuthService nếu non-admin
+        // luôn cho auth đi qua (để login/refresh)
         if (path.startsWith("/api/auth/")) {
             chain.doFilter(request, response);
             return;
         }
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = auth != null && auth.isAuthenticated() && hasRole(auth, "ADMIN");
+        boolean isAdmin = auth != null && auth.isAuthenticated()
+                && auth.getAuthorities().stream().anyMatch(a ->
+                    "ADMIN".equals(a.getAuthority()) || "ROLE_ADMIN".equals(a.getAuthority())
+                );
 
+        // ✅ admin đi qua tất cả API
         if (isAdmin) {
             chain.doFilter(request, response);
             return;
         }
 
-        // Non-admin => 503
+        // (optional) cho admin settings đi qua kể cả chưa auth? thường không cần
+        // if (path.startsWith("/api/admin/")) { chain.doFilter(...); return; }
+
+        // ❌ non-admin bị chặn
         response.setStatus(503);
         response.setContentType("application/json;charset=UTF-8");
         String msg = settingService.maintenanceMessage();
         response.getWriter().write("{\"success\":false,\"code\":\"MAINTENANCE_MODE\",\"message\":\"" + escape(msg) + "\"}");
     }
-
-    private boolean hasRole(Authentication auth, String role) {
-        for (GrantedAuthority ga : auth.getAuthorities()) {
-            if (role.equals(ga.getAuthority())) return true;
-        }
-        return false;
-    }
-
-    private String escape(String s) {
-        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
+    private String escape(String str) {
+        return str.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
     }
 }

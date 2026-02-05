@@ -1,4 +1,4 @@
-package app.admin.model.enums;
+package app.admin.report.model.enums;
 
 public enum ViolationReason {
     SPAM,

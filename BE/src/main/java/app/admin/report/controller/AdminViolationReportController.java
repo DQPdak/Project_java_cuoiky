@@ -1,9 +1,9 @@
-package app.admin.controller;
+package app.admin.report.controller;
 
-import app.admin.dto.request.UpdateReportStatusRequest;
-import app.admin.model.enums.ReportStatus;
-import app.admin.dto.response.ViolationReportResponse;
-import app.admin.service.ViolationReportService;
+import app.admin.report.dto.request.UpdateReportStatusRequest;
+import app.admin.report.dto.response.ViolationReportResponse;
+import app.admin.report.model.enums.ReportStatus;
+import app.admin.report.service.ViolationReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

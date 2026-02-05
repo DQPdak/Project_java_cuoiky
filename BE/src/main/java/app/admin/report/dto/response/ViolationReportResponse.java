@@ -1,10 +1,10 @@
-package app.admin.dto.response;
-
-import app.admin.model.enums.ReportStatus;
-import app.admin.model.enums.ReportTargetType;
-import app.admin.model.enums.ViolationReason;
+package app.admin.report.dto.response;
 
 import java.time.OffsetDateTime;
+
+import app.admin.report.model.enums.ReportStatus;
+import app.admin.report.model.enums.ReportTargetType;
+import app.admin.report.model.enums.ViolationReason;
 
 public record ViolationReportResponse(
         Long id,
