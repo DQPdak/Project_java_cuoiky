@@ -9,7 +9,9 @@ type ViolationReportResponse = {
   reporterId: number;
   reporterName: string;
 
-  targetType: 'JOB_POSTING' | 'COMPANY' | 'USER';
+
+
+  targetType: 'JOB_POSTING' |'JOB_APPLICATION' | 'COMPANY' | 'USER';
   targetId: number;
 
   reason:
@@ -32,6 +34,33 @@ type ViolationReportResponse = {
   updatedAt?: string;
   handledAt?: string | null;
 };
+
+type AdminAction =
+  | 'NONE'
+  | 'WARN'
+  | 'LOCK_USER'
+  | 'UNLOCK_USER'
+  | 'LOCK_COMPANY'
+  | 'UNLOCK_COMPANY'
+  | 'HIDE_JOB'
+  | 'DELETE_JOB'
+  | 'HIDE_APPLICATION'
+  | 'DELETE_APPLICATION';
+
+function defaultActionByTarget(targetType: ViolationReportResponse['targetType']): AdminAction {
+  switch (targetType) {
+    case 'USER':
+      return 'LOCK_USER';
+    case 'COMPANY':
+      return 'LOCK_COMPANY';
+    case 'JOB_POSTING':
+      return 'HIDE_JOB'; // BE sẽ set JobStatus.HIDDEN
+    case 'JOB_APPLICATION':
+      return 'HIDE_APPLICATION'; // BE sẽ set ApplicationStatus.REJECTED + note
+    default:
+      return 'NONE';
+  }
+}
 
 type PageLike<T> = {
   content: T[];
@@ -101,7 +130,40 @@ export default function ViolationReportsPage() {
   const [selected, setSelected] = useState<ViolationReportResponse | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedAction, setSelectedAction] = useState<AdminAction>('NONE');
 
+  const ACTION_OPTIONS: Record<
+    ViolationReportResponse['targetType'],
+    { value: AdminAction; label: string }[]
+  > = {
+    USER: [
+      { value: 'LOCK_USER', label: 'Khóa người dùng' },
+      { value: 'UNLOCK_USER', label: 'Mở khóa người dùng' },
+      { value: 'WARN', label: 'Cảnh cáo' },
+      { value: 'NONE', label: 'Không làm gì' },
+    ],
+    COMPANY: [
+      { value: 'LOCK_COMPANY', label: 'Khóa công ty' },
+      { value: 'UNLOCK_COMPANY', label: 'Mở khóa công ty' },
+      { value: 'WARN', label: 'Cảnh cáo' },
+      { value: 'NONE', label: 'Không làm gì' },
+    ],
+    JOB_POSTING: [
+      { value: 'HIDE_JOB', label: 'Ẩn tin tuyển dụng' },
+      { value: 'DELETE_JOB', label: 'Xóa tin tuyển dụng' },
+      { value: 'WARN', label: 'Cảnh cáo' },
+      { value: 'NONE', label: 'Không làm gì' },
+    ],
+    JOB_APPLICATION: [
+      { value: 'HIDE_APPLICATION', label: 'Ẩn hồ sơ ứng tuyển (set REJECTED)' },
+      { value: 'DELETE_APPLICATION', label: 'Xóa hồ sơ ứng tuyển' },
+      { value: 'WARN', label: 'Cảnh cáo' },
+      { value: 'NONE', label: 'Không làm gì' },
+    ],
+  };
+
+  const defaultActionByTarget2 = (t: ViolationReportResponse['targetType']): AdminAction =>
+    ACTION_OPTIONS[t]?.[0]?.value ?? 'NONE';
 
   const PAGE_SIZE = 10;
   const [size] = useState(PAGE_SIZE);
@@ -144,6 +206,7 @@ export default function ViolationReportsPage() {
   const openDetail = (r: ViolationReportResponse) => {
     setSelected(r);
     setDrawerOpen(true);
+    setSelectedAction(defaultActionByTarget2(r.targetType));
   };
 
   const closeDrawer = () => {
@@ -151,16 +214,21 @@ export default function ViolationReportsPage() {
     setSelected(null);
   };
 
-  // ⚠️ Tạm thời vẫn dùng adminId=5 giống code cũ của bạn
-  // Sau này backend lấy từ token thì xoá params adminId.
-  const updateStatus = async (reportId: number, next: 'VALID' | 'INVALID') => {
+
+
+  const reviewPending = async (reportId: number, next: 'VALID' | 'INVALID') => {
     setActionLoading(true);
     try {
       await api.patch(
         `/admin/violation-reports/${reportId}/status`,
-        { status: next, adminNote: next === 'VALID' ? 'Xác nhận vi phạm' : 'Từ chối báo cáo' },
+        {
+          status: next,
+          action: 'NONE', // bắt buộc vì BE @NotNull action
+          adminNote: next === 'VALID' ? 'Xác nhận báo cáo hợp lệ' : 'Từ chối báo cáo',
+        },
         { params: { adminId: 5 } }
       );
+
       closeDrawer();
       await fetchReports(page, status);
     } catch (e: any) {
@@ -169,6 +237,30 @@ export default function ViolationReportsPage() {
       setActionLoading(false);
     }
   };
+
+  const processValid = async (reportId: number) => {
+    if (!selected) return;
+    setActionLoading(true);
+    try {
+      await api.patch(
+        `/admin/violation-reports/${reportId}/status`,
+        {
+          status: 'RESOLVED',
+          action: selectedAction,
+          adminNote: `Xử lý - action=${selectedAction}`,
+        },
+        { params: { adminId: 5 } }
+      );
+
+      closeDrawer();
+      await fetchReports(page, status);
+    } catch (e: any) {
+      alert(e?.response?.data?.message || 'Xử lý thất bại');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
 
 const paginationText = useMemo(() => {
   const total = totalElements ?? 0;
@@ -227,14 +319,6 @@ const paginationText = useMemo(() => {
             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm flex items-center gap-2"
           >
             ↻ Tải lại
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
-          >
-            ← Quay lại
           </button>
         </div>
       </div>
@@ -383,7 +467,7 @@ const paginationText = useMemo(() => {
                 <div className="p-5 border-t flex items-center justify-between gap-3">
                   <button
                     type="button"
-                    onClick={() => updateStatus(selected.id, 'INVALID')}
+                    onClick={() => reviewPending(selected.id, 'INVALID')}
                     disabled={actionLoading}
                     className="px-4 py-2 rounded-lg border text-red-600 hover:bg-red-50 disabled:opacity-60"
                   >
@@ -392,11 +476,38 @@ const paginationText = useMemo(() => {
 
                   <button
                     type="button"
-                    onClick={() => updateStatus(selected.id, 'VALID')}
+                    onClick={() => reviewPending(selected.id, 'VALID')}
                     disabled={actionLoading}
                     className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
                   >
-                    {actionLoading ? 'Đang xử lý...' : 'Xác nhận vi phạm'}
+                    {actionLoading ? 'Đang xử lý...' : 'Xác nhận'}
+                  </button>
+                </div>
+              )}
+
+              {status === 'VALID' && (
+                <div className="p-5 border-t space-y-3">
+                  <div className="text-sm font-semibold text-gray-900">Hành động xử lý</div>
+
+                  <select
+                    value={selectedAction}
+                    onChange={(e) => setSelectedAction(e.target.value as AdminAction)}
+                    className="w-full px-3 py-2 rounded-lg border text-sm bg-white"
+                  >
+                    {ACTION_OPTIONS[selected.targetType].map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => processValid(selected.id)}
+                    disabled={actionLoading}
+                    className="w-full px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    {actionLoading ? 'Đang xử lý...' : 'Xử lý'}
                   </button>
                 </div>
               )}

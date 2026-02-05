@@ -1,8 +1,9 @@
-package app.admin.model;
+package app.admin.report.model;
 
-import app.admin.model.enums.ReportStatus;
-import app.admin.model.enums.ReportTargetType;
-import app.admin.model.enums.ViolationReason;
+import app.admin.report.model.enums.AdminAction;
+import app.admin.report.model.enums.ReportStatus;
+import app.admin.report.model.enums.ReportTargetType;
+import app.admin.report.model.enums.ViolationReason;
 import app.auth.model.User;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -62,6 +63,14 @@ public class ViolationReport {
 
     @Column(name = "handled_at")
     private OffsetDateTime handledAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admin_action", length = 50)
+    private AdminAction adminAction = AdminAction.NONE;
+
+    @Column(name = "target_label", length = 255)
+    private String targetLabel;
+
 
     @PrePersist
     public void prePersist() {

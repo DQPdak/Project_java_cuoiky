@@ -62,6 +62,10 @@ export default function SettingsPage() {
 
       await api.put('/admin/settings/maintenance', payload);
 
+      // ✅ set cookie để middleware đọc được (chạy ngay lập tức)
+      document.cookie = `maintenanceEnabled=${payload.enabled ? "true" : "false"}; path=/;`;
+      document.cookie = `maintenanceMessage=${encodeURIComponent(payload.message || "")}; path=/;`;
+
       alert('Đã lưu cài đặt thành công!');
     } catch (e: any) {
       console.error('Lỗi lưu settings:', e);
@@ -96,9 +100,9 @@ export default function SettingsPage() {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <Globe className="w-5 h-5 mr-3" /> Chung
+              <Globe className="w-5 h-5 mr-3" /> Bảo trì
             </button>
-            <button
+            {/* <button
               type="button"
               onClick={() => setActiveTab('SECURITY')}
               className={`w-full flex items-center px-4 py-3 text-sm font-medium transition ${
@@ -108,8 +112,8 @@ export default function SettingsPage() {
               }`}
             >
               <Lock className="w-5 h-5 mr-3" /> Bảo mật & Quyền
-            </button>
-            <button
+            </button> */}
+            {/* <button
               type="button"
               onClick={() => setActiveTab('NOTIFICATIONS')}
               className={`w-full flex items-center px-4 py-3 text-sm font-medium transition ${
@@ -119,9 +123,9 @@ export default function SettingsPage() {
               }`}
             >
               <Bell className="w-5 h-5 mr-3" /> Thông báo
-            </button>
+            </button>*/}
           </div>
-        </div>
+        </div> 
 
         {/* Content Area */}
         <div className="flex-1">
@@ -130,45 +134,8 @@ export default function SettingsPage() {
             {activeTab === 'GENERAL' && (
               <div className="space-y-6 animate-fadeIn">
                 <h3 className="text-lg font-bold text-gray-800 border-b pb-2">
-                  Thông tin chung
+                  Bảo trì hệ thống
                 </h3>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tên ứng dụng
-                  </label>
-                  <input
-                    type="text"
-                    value={config.siteName}
-                    onChange={(e) =>
-                      setConfig({ ...config, siteName: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    (Hiện tại chỉ là UI, nếu muốn lưu DB mình sẽ làm thêm endpoint riêng)
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email hỗ trợ
-                  </label>
-                  <div className="flex items-center border rounded-lg px-3 py-2 bg-gray-50">
-                    <Mail className="w-4 h-4 text-gray-500 mr-2" />
-                    <input
-                      type="email"
-                      value={config.supportEmail}
-                      onChange={(e) =>
-                        setConfig({ ...config, supportEmail: e.target.value })
-                      }
-                      className="w-full bg-transparent outline-none text-sm"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    (Hiện tại chỉ là UI, nếu muốn lưu DB mình sẽ làm thêm endpoint riêng)
-                  </p>
-                </div>
 
                 {/* ✅ Maintenance block + message */}
                 <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-100 space-y-3">
@@ -219,7 +186,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* TAB: SECURITY */}
+            {/* TAB: SECURITY
             {activeTab === 'SECURITY' && (
               <div className="space-y-6 animate-fadeIn">
                 <h3 className="text-lg font-bold text-gray-800 border-b pb-2">
@@ -247,19 +214,10 @@ export default function SettingsPage() {
                     <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
-
-                <div className="pt-4 border-t">
-                  <button
-                    type="button"
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                  >
-                    Đổi mật khẩu Admin
-                  </button>
-                </div>
               </div>
-            )}
+            )} */}
 
-            {/* TAB: NOTIFICATIONS */}
+            {/* TAB: NOTIFICATIONS
             {activeTab === 'NOTIFICATIONS' && (
               <div className="space-y-6 animate-fadeIn">
                 <h3 className="text-lg font-bold text-gray-800 border-b pb-2">
@@ -290,7 +248,7 @@ export default function SettingsPage() {
                   </label>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Save Button */}
             <div className="mt-8 pt-6 border-t flex justify-end">

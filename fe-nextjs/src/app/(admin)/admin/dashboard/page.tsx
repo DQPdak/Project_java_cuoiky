@@ -515,7 +515,7 @@ export default function AdminDashboard() {
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-bold text-gray-800">Quản lý nhanh</h3>
         </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <ActionButton
             label="Phê duyệt bài đăng"
             count={pendingPostsCount}
@@ -529,12 +529,6 @@ export default function AdminDashboard() {
             onClick={() =>
               router.push("/admin/violation-reports?status=PENDING")
             }
-          />
-          <ActionButton
-            label="Yêu cầu hỗ trợ"
-            count={0}
-            color="text-gray-600 bg-gray-50"
-            onClick={() => alert("Chức năng đang phát triển")}
           />
         </div>
       </div>

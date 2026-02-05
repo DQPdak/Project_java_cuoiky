@@ -15,6 +15,19 @@ interface Article {
   createdAt: string;
 }
 
+const formatDateTime = (iso: string) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso; // fallback nếu parse fail
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+};
+
 export default function ContentManagementPage() {
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<"PENDING" | "ALL">("PENDING");
@@ -146,7 +159,7 @@ export default function ContentManagementPage() {
                     </span>
                   )}
                   <span className="text-xs text-gray-500">
-                    {item.createdAt}
+                    {formatDateTime(item.createdAt)}
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition">

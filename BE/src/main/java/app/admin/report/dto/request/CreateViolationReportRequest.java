@@ -1,7 +1,7 @@
-package app.admin.dto.request;
+package app.admin.report.dto.request;
 
-import app.admin.model.enums.ReportTargetType;
-import app.admin.model.enums.ViolationReason;
+import app.admin.report.model.enums.ReportTargetType;
+import app.admin.report.model.enums.ViolationReason;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
