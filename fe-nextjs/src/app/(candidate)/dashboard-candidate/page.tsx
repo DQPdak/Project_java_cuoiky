@@ -74,7 +74,7 @@ export default function CandidateDashboard() {
       try {
         setLoading(true);
         const jobsData = await getRecentJobs();
-        console.log("Fetched recent jobs:", jobsData);
+        console.log("Fetched recent jobs:", jobsData); // Kiểm tra dữ liệu nhận được
         if (jobsData && jobsData.length > 0) {
           const jobIds = jobsData.map((job: any) => job.id);
           try {
@@ -256,7 +256,6 @@ export default function CandidateDashboard() {
               >
                 <div className="flex justify-between items-start p-5 pb-2">
                   <div className="flex gap-4">
-                    {/* [FIX 1] Sửa job.company thành job.companyName */}
                     <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center border font-bold text-xl text-blue-600">
                       {(job.company || "C").charAt(0).toUpperCase()}
                     </div>
@@ -264,7 +263,6 @@ export default function CandidateDashboard() {
                       <h3 className="font-bold text-lg text-gray-800 line-clamp-1">
                         {job.title}
                       </h3>
-                      {/* job.companyName ở đây đã đúng, giữ nguyên */}
                       <p className="text-sm text-gray-500">{job.company}</p>
                     </div>
                   </div>

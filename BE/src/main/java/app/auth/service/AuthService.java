@@ -26,6 +26,8 @@ import app.auth.repository.UserRepository;
 import app.auth.security.JwtTokenProvider;
 import app.service.CloudinaryService;
 import app.exception.MaintenanceModeException;
+import app.auth.repository.CompanyRepository;
+import app.content.model.Company;
 
 // --- MỚI: Import Event & Enum ---
 import org.springframework.context.ApplicationEventPublisher;
@@ -42,6 +44,7 @@ import java.util.UUID;
 public class AuthService {
     
     private final UserRepository userRepository;
+    private final CompanyRepository companyRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
@@ -102,7 +105,9 @@ public class AuthService {
         }
 
         user = userRepository.save(user);
-        
+        if (user.getUserRole() == UserRole.RECRUITER || user.getUserRole() == UserRole.RECRUITER_VIP) {
+            createDefaultCompanyForUser(user);
+        }
         emailService.sendVerificationEmail(user.getEmail(), verificationCode);
         
         log.info("User registered successfully via email, waiting for verification: {}", user.getId());
@@ -219,9 +224,10 @@ public class AuthService {
         String pictureUrl = googleInfo.get("pictureUrl");
 
         User user = userRepository.findByEmail(email).orElse(null);
-
+        boolean isNewUser = false;
         if (user == null) {
             log.info("Creating new user from Google: {}", email);
+            isNewUser = true;
             user = User.builder()
                     .fullName(name)
                     .email(email)
@@ -249,11 +255,15 @@ public class AuthService {
             }
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
-        }
+            }
 
+            if (isNewUser && (user.getUserRole() == UserRole.RECRUITER || user.getUserRole() == UserRole.RECRUITER_VIP)) {
+            createDefaultCompanyForUser(user);
+            }
             if (user.getStatus() != UserStatus.ACTIVE) {
                 throw new UnauthorizedException("Tài khoản đã bị khóa hoặc chưa được kích hoạt");
             }
+            
 
         // ✅ CHẶN NON-ADMIN KHI BẢO TRÌ
         if (systemSettingService.isMaintenanceEnabled()
@@ -369,6 +379,21 @@ public class AuthService {
         } else {
             // Mặc định là CANDIDATE
             return "https://res.cloudinary.com/dpym64zg9/image/upload/v1768898865/phantichcv/avatar/gqwoyrmv8osjl5hjlygz.png";
+        }
+    }
+
+    private void createDefaultCompanyForUser(User user) {
+        // Kiểm tra xem đã có công ty chưa để tránh lỗi
+        if (companyRepository.findByRecruiterId(user.getId()).isEmpty()) {
+            Company company = Company.builder()
+                    .name("Công ty của " + user.getFullName()) // Tên mặc định
+                    .email(user.getEmail()) // Lấy email của recruiter làm email liên hệ công ty
+                    .recruiter(user)
+                    .description("Thông tin công ty đang được cập nhật...")
+                    .build();
+            // Logo và Cover đã có giá trị default trong Builder của Entity Company
+            companyRepository.save(company);
+            log.info("Auto-created company for recruiter: {}", user.getId());
         }
     }
 }
