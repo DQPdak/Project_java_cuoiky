@@ -47,4 +47,5 @@ public interface JobPostingRepository extends JpaRepository<JobPosting, Long> {
     // 3. Hàm lấy jobs kèm skills 
     @Query("SELECT DISTINCT j FROM JobPosting j LEFT JOIN FETCH j.extractedSkills WHERE j.id IN :ids")
     List<JobPosting> findAllByIdsWhithSkills(@Param("ids") List<Long> ids);
+    List<JobPosting> findByRecruiterIdAndStatusNot(Long recruiterId, JobStatus status);
 }

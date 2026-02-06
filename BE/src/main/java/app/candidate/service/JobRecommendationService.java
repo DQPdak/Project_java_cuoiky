@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import app.recruitment.entity.enums.JobStatus;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,9 +29,9 @@ public class JobRecommendationService {
     // Lấy tất cả JOB
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAllJobs() {
-        List<JobPosting> allJobs = jobRepository.findAll();
+        List<JobPosting> jobs = jobRepository.findByStatus(JobStatus.PUBLISHED);
         List<Map<String, Object>> resultList = new ArrayList<>();
-        for (JobPosting job : allJobs) {
+        for (JobPosting job : jobs) {
             resultList.add(mapJobToBasicInfo(job));
         }
         return resultList;
@@ -39,13 +40,11 @@ public class JobRecommendationService {
     // --- HÀM 1: LẤY 10 JOB MỚI NHẤT (KHÔNG TÍNH ĐIỂM) ---
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRecentJobs() {
-        // Lấy 10 job có ID lớn nhất (tức là mới nhất)
-        Page<JobPosting> page = jobRepository.findAll(
-                PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "id"))
-        );
+        // ✅ Sửa: Sử dụng hàm có sẵn trong Repository để lấy Top 10 Published mới nhất
+        List<JobPosting> jobs = jobRepository.findTop10ByStatusOrderByCreatedAtDesc(JobStatus.PUBLISHED);
 
         List<Map<String, Object>> recentJobs = new ArrayList<>();
-        for (JobPosting job : page.getContent()) {
+        for (JobPosting job : jobs) {
             recentJobs.add(mapJobToBasicInfo(job));
         }
         return recentJobs;
@@ -61,8 +60,8 @@ public class JobRecommendationService {
         }
         List<String> candidateSkills = profileOpt.get().getSkills();
 
-        // 2. Lấy tất cả Job ID
-        List<Long> allJobIds = jobRepository.findAll().stream()
+        // 2. Lấy tất cả Job ID đanng PUBLISHED
+        List<Long> allJobIds = jobRepository.findByStatus(JobStatus.PUBLISHED).stream()
                 .map(JobPosting::getId)
                 .collect(Collectors.toList());
         if (allJobIds.isEmpty()) return Collections.emptyList();

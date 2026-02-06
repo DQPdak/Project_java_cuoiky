@@ -8,5 +8,6 @@ public enum JobStatus {
     HIDDEN,
     OPEN,
     BLOCKED,
-    CLOSED
+    CLOSED,
+    DELETED
 }
