@@ -256,8 +256,35 @@ export default function CandidateDashboard() {
               >
                 <div className="flex justify-between items-start p-5 pb-2">
                   <div className="flex gap-4">
-                    <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center border font-bold text-xl text-blue-600">
-                      {(job.company || "C").charAt(0).toUpperCase()}
+                    <div className="w-14 h-14 bg-white rounded-xl border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                      {job.companyLogo ? (
+                        <img
+                          src={job.companyLogo}
+                          alt={job.companyName || job.company}
+                          className="w-full h-full object-contain p-1"
+                          onError={(e) => {
+                            // XỬ LÝ LỖI: Nếu ảnh chết (404), ẩn ảnh đi và hiện chữ cái fallback
+                            e.currentTarget.style.display = "none";
+                            const fallback = e.currentTarget.nextElementSibling;
+                            if (fallback) {
+                              fallback.classList.remove("hidden");
+                              fallback.classList.add("flex");
+                            }
+                          }}
+                        />
+                      ) : null}
+
+                      {/* FALLBACK: Chữ cái đầu tên công ty (Chỉ hiện khi không có Logo hoặc Logo lỗi) */}
+                      <div
+                        className={`${
+                          job.companyLogo ? "hidden" : "flex"
+                        } w-full h-full items-center justify-center bg-gray-50 text-blue-600 font-bold text-xl`}
+                      >
+                        {/* Ưu tiên lấy companyName, nếu không có thì lấy company (string cũ), nếu không thì hiện 'C' */}
+                        {(job.companyName || job.company || "C")
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
                     </div>
                     <div>
                       <h3 className="font-bold text-lg text-gray-800 line-clamp-1">
