@@ -29,9 +29,62 @@ import {
   Mail,
   Phone,
   Eye,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
+const getStatusLabel = (status: ApplicationStatus | JobStatus) => {
+  switch (status) {
+    // --- Application Status ---
+    case ApplicationStatus.PENDING:
+      return "Chờ duyệt";
+    case ApplicationStatus.INTERVIEW:
+      return "Phỏng vấn";
+    case ApplicationStatus.OFFERED:
+      return "Đã mời";
+    case ApplicationStatus.HIRED:
+      return "Đã tuyển";
+    case ApplicationStatus.REJECTED:
+      return "Đã loại";
+
+    // --- Job Status (Thêm các case này để fix lỗi) ---
+    // Lưu ý: Kiểm tra lại enum JobStatus của bạn để khớp case
+    case JobStatus.PUBLISHED:
+      return "Đang tuyển";
+    case JobStatus.DRAFT:
+      return "Bản nháp";
+    case JobStatus.CLOSED:
+      return "Đã đóng";
+
+    default:
+      return status;
+  }
+};
+
+// 2. Cập nhật hàm getStatusBadgeColor tương tự
+const getStatusBadgeColor = (status: ApplicationStatus | JobStatus) => {
+  switch (status) {
+    // --- Application Colors ---
+    case ApplicationStatus.PENDING:
+      return "bg-yellow-100 text-yellow-800";
+    case ApplicationStatus.INTERVIEW:
+      return "bg-blue-100 text-blue-800";
+    case ApplicationStatus.HIRED:
+      return "bg-green-100 text-green-800";
+    case ApplicationStatus.REJECTED:
+      return "bg-red-100 text-red-800";
+
+    // --- Job Colors ---
+    case JobStatus.PUBLISHED:
+      return "bg-green-100 text-green-800";
+    case JobStatus.DRAFT:
+      return "bg-gray-100 text-gray-800";
+    case JobStatus.CLOSED:
+      return "bg-gray-200 text-gray-600";
+
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
 
 const safeSplit = (input: any): string[] => {
   if (Array.isArray(input)) return input;
@@ -156,6 +209,7 @@ const CVDetailModal = ({
       <div className="bg-white w-full max-w-7xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header Modal */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-white">
+          {/* ... Giữ nguyên phần Header ... */}
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
               {app.studentName?.charAt(0).toUpperCase() || "U"}
@@ -181,7 +235,6 @@ const CVDetailModal = ({
               <Sparkles size={14} /> {app.matchScore || 0}% Phù hợp
             </div>
           </div>
-
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition"
@@ -226,6 +279,7 @@ const CVDetailModal = ({
         <div className="px-6 py-4 bg-white border-t border-gray-200 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <div className="text-sm text-gray-500">
             Trạng thái:{" "}
+            {/* --- FIX 1: Dùng getStatusLabel thay vì app.status --- */}
             <span
               className={`font-bold ${
                 app.status === ApplicationStatus.INTERVIEW ||
@@ -236,7 +290,7 @@ const CVDetailModal = ({
                     : "text-yellow-600"
               }`}
             >
-              {app.status}
+              {getStatusLabel(app.status)}
             </span>
           </div>
           <div className="flex gap-3">
@@ -364,38 +418,6 @@ export default function ApplicationsPage() {
     return "text-gray-600 bg-gray-50 border-gray-200";
   };
 
-  const getStatusLabel = (status: ApplicationStatus) => {
-    switch (status) {
-      case ApplicationStatus.PENDING:
-        return "Chờ duyệt";
-      case ApplicationStatus.INTERVIEW:
-        return "Phỏng vấn";
-      case ApplicationStatus.OFFERED:
-        return "Đã mời";
-      case ApplicationStatus.HIRED:
-        return "Đã tuyển";
-      case ApplicationStatus.REJECTED:
-        return "Đã loại";
-      default:
-        return status;
-    }
-  };
-
-  const getStatusBadgeColor = (status: ApplicationStatus) => {
-    switch (status) {
-      case ApplicationStatus.PENDING:
-        return "bg-yellow-100 text-yellow-800";
-      case ApplicationStatus.INTERVIEW:
-        return "bg-blue-100 text-blue-800";
-      case ApplicationStatus.HIRED:
-        return "bg-green-100 text-green-800";
-      case ApplicationStatus.REJECTED:
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   const ApplicationsList = () => (
     <div className="space-y-4">
       {displayApplications.map((app) => (
@@ -482,8 +504,8 @@ export default function ApplicationsPage() {
           title="Danh sách Top Ứng viên (AI)"
           description="Nâng cấp tài khoản VIP để xem danh sách ứng viên được AI sàng lọc và sắp xếp theo độ phù hợp."
         >
-           {/* Div rỗng để chiếm chỗ, không render list thật để bảo mật */}
-           <div className="h-64 w-full bg-gray-50/50 rounded-xl border border-dashed border-gray-200" />
+          {/* Div rỗng để chiếm chỗ, không render list thật để bảo mật */}
+          <div className="h-64 w-full bg-gray-50/50 rounded-xl border border-dashed border-gray-200" />
         </PremiumFeatureLock>
       );
     }
@@ -504,7 +526,6 @@ export default function ApplicationsPage() {
         <AnalysisModal app={analyzeApp} onClose={() => setAnalyzeApp(null)} />
       )}
 
-      {/* LEFT SIDEBAR */}
       <div className="w-1/3 min-w-[300px] max-w-[400px] bg-white border-r border-gray-200 flex flex-col">
         <div className="p-5 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -541,10 +562,11 @@ export default function ApplicationsPage() {
                 )}
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                {/* --- FIX 2: Sửa lỗi hiển thị Job Status ở sidebar --- */}
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] ${job.status === JobStatus.PUBLISHED ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
+                  className={`px-2 py-0.5 rounded text-[10px] border ${getStatusBadgeColor(job.status)}`}
                 >
-                  {job.status}
+                  {getStatusLabel(job.status)}
                 </span>
               </div>
             </button>

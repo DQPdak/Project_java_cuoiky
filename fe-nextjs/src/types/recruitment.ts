@@ -9,6 +9,7 @@ export enum JobStatus {
 
 // Enum chuẩn khớp với Backend
 export enum ApplicationStatus {
+  PUBLISHED = "PUBLISHED", // Đang tuyển
   APPLIED = "APPLIED", // Mới ứng tuyển
   PENDING = "PENDING", // Chờ xử lý (mặc định)
   SCREENING = "SCREENING", // Đang sàng lọc

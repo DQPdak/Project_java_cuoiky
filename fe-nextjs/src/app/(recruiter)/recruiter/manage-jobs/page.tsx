@@ -15,6 +15,44 @@ import { JobPosting, JobStatus, JobCreateRequest } from "@/types/recruitment";
 import toast from "react-hot-toast";
 import { useConfirm } from "@/context/ConfirmDialogContext";
 
+const getStatusLabel = (status: JobStatus | string) => {
+  switch (status) {
+    case JobStatus.PUBLISHED:
+    case "PUBLISHED":
+    case "OPEN": // Xử lý cả trường hợp legacy "OPEN"
+      return "Đang tuyển";
+    case JobStatus.DRAFT:
+    case "DRAFT":
+      return "Bản nháp";
+    case JobStatus.CLOSED:
+    case "CLOSED":
+      return "Đã đóng";
+    case "PENDING":
+      return "Chờ duyệt";
+    default:
+      return status;
+  }
+};
+
+const getStatusBadgeColor = (status: JobStatus | string) => {
+  switch (status) {
+    case JobStatus.PUBLISHED:
+    case "PUBLISHED":
+    case "OPEN":
+      return "bg-green-100 text-green-700 border border-green-200";
+    case JobStatus.DRAFT:
+    case "DRAFT":
+      return "bg-yellow-100 text-yellow-800 border border-yellow-200";
+    case JobStatus.CLOSED:
+    case "CLOSED":
+      return "bg-gray-100 text-gray-600 border border-gray-200";
+    case "PENDING":
+      return "bg-blue-100 text-blue-700 border border-blue-200";
+    default:
+      return "bg-gray-100 text-gray-600 border border-gray-200";
+  }
+};
+
 export default function ManageJobsPage() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -178,12 +216,11 @@ export default function ManageJobsPage() {
                     </div>
                   </div>
                   <div
-                    className={`px-3 py-1 rounded-full text-xs font-semibold
-                  ${job.status === JobStatus.PUBLISHED || job.status === "OPEN" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeColor(
+                      job.status,
+                    )}`}
                   >
-                    {job.status === JobStatus.PUBLISHED || job.status === "OPEN"
-                      ? "Đang tuyển"
-                      : job.status}
+                    {getStatusLabel(job.status)}
                   </div>
                 </div>
 
