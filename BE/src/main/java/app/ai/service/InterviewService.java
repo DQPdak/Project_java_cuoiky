@@ -96,7 +96,7 @@ public class InterviewService {
     }
 
     // --- 3. KẾT THÚC & CHẤM ĐIỂM ---
-    @Transactional
+    @Transactional(readOnly = true)
     public InterviewSession endInterview(Long sessionId, List<InterviewChatRequest.MessageItem> fullHistoryDtos) {
         InterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
