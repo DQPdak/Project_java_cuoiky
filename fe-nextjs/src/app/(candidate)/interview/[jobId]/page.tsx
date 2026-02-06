@@ -43,6 +43,8 @@ export default function InterviewRoomPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const hasInitialized = useRef(false);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, isSending, showHistory]);
@@ -55,8 +57,13 @@ export default function InterviewRoomPage() {
 
   // 1. INIT SESSION
   useEffect(() => {
+    if (hasInitialized.current) return;
+
     const initSession = async () => {
       try {
+        // Đánh dấu là đã bắt đầu chạy để chặn các lần sau
+        hasInitialized.current = true;
+
         setLoading(true);
 
         if (sessionIdParam) {
@@ -92,6 +99,7 @@ export default function InterviewRoomPage() {
         console.error("Lỗi:", error);
         toast.error("Lỗi kết nối.");
         setTimeout(() => router.back(), 3000);
+        hasInitialized.current = false;
       } finally {
         setLoading(false);
       }
@@ -100,7 +108,7 @@ export default function InterviewRoomPage() {
     if (jobId || sessionIdParam) {
       initSession();
     }
-  }, [jobId, sessionIdParam, router, isReviewParam]);
+  }, [jobId, sessionIdParam, isReviewParam]);
 
   // 2. SEND MESSAGE
   const handleSend = async (e?: React.FormEvent) => {
