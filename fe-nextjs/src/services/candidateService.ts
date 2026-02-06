@@ -1,7 +1,6 @@
 import api from "./api";
 import { CandidateResponse, CandidateProfile } from "@/types/candidate";
 
-
 // API Upload CV
 export const uploadCV = async (file: File): Promise<CandidateProfile> => {
   const formData = new FormData();
@@ -45,9 +44,13 @@ export const getMatchingJobs = async () => {
   return response.data.data;
 };
 
-export const applyJob = async (data: { jobId: number; coverLetter: string; cvUrl: string }) => {
+export const applyJob = async (data: {
+  jobId: number;
+  coverLetter: string;
+  cvUrl: string;
+}) => {
   // Đảm bảo bạn gửi trực tiếp object 'data'
-  const response = await api.post("/applications/apply", data); 
+  const response = await api.post("/applications/apply", data);
   return response.data;
 };
 
@@ -101,12 +104,12 @@ export const uploadAvatar = async (file: File) => {
 };
 
 export const saveBuilderCV = async (data: any) => {
-  const response = await api.post('/candidate/cv-builder/save', data);
+  const response = await api.post("/candidate/cv-builder/save", data);
   return response.data;
 };
 
 export const getMyBuilderCVs = async () => {
-  const response = await api.get('/candidate/cv-builder/my-cvs');
+  const response = await api.get("/candidate/cv-builder/my-cvs");
   return response.data;
 };
 

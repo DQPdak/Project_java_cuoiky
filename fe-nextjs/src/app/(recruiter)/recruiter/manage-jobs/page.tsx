@@ -8,6 +8,7 @@ import {
   Calendar,
   DollarSign,
   Trash2,
+  Loader2, // Import thêm icon Loader
 } from "lucide-react";
 import { recruitmentService } from "@/services/recruitmentService";
 import { JobPosting, JobStatus, JobCreateRequest } from "@/types/recruitment";
@@ -18,8 +19,12 @@ export default function ManageJobsPage() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // --- MỚI 1: State để theo dõi quá trình submit ---
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const confirm = useConfirm();
-  // State form tạo job
+
   const [newJob, setNewJob] = useState({
     title: "",
     location: "",
@@ -44,22 +49,20 @@ export default function ManageJobsPage() {
     }
   };
 
-  // --- HÀM XỬ LÝ ĐÃ ĐƯỢC CẬP NHẬT MỚI ---
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      // VALIDATION TẠI FRONTEND TRƯỚC
       if (!newJob.expiryDate) {
         toast.error("Vui lòng chọn hạn nộp hồ sơ");
         return;
       }
 
-      // Payload
+      // --- MỚI 2: Bắt đầu loading ---
+      setIsSubmitting(true);
+
       const payload: JobCreateRequest = {
         ...newJob,
-        // Giữ nguyên giá trị date từ input (yyyy-MM-dd) là chuẩn nhất
-        // Không cần convert qua Date object rồi split T để tránh lệch múi giờ
         expiryDate: newJob.expiryDate,
       };
 
@@ -69,7 +72,6 @@ export default function ManageJobsPage() {
       setShowCreateModal(false);
       loadJobs();
 
-      // Reset form
       setNewJob({
         title: "",
         location: "",
@@ -80,19 +82,11 @@ export default function ManageJobsPage() {
       });
     } catch (error: any) {
       console.error("Lỗi API:", error);
-
-      // LOGIC HIỂN THỊ LỖI CHI TIẾT TỪ BACKEND
-      // Nếu Backend trả về validation errors (ví dụ: title trống, ngày quá khứ...)
       if (error.response?.data) {
         const serverData = error.response.data;
-
-        // Trường hợp 1: Backend trả về message string
         if (serverData.message) {
           toast.error(serverData.message);
-        }
-        // Trường hợp 2: Backend trả về list lỗi validation (MethodArgumentNotValidException)
-        else if (serverData.errors && typeof serverData.errors === "object") {
-          // Lấy lỗi đầu tiên trong object lỗi để hiển thị
+        } else if (serverData.errors && typeof serverData.errors === "object") {
           const firstErrorKey = Object.keys(serverData.errors)[0];
           const errorMessage = serverData.errors[firstErrorKey];
           toast.error(`Lỗi: ${errorMessage}`);
@@ -102,10 +96,12 @@ export default function ManageJobsPage() {
       } else {
         toast.error("Lỗi kết nối đến máy chủ");
       }
+    } finally {
+      // --- MỚI 3: Kết thúc loading (dù thành công hay thất bại) ---
+      setIsSubmitting(false);
     }
   };
 
-  // Hàm xóa tin
   const handleDeleteJob = async (id: number) => {
     const isConfirmed = await confirm({
       title: "Xóa tin tuyển dụng",
@@ -140,7 +136,10 @@ export default function ManageJobsPage() {
 
       {/* Danh sách Jobs */}
       {isLoading ? (
-        <div className="text-center py-10">Đang tải...</div>
+        <div className="text-center py-10 flex flex-col items-center justify-center text-gray-500">
+          <Loader2 className="animate-spin mb-2" size={32} />
+          <span>Đang tải danh sách...</span>
+        </div>
       ) : (
         <div className="grid gap-4">
           {jobs.length === 0 ? (
@@ -172,7 +171,6 @@ export default function ManageJobsPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar size={16} />
-                        {/* Hiển thị ngày tháng thân thiện với người Việt */}
                         {job.expiryDate
                           ? new Date(job.expiryDate).toLocaleDateString("vi-VN")
                           : "N/A"}
@@ -195,7 +193,7 @@ export default function ManageJobsPage() {
                     className="flex items-center gap-2 text-blue-600 font-medium hover:underline"
                   >
                     <Users size={18} />
-                    Đã có  {job.applicationCount || 0} hồ sơ ứng tuyển
+                    Đã có {job.applicationCount || 0} hồ sơ ứng tuyển
                   </Link>
                   <button
                     onClick={() => handleDeleteJob(job.id)}
@@ -216,6 +214,8 @@ export default function ManageJobsPage() {
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Đăng tin tuyển dụng mới</h2>
             <form onSubmit={handleCreateJob} className="space-y-4">
+              {/* ... (Phần input form giữ nguyên như cũ) ... */}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -229,6 +229,7 @@ export default function ManageJobsPage() {
                     onChange={(e) =>
                       setNewJob({ ...newJob, title: e.target.value })
                     }
+                    disabled={isSubmitting} // Disable khi đang gửi
                   />
                 </div>
                 <div>
@@ -243,9 +244,13 @@ export default function ManageJobsPage() {
                     onChange={(e) =>
                       setNewJob({ ...newJob, location: e.target.value })
                     }
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
+
+              {/* ... (Các input khác tương tự, bạn nên thêm disabled={isSubmitting}) ... */}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -258,6 +263,7 @@ export default function ManageJobsPage() {
                     onChange={(e) =>
                       setNewJob({ ...newJob, salaryRange: e.target.value })
                     }
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
@@ -272,9 +278,11 @@ export default function ManageJobsPage() {
                     onChange={(e) =>
                       setNewJob({ ...newJob, expiryDate: e.target.value })
                     }
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Mô tả công việc
@@ -287,8 +295,10 @@ export default function ManageJobsPage() {
                   onChange={(e) =>
                     setNewJob({ ...newJob, description: e.target.value })
                   }
+                  disabled={isSubmitting}
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Yêu cầu ứng viên
@@ -301,22 +311,38 @@ export default function ManageJobsPage() {
                   onChange={(e) =>
                     setNewJob({ ...newJob, requirements: e.target.value })
                   }
+                  disabled={isSubmitting}
                 />
               </div>
 
+              {/* --- MỚI 4: Button Footer --- */}
               <div className="flex justify-end gap-3 pt-4 border-t mt-4">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition"
+                  disabled={isSubmitting} // Không cho hủy ngang khi đang gửi
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                  disabled={isSubmitting}
+                  className={`px-4 py-2 rounded transition flex items-center gap-2 text-white
+                    ${
+                      isSubmitting
+                        ? "bg-blue-400 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
                 >
-                  Đăng tin
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    "Đăng tin"
+                  )}
                 </button>
               </div>
             </form>

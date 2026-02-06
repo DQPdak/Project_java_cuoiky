@@ -11,6 +11,8 @@ import app.recruitment.entity.enums.JobStatus;
 import app.recruitment.mapper.RecruitmentMapper;
 import app.recruitment.repository.JobApplicationRepository; // MỚI: Import Repo này
 import app.recruitment.repository.JobPostingRepository;
+import app.auth.repository.CompanyRepository;
+import app.content.model.Company;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,7 @@ public class JobPostingServiceImpl implements JobPostingService {
     private final RecruitmentMapper recruitmentMapper;
     private final GeminiService geminiService;
     private final ApplicationEventPublisher eventPublisher;
+    private final CompanyRepository companyRepository;
 
     @Override
     @Transactional
@@ -51,7 +54,8 @@ public class JobPostingServiceImpl implements JobPostingService {
         if (recruiter.getUserRole() != UserRole.RECRUITER && recruiter.getUserRole() != UserRole.RECRUITER_VIP) {
              throw new RuntimeException("Only recruiter can create job postings");
         }
-
+        Company company = companyRepository.findByRecruiterId(recruiterId)
+                .orElseThrow(() -> new IllegalArgumentException("Vui lòng cập nhật thông tin công ty trước khi đăng bài!"));
         List<String> skills = new ArrayList<>();
         try {
             skills = geminiService.extractSkillsFromJob(request.getDescription(), request.getRequirements());
@@ -70,6 +74,7 @@ public class JobPostingServiceImpl implements JobPostingService {
                 .expiryDate(expiryDateTime)
                 .extractedSkills(skills)
                 .recruiter(recruiter)
+                .company(company)
                 .status(JobStatus.PENDING)
                 .build();
 
