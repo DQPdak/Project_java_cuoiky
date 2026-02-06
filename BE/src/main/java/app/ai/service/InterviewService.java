@@ -62,6 +62,7 @@ public class InterviewService {
         return sessionRepository.save(session);
     }
     
+    @Transactional(readOnly = true)
     public String getInitialGreeting(Long userId, Long jobId) {
         JobPosting job = jobRepository.findById(jobId).orElseThrow();
         String candidateName = getCandidateName(userId);
@@ -72,6 +73,7 @@ public class InterviewService {
     }
 
     // --- 2. XỬ LÝ CHAT (STATELESS) ---
+    @Transactional(readOnly = true)
     public String chat(Long sessionId, String newMessage, List<InterviewChatRequest.MessageItem> historyDtos) {
         InterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
@@ -148,18 +150,37 @@ public class InterviewService {
         return savedSession;
     }
 
+    @Transactional(readOnly = true)
     public List<InterviewSession> getCompletedHistory(Long jobId, Long userId) {
-        return sessionRepository.findByUserIdAndJobPostingIdAndStatusOrderByCreatedAtDesc(
+        List<InterviewSession> list = sessionRepository.findByUserIdAndJobPostingIdAndStatusOrderByCreatedAtDesc(
             userId, 
             jobId, 
             "COMPLETED"
         );
+        
+        // Hibernate Initialize: Duyệt qua danh sách để tải thông tin Company
+        list.forEach(session -> {
+            if (session.getJobPosting() != null && session.getJobPosting().getCompany() != null) {
+                // Gọi hàm getName() để Hibernate thực hiện câu query lấy dữ liệu ngay lập tức
+                session.getJobPosting().getCompany().getName(); 
+            }
+        });
+        
+        return list;
     }
     
+    @Transactional(readOnly = true)
     public InterviewSession getSessionById(Long id) {
-        return sessionRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+        InterviewSession session = sessionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+        
+        // Hibernate Initialize: Tải thông tin Company
+        if (session.getJobPosting() != null && session.getJobPosting().getCompany() != null) {
+            session.getJobPosting().getCompany().getName();
+        }
+        
+        return session;
     }
-
     private String getCandidateName(Long userId) {
         CandidateProfile profile = profileRepository.findByUserId(userId).orElse(null);
         return (profile != null && profile.getFullName() != null) ? profile.getFullName() : "Ứng viên";
