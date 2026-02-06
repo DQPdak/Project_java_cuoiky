@@ -198,7 +198,7 @@ const AnalysisModal = ({
           const mappedData = {
             ...res,
             matchPercentage: res.matchScore ?? res.matchPercentage ?? 0,
-            evaluation: res.aiEvaluation || "Chưa có đánh giá chi tiết.",
+            evaluation: res.evaluation || "Chưa có đánh giá chi tiết.",
             matchedSkillsList: safeSplit(res.matchedSkillsList),
             missingSkillsList: safeSplit(res.missingSkillsList),
             otherHardSkillsList: safeSplit(res.otherHardSkillsList),

@@ -1,5 +1,6 @@
 package app.ai.service;
 
+import app.ai.service.cv.CVAnalysisService;
 import app.ai.service.cv.gemini.GeminiService;
 import app.ai.service.cv.gemini.dto.MatchResult;
 import app.auth.model.User;
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class JobMatchingService {
-
+    private final CVAnalysisService cvAnalysisService;
     private final GeminiService geminiService;
     private final JobApplicationRepository applicationRepository;
     private final JobPostingRepository jobPostingRepository;
@@ -194,6 +195,105 @@ public class JobMatchingService {
                 .learningPath(null) 
                 .careerAdvice(null)
                 .build();
+    }
+    /**
+     * LUỒNG 5: Xem chi tiết (Recruiter View)
+     * [CẬP NHẬT] Reconstruct từ các cột có sẵn, không parse JSON nữa
+     */
+    @Transactional
+    public MatchResult analyzeOneApplication(Long applicationId) {
+        // 1. Lấy thông tin đơn ứng tuyển
+        JobApplication app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found: " + applicationId));
+
+        User candidate = app.getCandidate();
+        JobPosting job = app.getJobPosting();
+
+        // 2. [QUAN TRỌNG] Kiểm tra xem đã có kết quả phân tích trong bảng chuyên dụng (CVAnalysisResult) chưa
+        // Bảng này chứa JSON chi tiết (learningPath, chi tiết skills...) mà JobApplication không lưu hết.
+        Optional<CVAnalysisResult> existingAnalysis = analysisRepository.findByUserIdAndJobPostingId(candidate.getId(), job.getId());
+
+        if (existingAnalysis.isPresent()) {
+            try {
+                // Nếu có cache, parse JSON trả về ngay -> Tiết kiệm tiền AI và thời gian
+                log.info("Tìm thấy cache CVAnalysisResult cho Application ID: {}", applicationId);
+                return objectMapper.readValue(existingAnalysis.get().getAnalysisDetails(), MatchResult.class);
+            } catch (Exception e) {
+                log.warn("Lỗi đọc JSON cache cũ, sẽ tiến hành phân tích lại.");
+            }
+        }
+
+        // 3. Nếu chưa có -> Bắt đầu quy trình phân tích mới
+        log.info("Bắt đầu gọi AI phân tích cho Application ID: {}", applicationId);
+
+        // A. Lấy dữ liệu đầu vào (Ưu tiên Profile DB -> Fallback File CV)
+        String cvText = "";
+        
+        // Thử lấy từ Profile database trước (Dữ liệu sạch hơn)
+        try {
+            CandidateProfile profile = profileRepository.findByUserId(candidate.getId()).orElse(null);
+            if (profile != null) {
+                cvText = buildCandidateDataForAI(profile);
+            }
+        } catch (Exception e) {
+            log.warn("Lỗi lấy profile: {}", e.getMessage());
+        }
+
+        // Nếu không có Profile, dùng Extractor đọc file CV từ URL
+        if (!StringUtils.hasText(cvText) || cvText.length() < 50) {
+             try {
+                cvText = cvAnalysisService.getTextFromUrl(app.getCvUrl());
+            } catch (Exception e) {
+                throw new RuntimeException("Không thể đọc nội dung CV: " + e.getMessage());
+            }
+        }
+
+        if (!StringUtils.hasText(cvText)) {
+            throw new RuntimeException("Nội dung CV quá ngắn hoặc không thể trích xuất.");
+        }
+
+        // B. Lấy thông tin Job
+        String jobDesc = StringUtils.hasText(job.getDescription()) ? job.getDescription() : "";
+        String jobReq = StringUtils.hasText(job.getRequirements()) ? job.getRequirements() : "";
+
+        // C. Gọi Gemini AI
+        MatchResult result = geminiService.matchCVWithJob(cvText, jobDesc, jobReq);
+
+        // D. [QUAN TRỌNG] LƯU KẾT QUẢ VÀO CV_ANALYSIS_RESULT (Bảng chứa JSON chi tiết)
+        try {
+            CVAnalysisResult analysis = existingAnalysis.orElse(new CVAnalysisResult());
+            analysis.setUser(candidate);
+            analysis.setJobPosting(job);
+            analysis.setMatchPercentage(result.getMatchPercentage());
+            analysis.setCvUrlUsed(app.getCvUrl());
+            // Lưu toàn bộ object Result xuống dạng JSON
+            analysis.setAnalysisDetails(objectMapper.writeValueAsString(result)); 
+            analysis.setAnalyzedAt(java.time.LocalDateTime.now());
+            
+            analysisRepository.save(analysis);
+            log.info("Đã lưu kết quả chi tiết vào bảng CVAnalysisResult");
+        } catch (Exception e) {
+            log.error("Lỗi lưu CVAnalysisResult: {}", e.getMessage());
+        }
+
+        // E. ĐỒNG BỘ SANG JOB_APPLICATION (Bảng danh sách)
+        // Vẫn cần lưu các chỉ số này để Recruiter có thể Filter/Sort ở danh sách bên ngoài
+        app.setMatchScore(result.getMatchPercentage());
+        app.setAiEvaluation(result.getEvaluation());
+        app.setMatchedSkillsCount(result.getMatchedSkillsCount());
+        app.setMissingSkillsCount(result.getMissingSkillsCount());
+
+        if (result.getMissingSkillsList() != null) {
+            app.setMissingSkillsList(String.join(", ", result.getMissingSkillsList()));
+        }
+        if (result.getMatchedSkillsList() != null) {
+             app.setMatchedSkillsList(String.join(", ", result.getMatchedSkillsList()));
+        }
+
+        applicationRepository.save(app);
+
+        // F. Trả về kết quả
+        return result;
     }
 
     // --- PRIVATE HELPER (Giữ nguyên) ---

@@ -2,6 +2,7 @@ package app.recruitment.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 import app.recruitment.service.JobApplicationService;
+import app.ai.service.JobMatchingService;
 import app.auth.dto.response.MessageResponse;
 import app.recruitment.dto.request.JobApplicationRequest;
 import app.recruitment.dto.response.JobApplicationResponse;
@@ -18,6 +20,7 @@ import app.recruitment.mapper.RecruitmentMapper;
 import app.recruitment.entity.JobApplication;
 import app.recruitment.entity.enums.ApplicationStatus;
 import app.auth.repository.UserRepository;
+import app.ai.service.cv.gemini.dto.MatchResult;
 
 @RestController
 @RequestMapping("/api/applications") // Để chung là applications
@@ -28,6 +31,7 @@ public class JobApplicationController {
     private final JobApplicationService applicationService;
     private final UserRepository userRepository;
     private final RecruitmentMapper mapper;
+    private final JobMatchingService jobMatchingService;
 
     /**
      * ỨNG VIÊN NỘP ĐƠN
@@ -105,9 +109,25 @@ List<JobApplicationResponse> list = applicationService.getApplicationsByCandidat
         return ResponseEntity.ok(list);
     }
 
-   @GetMapping("/{id}/analysis")
-    public ResponseEntity<JobApplicationResponse> getApplicationAnalysis(@PathVariable Long id) {
-        return ResponseEntity.ok(applicationService.getDetail(id));
+   @PostMapping("/{id}/analysis") 
+    public ResponseEntity<?> analyzeApplication(@PathVariable Long id) {
+        try {
+            // Gọi hàm phân tích thông minh bên Service
+            MatchResult result = jobMatchingService.analyzeOneApplication(id);
+            
+            // Trả về thành công kèm MessageResponse
+            return ResponseEntity.ok(MessageResponse.success(
+                "Phân tích AI hoàn tất!", 
+                result
+            ));
+        } catch (Exception e) {
+            log.error("Lỗi phân tích AI cho đơn {}: {}", id, e.getMessage());
+            
+            // Trả về lỗi 400 kèm message chi tiết
+            return ResponseEntity.badRequest().body(MessageResponse.error(
+                "Phân tích thất bại: " + e.getMessage()
+            ));
+        }
     }
             
 }
