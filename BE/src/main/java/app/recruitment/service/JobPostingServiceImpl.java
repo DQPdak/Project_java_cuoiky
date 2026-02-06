@@ -140,7 +140,8 @@ public class JobPostingServiceImpl implements JobPostingService {
         if (!job.getRecruiter().getId().equals(recruiterId)) {
             throw new IllegalArgumentException("Unauthorized: cannot delete job of another recruiter");
         }
-        jobPostingRepository.delete(job);
+        job.setStatus(JobStatus.DELETED); 
+        jobPostingRepository.save(job);
     }
 
     @Override
@@ -152,7 +153,7 @@ public class JobPostingServiceImpl implements JobPostingService {
     @Override
     @Transactional(readOnly = true)
     public List<JobPostingResponse> listByRecruiter(Long recruiterId) {
-        List<JobPosting> jobs = jobPostingRepository.findByRecruiterId(recruiterId);
+       List<JobPosting> jobs = jobPostingRepository.findByRecruiterIdAndStatusNot(recruiterId, JobStatus.DELETED);
         return jobs.stream()
                 .map(job -> {
                     JobPostingResponse res = recruitmentMapper.toJobPostingResponse(job);
@@ -197,7 +198,9 @@ public class JobPostingServiceImpl implements JobPostingService {
     public JobPostingResponse getJobDetailPublic(Long id) {
         JobPosting job = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + id));
-
+        if (job.getStatus() != JobStatus.PUBLISHED) {
+             throw new IllegalArgumentException("Công việc này chưa được công khai hoặc đã bị đóng.");
+        }
         JobPostingResponse response = recruitmentMapper.toJobPostingResponse(job);
 
         int applicationCount = (int) jobApplicationRepository.countByJobPostingId(id);
