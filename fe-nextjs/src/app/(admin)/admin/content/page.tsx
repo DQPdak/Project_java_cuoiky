@@ -12,7 +12,14 @@ interface Article {
   title: string;
   authorName?: string;
   summary: string;
-  status: "PENDING" | "PUBLISHED" | "REJECTED" | "DRAFT" | "HIDDEN" | "CLOSED";
+  status:
+    | "PENDING"
+    | "PUBLISHED"
+    | "REJECTED"
+    | "DRAFT"
+    | "HIDDEN"
+    | "CLOSED"
+    | "DELETED";
   createdAt: string;
   companyLogo?: string; // Thêm logo để hiển thị cho chuyên nghiệp
 }
@@ -73,7 +80,8 @@ export default function ContentManagementPage() {
   const handleApprove = async (id: number) => {
     const ok = await confirm({
       title: "Duyệt bài đăng",
-      message: "Bạn có chắc chắn muốn duyệt bài tuyển dụng này để hiển thị công khai?",
+      message:
+        "Bạn có chắc chắn muốn duyệt bài tuyển dụng này để hiển thị công khai?",
       confirmLabel: "Duyệt bài",
     });
 
@@ -90,7 +98,8 @@ export default function ContentManagementPage() {
   const handleReject = async (id: number) => {
     const ok = await confirm({
       title: "Từ chối bài đăng",
-      message: "Bài viết này sẽ bị từ chối và không được hiển thị. Bạn có chắc không?",
+      message:
+        "Bài viết này sẽ bị từ chối và không được hiển thị. Bạn có chắc không?",
       isDanger: true,
       confirmLabel: "Từ chối",
     });
@@ -109,8 +118,12 @@ export default function ContentManagementPage() {
     <div className="max-w-6xl mx-auto space-y-6 p-4">
       <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Quản lý Nội dung</h1>
-          <p className="text-sm text-gray-500">Kiểm duyệt và quản lý các bài đăng tuyển dụng trên hệ thống.</p>
+          <h1 className="text-2xl font-black text-gray-900">
+            Quản lý Nội dung
+          </h1>
+          <p className="text-sm text-gray-500">
+            Kiểm duyệt và quản lý các bài đăng tuyển dụng trên hệ thống.
+          </p>
         </div>
         <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl border">
           <button
@@ -121,7 +134,7 @@ export default function ContentManagementPage() {
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            Chờ duyệt ({articles.filter(a => a.status === 'PENDING').length})
+            Chờ duyệt ({articles.filter((a) => a.status === "PENDING").length})
           </button>
           <button
             onClick={() => setActiveTab("ALL")}
@@ -138,11 +151,15 @@ export default function ContentManagementPage() {
 
       <div className="grid gap-4">
         {loading ? (
-          <div className="py-20 text-center text-gray-400 animate-pulse font-medium">Đang lấy danh sách bài đăng...</div>
+          <div className="py-20 text-center text-gray-400 animate-pulse font-medium">
+            Đang lấy danh sách bài đăng...
+          </div>
         ) : articles.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-200">
             <FileText className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-            <p className="text-gray-500 font-bold">Không có bài viết nào cần xử lý.</p>
+            <p className="text-gray-500 font-bold">
+              Không có bài viết nào cần xử lý.
+            </p>
           </div>
         ) : (
           articles.map((item) => (
@@ -154,7 +171,11 @@ export default function ContentManagementPage() {
                 {/* Logo công ty thật */}
                 <div className="w-14 h-14 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                   {item.companyLogo ? (
-                    <img src={item.companyLogo} alt="logo" className="w-full h-full object-contain" />
+                    <img
+                      src={item.companyLogo}
+                      alt="logo"
+                      className="w-full h-full object-contain"
+                    />
                   ) : (
                     <Building2 className="text-gray-300" size={24} />
                   )}
@@ -181,20 +202,22 @@ export default function ContentManagementPage() {
                     </h3>
                   </Link>
                   <p className="text-sm text-gray-500 font-bold flex items-center gap-1 mt-0.5">
-                     {item.authorName}
+                    {item.authorName}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
                 {/* NÚT XEM CHI TIẾT */}
-                <Link 
+                <Link
                   href={`/admin/content/${item.id}`}
                   className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 text-gray-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all font-bold border border-transparent hover:border-blue-100"
                   title="Xem chi tiết nội dung"
                 >
                   <Eye size={18} />
-                  <span className="md:hidden lg:inline text-sm">Xem chi tiết</span>
+                  <span className="md:hidden lg:inline text-sm">
+                    Xem chi tiết
+                  </span>
                 </Link>
 
                 {activeTab === "PENDING" && (
