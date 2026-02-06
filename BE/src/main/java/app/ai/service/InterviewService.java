@@ -96,7 +96,7 @@ public class InterviewService {
     }
 
     // --- 3. KẾT THÚC & CHẤM ĐIỂM ---
-    @Transactional(readOnly = true)
+    @Transactional
     public InterviewSession endInterview(Long sessionId, List<InterviewChatRequest.MessageItem> fullHistoryDtos) {
         InterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
@@ -109,9 +109,9 @@ public class InterviewService {
         }
 
         String gradingPrompt = promptBuilder.buildGradingPrompt(fullContext);
-        String resultJson = geminiService.callAiChat(gradingPrompt);
-
+        
         try {
+            String resultJson = geminiService.callAiChat(gradingPrompt);
             if (resultJson.contains("```json")) {
                 resultJson = resultJson.replace("```json", "").replace("```", "").trim();
             } else if (resultJson.contains("```")) {

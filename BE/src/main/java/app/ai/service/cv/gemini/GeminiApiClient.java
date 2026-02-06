@@ -57,7 +57,11 @@ public class GeminiApiClient {
             } catch (Exception e) {
                 attempt++;
                 log.warn("Lần thử {} thất bại: {}. Đang thử key khác...", attempt, e.getMessage());
-                
+                try {
+                Thread.sleep(2000); // Đợi 2000ms (2 giây) để quota hạ nhiệt
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
                 if (attempt >= maxRetries) {
                     throw new RuntimeException("Đã thử " + maxRetries + " key khác nhau nhưng vẫn thất bại. Lỗi: " + e.getMessage());
                 }
@@ -122,7 +126,24 @@ public class GeminiApiClient {
      */
     public String generateContentWithImage(String promptText, byte[] imageBytes, String mimeType, float temperature) {
         try {
+           int maxRetries = 3; // Thêm số lần thử lại
+    int attempt = 0;
+
+    while (attempt < maxRetries) {
+        try {
             return callGeminiApiWithImage(promptText, imageBytes, mimeType, temperature);
+        } catch (Exception e) {
+            attempt++;
+            log.warn("Lần thử Vision {} thất bại: {}. Đang thử key khác...", attempt, e.getMessage());
+            
+            // Nếu đã thử hết số lần cho phép thì mới ném lỗi
+            if (attempt >= maxRetries) {
+                log.error("Lỗi gọi Gemini Vision sau {} lần thử: ", maxRetries, e);
+                throw new RuntimeException("Gemini Vision Error: " + e.getMessage());
+            }
+        }
+    }
+    return null;
         } catch (Exception e) {
             log.error("Lỗi gọi Gemini Vision: ", e);
             throw new RuntimeException("Gemini Vision Error: " + e.getMessage());
