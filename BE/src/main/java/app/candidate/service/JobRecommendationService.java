@@ -110,6 +110,7 @@ public class JobRecommendationService {
         jobMap.put("id", job.getId());
         jobMap.put("title", job.getTitle() != null ? job.getTitle() : "Chưa có tiêu đề");
         jobMap.put("company", job.getCompany() != null ? job.getCompany().getName() : "Công ty ẩn danh");
+        jobMap.put("companyLogo", job.getCompany() != null ? job.getCompany().getLogoUrl() : null);
         jobMap.put("location", job.getLocation() != null ? job.getLocation() : "Remote");
         jobMap.put("salary", job.getSalaryRange() != null ? job.getSalaryRange() : "Thỏa thuận");
         jobMap.put("description", job.getDescription());
