@@ -198,9 +198,9 @@ public class JobPostingServiceImpl implements JobPostingService {
     public JobPostingResponse getJobDetailPublic(Long id) {
         JobPosting job = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + id));
-        if (job.getStatus() != JobStatus.PUBLISHED) {
-             throw new IllegalArgumentException("Công việc này chưa được công khai hoặc đã bị đóng.");
-        }
+        // if (job.getStatus() == JobStatus.DELETED || job.getStatus() == JobStatus.HIDDEN || job.getStatus() == JobStatus.BLOCKED) {
+        //      throw new IllegalArgumentException("Công việc này chưa được công khai hoặc đã bị đóng.");
+        // }
         JobPostingResponse response = recruitmentMapper.toJobPostingResponse(job);
 
         int applicationCount = (int) jobApplicationRepository.countByJobPostingId(id);
