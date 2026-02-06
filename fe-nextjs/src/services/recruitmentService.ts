@@ -93,7 +93,7 @@ export const recruitmentService = {
   getApplicationAnalysis: async (
     applicationId: number,
   ): Promise<AIAnalysisDetail> => {
-    const res = await api.get(`/applications/${applicationId}/analysis`);
+    const res = await api.post(`/applications/${applicationId}/analysis`);
     return res.data.data || res.data;
   },
 

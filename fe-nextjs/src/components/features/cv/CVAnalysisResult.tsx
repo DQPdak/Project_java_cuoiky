@@ -41,6 +41,7 @@ export default function CVAnalysisResult({
   result,
   isRecruiterView = false,
 }: CVAnalysisResultProps) {
+  console.log("🔍 Dữ liệu CVAnalysisResult nhận được từ Backend:", result);
   if (!result) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
