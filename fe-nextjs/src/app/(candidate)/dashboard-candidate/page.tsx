@@ -315,6 +315,12 @@ export default function CandidateDashboard() {
                 </div>
 
                 <div className="p-5 pt-2 mt-auto border-t border-gray-50 flex gap-3">
+                  <button
+                      onClick={() => router.push(`/jobs/${job.id}`)}
+                      className="py-2.5 rounded-lg bg-gray-100 text-gray-800 font-semibold text-sm hover:bg-gray-200 flex items-center justify-center gap-2"                    >
+                      <FileText className="h-4 w-4" />
+                      Xem chi tiết
+                    </button>
                   <Link href={`/cv-analysis/${job.id}`} className="flex-1">
                     <button className="w-full py-2.5 rounded-lg bg-purple-50 text-purple-700 font-semibold text-sm hover:bg-purple-100 flex items-center justify-center gap-2">
                       <Sparkles size={16} /> AI Phân tích

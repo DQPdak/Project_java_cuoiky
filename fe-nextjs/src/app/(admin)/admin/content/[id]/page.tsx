@@ -11,13 +11,13 @@ import {
   ArrowLeft,
   Calendar,
   ShieldCheck,
-  Check, // Thêm icon Check
-  X,     // Thêm icon X
+  Check,
+  X,
 } from "lucide-react";
 import { recruitmentService } from "@/services/recruitmentService";
-import api from "@/services/api"; // Import api service
+import api from "@/services/api";
 import { JobPosting } from "@/types/recruitment";
-import { useConfirm } from "@/context/ConfirmDialogContext"; // Import useConfirm
+import { useConfirm } from "@/context/ConfirmDialogContext";
 import toast from "react-hot-toast";
 
 export default function AdminJobDetailPage() {
@@ -28,7 +28,7 @@ export default function AdminJobDetailPage() {
 
   const [job, setJob] = useState<JobPosting | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false); // State để tránh bấm nút liên tục
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchDetail = async () => {
     try {
@@ -48,7 +48,6 @@ export default function AdminJobDetailPage() {
     fetchDetail();
   }, [id]);
 
-  // Logic Phê duyệt
   const handleApprove = async () => {
     const ok = await confirm({
       title: "Duyệt bài đăng",
@@ -62,7 +61,7 @@ export default function AdminJobDetailPage() {
       setIsProcessing(true);
       await api.put(`/admin/content/posts/${id}/approve`);
       toast.success("Đã duyệt bài viết!");
-      fetchDetail(); // Tải lại dữ liệu để cập nhật Status trên UI
+      await fetchDetail(); // Cập nhật lại state để ẩn nút và đổi badge
     } catch (err) {
       toast.error("Lỗi khi duyệt bài");
     } finally {
@@ -70,7 +69,6 @@ export default function AdminJobDetailPage() {
     }
   };
 
-  // Logic Từ chối
   const handleReject = async () => {
     const ok = await confirm({
       title: "Từ chối bài đăng",
@@ -85,7 +83,7 @@ export default function AdminJobDetailPage() {
       setIsProcessing(true);
       await api.put(`/admin/content/posts/${id}/reject`, {});
       toast.success("Đã từ chối bài viết!");
-      fetchDetail(); // Tải lại dữ liệu
+      await fetchDetail();
     } catch (err) {
       toast.error("Lỗi khi từ chối bài viết!");
     } finally {
@@ -95,6 +93,11 @@ export default function AdminJobDetailPage() {
 
   if (loading) return <div className="p-20 text-center animate-pulse text-gray-500 font-bold">Đang truy xuất dữ liệu hệ thống...</div>;
   if (!job) return <div className="p-20 text-center text-red-500 font-bold">Bài đăng không tồn tại hoặc đã bị xóa.</div>;
+
+  // Logic kiểm tra trạng thái để hiển thị UI
+  const isPublished = job.status === ("PUBLISHED" as any) || job.status.toString() === "PUBLISHED";
+  const isPending = job.status === ("PENDING" as any) || job.status.toString() === "PENDING";
+  const isRejected = job.status === ("REJECTED" as any) || job.status.toString() === "REJECTED";
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
@@ -109,24 +112,23 @@ export default function AdminJobDetailPage() {
         </button>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Badge Chế độ Admin */}
           <span className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-black border border-indigo-100">
             <ShieldCheck size={14} /> CHẾ ĐỘ ADMIN
           </span>
 
-          {/* Badge Trạng thái */}
+          {/* Badge Trạng thái: Fix lỗi TypeScript bằng cách so sánh string chuẩn */}
           <span className={`px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-            job.status === 'ACTIVE' || job.status === 'PUBLISHED' 
+            isPublished 
               ? 'bg-green-50 text-green-700 border-green-200' 
-              : job.status === 'PENDING' 
+              : isPending 
               ? 'bg-amber-50 text-amber-600 border-amber-200'
               : 'bg-gray-100 text-gray-600 border-gray-200'
           }`}>
-            {job.status === 'ACTIVE' || job.status === 'PUBLISHED' ? 'Đã duyệt' : job.status}
+            {isPublished ? 'Đã duyệt' : isPending ? 'Chờ duyệt' : isRejected ? 'Đã từ chối' : job.status}
           </span>
 
-          {/* NÚT PHÊ DUYỆT / TỪ CHỐI (Chỉ hiện khi bài đang Chờ duyệt) */}
-          {job.status === 'PENDING' && (
+          {/* NÚT PHÊ DUYỆT / TỪ CHỐI: Chỉ hiện khi bài đang Chờ duyệt */}
+          {isPending && (
             <div className="flex gap-2 ml-2 border-l pl-3 border-gray-200">
               <button
                 disabled={isProcessing}
@@ -147,7 +149,6 @@ export default function AdminJobDetailPage() {
         </div>
       </div>
 
-      {/* Card nội dung chính (Phần giao diện phía dưới giữ nguyên) */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Banner Header */}
         <div className="h-40 bg-gradient-to-r from-slate-900 via-indigo-900 to-blue-900 flex items-end px-10 pb-6">
@@ -193,7 +194,6 @@ export default function AdminJobDetailPage() {
           </div>
         </div>
 
-        {/* Nội dung chi tiết */}
         <div className="p-10 space-y-12">
           <section>
             <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
@@ -215,7 +215,6 @@ export default function AdminJobDetailPage() {
             </div>
           </section>
 
-          {/* Footer Card */}
           <div className="flex flex-wrap gap-8 pt-8 border-t border-gray-100">
             <div className="flex items-center gap-2 text-gray-500 font-bold">
               <Clock size={20} className="text-indigo-500" />

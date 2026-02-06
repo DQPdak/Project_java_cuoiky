@@ -172,6 +172,12 @@ export default function JobsPage() {
     }
   }, [user, activeTab]);
 
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
+ * Set selected job to open ApplyModal
+ * @param {any} job - Job object to be opened in ApplyModal
+ */
+/*******  db8d8496-d194-432f-8530-195bc9a5b4b4  *******/
   const handleApply = (job: any) => {
     setSelectedJob({
       id: job.id,
@@ -381,15 +387,13 @@ export default function JobsPage() {
                   <div className="flex flex-col gap-3 min-w-[200px] border-l border-gray-100 pl-6 md:justify-center">
                     <button
                       onClick={() => router.push(`/jobs/${job.id}`)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-colors border border-blue-100"
-                    >
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-colors border border-blue-100">
                       <FileText className="h-4 w-4" />
                       Xem chi tiết
                     </button>
                     <button
                       onClick={() => router.push(`/cv-analysis/${job.id}`)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-700 rounded-lg font-medium hover:bg-purple-100 transition-colors border border-purple-100"
-                    >
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-700 rounded-lg font-medium hover:bg-purple-100 transition-colors border border-purple-100">
                       <Sparkles className="h-4 w-4" />
                       AI Phân tích
                     </button>
