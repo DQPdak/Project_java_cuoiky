@@ -13,10 +13,12 @@ import {
   XCircle,
   FileText,
   Briefcase,
-  Sparkles, // Thêm icon Sparkles
+  Sparkles,
 } from "lucide-react";
 import { recruitmentService } from "@/services/recruitmentService";
 import { ApplicationStatus } from "@/types/recruitment";
+// [NEW] Import component khóa tính năng
+import PremiumFeatureLock from "@/components/common/PremiumFeatureLock";
 
 // Helper convert list string
 const parseSkillString = (str?: string | string[]) => {
@@ -44,15 +46,11 @@ export default function ApplicationDetailPage() {
   const fetchDetail = async () => {
     setLoading(true);
     try {
-      // --- CHỈNH SỬA Ở ĐÂY: GỌI SONG SONG 2 API ---
+      // Gọi song song 2 API
       const [basicInfo, aiAnalysis] = await Promise.allSettled([
-        recruitmentService.getApplicationDetail(id), // Lấy tên, email, cvUrl...
-        recruitmentService.getApplicationAnalysis(id), // Lấy matchScore, evaluation...
+        recruitmentService.getApplicationDetail(id),
+        recruitmentService.getApplicationAnalysis(id),
       ]);
-      const info = recruitmentService.getApplicationDetail(id);
-      const ai = recruitmentService.getApplicationAnalysis(id);
-      console.log("Basic Info:", info);
-      console.log("AI Analysis:", ai);
 
       let mergedData = {};
 
@@ -77,7 +75,6 @@ export default function ApplicationDetailPage() {
         };
       }
 
-      console.log("Merged Application Data:", mergedData);
       setAppDetail(mergedData);
     } catch (error) {
       console.error("Lỗi tải chi tiết:", error);
@@ -125,13 +122,11 @@ export default function ApplicationDetailPage() {
       </div>
     );
 
-  // Xử lý dữ liệu hiển thị (Fallback an toàn)
+  // Xử lý dữ liệu hiển thị
   const matchedSkills = parseSkillString(appDetail.matchedSkillsList);
   const missingSkills = parseSkillString(appDetail.missingSkillsList);
   const status = appDetail.status || ApplicationStatus.PENDING;
 
-  // Mapping dữ liệu từ Basic Info (JobApplicationResponse)
-  // Lưu ý: Kiểm tra DTO trả về từ BE, thường là: studentName, email, phone...
   const studentName =
     appDetail.studentName || appDetail.candidateName || "Ứng viên";
   const jobTitle = appDetail.jobTitle || "Vị trí ứng tuyển";
@@ -221,8 +216,10 @@ export default function ApplicationDetailPage() {
       <div className="container mx-auto px-4 md:px-6 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cột trái: AI & CV */}
         <div className="lg:col-span-2 space-y-8">
-          {/* AI Analysis Section */}
+          
+          {/* --- AI Analysis Section: Đã được tích hợp Khóa VIP --- */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* Header: Luôn hiển thị Match Score để thu hút (Teaser) */}
             <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-4 flex justify-between items-center text-white">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <Sparkles size={20} className="text-yellow-300" /> Phân tích AI
@@ -233,62 +230,70 @@ export default function ApplicationDetailPage() {
             </div>
 
             <div className="p-6">
-              <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-indigo-900 mb-6 text-sm leading-relaxed">
-                <span className="font-bold mr-1">💡 Đánh giá:</span>
-                {appDetail.aiEvaluation ||
-                  appDetail.evaluation ||
-                  "Đang chờ phân tích từ AI..."}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Kỹ năng phù hợp */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-bold text-gray-700 flex items-center uppercase tracking-wider">
-                    <CheckCircle size={16} className="text-green-500 mr-2" />{" "}
-                    Điểm mạnh
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {matchedSkills.length > 0 ? (
-                      matchedSkills.map((s, i) => (
-                        <span
-                          key={i}
-                          className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg text-xs font-semibold"
-                        >
-                          {s}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-gray-400 text-sm italic">
-                        Chưa xác định
-                      </span>
-                    )}
-                  </div>
+              {/* [LOCKED] Bọc nội dung chi tiết trong PremiumFeatureLock 
+                  Component này sẽ tự check role: Nếu Recruiter thường -> Khóa; Nếu VIP/Admin -> Mở.
+              */}
+              <PremiumFeatureLock 
+                title="Chi tiết Đánh giá AI" 
+                description="Nâng cấp lên gói VIP để xem phân tích chi tiết điểm mạnh, điểm yếu và gợi ý phỏng vấn từ AI."
+              >
+                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-indigo-900 mb-6 text-sm leading-relaxed">
+                  <span className="font-bold mr-1">💡 Đánh giá:</span>
+                  {appDetail.aiEvaluation ||
+                    appDetail.evaluation ||
+                    "Đang chờ phân tích từ AI..."}
                 </div>
 
-                {/* Kỹ năng thiếu */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-bold text-gray-700 flex items-center uppercase tracking-wider">
-                    <XCircle size={16} className="text-red-500 mr-2" /> Cần cải
-                    thiện
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {missingSkills.length > 0 ? (
-                      missingSkills.map((s, i) => (
-                        <span
-                          key={i}
-                          className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-semibold"
-                        >
-                          {s}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Kỹ năng phù hợp */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-bold text-gray-700 flex items-center uppercase tracking-wider">
+                      <CheckCircle size={16} className="text-green-500 mr-2" />{" "}
+                      Điểm mạnh
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {matchedSkills.length > 0 ? (
+                        matchedSkills.map((s, i) => (
+                          <span
+                            key={i}
+                            className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg text-xs font-semibold"
+                          >
+                            {s}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-400 text-sm italic">
+                          Chưa xác định
                         </span>
-                      ))
-                    ) : (
-                      <span className="text-gray-400 text-sm italic">
-                        Không có
-                      </span>
-                    )}
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Kỹ năng thiếu */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-bold text-gray-700 flex items-center uppercase tracking-wider">
+                      <XCircle size={16} className="text-red-500 mr-2" /> Cần cải
+                      thiện
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {missingSkills.length > 0 ? (
+                        missingSkills.map((s, i) => (
+                          <span
+                            key={i}
+                            className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-semibold"
+                          >
+                            {s}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-400 text-sm italic">
+                          Không có
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </PremiumFeatureLock>
             </div>
           </div>
 

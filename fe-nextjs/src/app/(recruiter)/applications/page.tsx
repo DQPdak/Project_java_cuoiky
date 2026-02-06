@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// SỬA LỖI: Chỉ import biến service từ file service
 import { recruitmentService } from "@/services/recruitmentService";
-
-// SỬA LỖI: Import Types và Enum trực tiếp từ file định nghĩa types
-// Alias (đổi tên) JobPosting -> RecruiterJob để khớp với code hiện tại
 import {
   JobPosting as RecruiterJob,
   CandidateApplication as RecruiterApplication,
@@ -15,24 +11,28 @@ import {
 
 import CVAnalysisResult from "@/components/features/cv/CVAnalysisResult";
 import PremiumFeatureLock from "@/components/common/PremiumFeatureLock";
+// Import UseAuth để check quyền
+import { useAuth } from "@/context/Authcontext";
+
 import {
   Briefcase,
   Sparkles,
-  Eye,
   CheckCircle,
   XCircle,
   Clock,
   ChevronRight,
-  AlertCircle,
   Download,
   X,
   FileText,
   Loader2,
   Filter,
+  Mail,
+  Phone,
+  Eye,
+  AlertCircle
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// --- HELPER: Xử lý chuỗi kỹ năng thành mảng an toàn ---
 const safeSplit = (input: any): string[] => {
   if (Array.isArray(input)) return input;
   if (typeof input === "string" && input.trim().length > 0) {
@@ -44,7 +44,103 @@ const safeSplit = (input: any): string[] => {
   return [];
 };
 
-// --- 1. MODAL XEM CV & DUYỆT ---
+// --- MODAL AI ANALYSIS ---
+const AnalysisModal = ({
+  app,
+  onClose,
+}: {
+  app: RecruiterApplication;
+  onClose: any;
+}) => {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (app) {
+      setLoading(true);
+      recruitmentService
+        .getApplicationAnalysis(app.id)
+        .then((res: any) => {
+          const mappedData = {
+            ...res,
+            matchPercentage: res.matchScore ?? res.matchPercentage ?? 0,
+            evaluation: res.evaluation || "Chưa có đánh giá chi tiết.",
+            matchedSkillsList: safeSplit(res.matchedSkillsList),
+            missingSkillsList: safeSplit(res.missingSkillsList),
+            otherHardSkillsList: safeSplit(res.otherHardSkillsList),
+            otherSoftSkillsList: safeSplit(res.otherSoftSkillsList),
+            recommendedSkillsList: safeSplit(res.recommendedSkillsList),
+            matchedSkillsCount:
+              res.matchedSkillsCount || safeSplit(res.matchedSkillsList).length,
+            missingSkillsCount:
+              res.missingSkillsCount || safeSplit(res.missingSkillsList).length,
+            otherHardSkillsCount:
+              res.otherHardSkillsCount ||
+              safeSplit(res.otherHardSkillsList).length,
+            otherSoftSkillsCount:
+              res.otherSoftSkillsCount ||
+              safeSplit(res.otherSoftSkillsList).length,
+            recommendedSkillsCount:
+              res.recommendedSkillsCount ||
+              safeSplit(res.recommendedSkillsList).length,
+            candidateName:
+              res.candidateName || res.studentName || app.studentName,
+            jobTitle: res.jobTitle || app.jobTitle,
+          };
+          setData(mappedData);
+        })
+        .catch((err) => {
+          console.error("Lỗi lấy dữ liệu AI:", err);
+          setData({
+            matchPercentage: app.matchScore || 0,
+            evaluation: app.aiEvaluation || "Chưa có đánh giá chi tiết.",
+            missingSkillsList: safeSplit(app.missingSkillsList),
+            matchedSkillsList: [],
+            otherHardSkillsList: [],
+            otherSoftSkillsList: [],
+            recommendedSkillsList: [],
+            matchedSkillsCount: 0,
+            missingSkillsCount: safeSplit(app.missingSkillsList).length,
+            otherHardSkillsCount: 0,
+            otherSoftSkillsCount: 0,
+            recommendedSkillsCount: 0,
+            jobTitle: app.jobTitle,
+            candidateName: app.studentName,
+          });
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [app]);
+
+  if (!app) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+      <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-white z-10">
+          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <Sparkles className="text-purple-600" /> Phân tích AI Chi tiết
+          </h3>
+          <button onClick={onClose}>
+            <X className="text-gray-400 hover:text-gray-600" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+              <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-3" />
+              <p>Đang tải dữ liệu phân tích...</p>
+            </div>
+          ) : (
+            <CVAnalysisResult result={data} isRecruiterView={true} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- MODAL XEM CV & DUYỆT ---
 const CVDetailModal = ({
   app,
   onClose,
@@ -178,104 +274,10 @@ const CVDetailModal = ({
   );
 };
 
-// --- 2. MODAL AI ANALYSIS ---
-const AnalysisModal = ({
-  app,
-  onClose,
-}: {
-  app: RecruiterApplication;
-  onClose: any;
-}) => {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (app) {
-      setLoading(true);
-      recruitmentService
-        .getApplicationAnalysis(app.id)
-        .then((res: any) => {
-          const mappedData = {
-            ...res,
-            matchPercentage: res.matchScore ?? res.matchPercentage ?? 0,
-            evaluation: res.evaluation || "Chưa có đánh giá chi tiết.",
-            matchedSkillsList: safeSplit(res.matchedSkillsList),
-            missingSkillsList: safeSplit(res.missingSkillsList),
-            otherHardSkillsList: safeSplit(res.otherHardSkillsList),
-            otherSoftSkillsList: safeSplit(res.otherSoftSkillsList),
-            recommendedSkillsList: safeSplit(res.recommendedSkillsList),
-            matchedSkillsCount:
-              res.matchedSkillsCount || safeSplit(res.matchedSkillsList).length,
-            missingSkillsCount:
-              res.missingSkillsCount || safeSplit(res.missingSkillsList).length,
-            otherHardSkillsCount:
-              res.otherHardSkillsCount ||
-              safeSplit(res.otherHardSkillsList).length,
-            otherSoftSkillsCount:
-              res.otherSoftSkillsCount ||
-              safeSplit(res.otherSoftSkillsList).length,
-            recommendedSkillsCount:
-              res.recommendedSkillsCount ||
-              safeSplit(res.recommendedSkillsList).length,
-            candidateName:
-              res.candidateName || res.studentName || app.studentName,
-            jobTitle: res.jobTitle || app.jobTitle,
-          };
-          setData(mappedData);
-        })
-        .catch((err) => {
-          console.error("Lỗi lấy dữ liệu AI:", err);
-          setData({
-            matchPercentage: app.matchScore || 0,
-            evaluation: app.aiEvaluation || "Chưa có đánh giá chi tiết.",
-            missingSkillsList: safeSplit(app.missingSkillsList),
-            matchedSkillsList: [],
-            otherHardSkillsList: [],
-            otherSoftSkillsList: [],
-            recommendedSkillsList: [],
-            matchedSkillsCount: 0,
-            missingSkillsCount: safeSplit(app.missingSkillsList).length,
-            otherHardSkillsCount: 0,
-            otherSoftSkillsCount: 0,
-            recommendedSkillsCount: 0,
-            jobTitle: app.jobTitle,
-            candidateName: app.studentName,
-          });
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [app]);
-
-  if (!app) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-white z-10">
-          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <Sparkles className="text-purple-600" /> Phân tích AI Chi tiết
-          </h3>
-          <button onClick={onClose}>
-            <X className="text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-              <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-3" />
-              <p>Đang tải dữ liệu phân tích...</p>
-            </div>
-          ) : (
-            <CVAnalysisResult result={data} />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- 3. TRANG CHÍNH ---
 export default function ApplicationsPage() {
+  const { user } = useAuth(); // Lấy user info
+  const isVip = user?.userRole === "ADMIN" || user?.userRole?.includes("VIP");
+
   const [jobs, setJobs] = useState<RecruiterJob[]>([]);
   const [currentApplications, setCurrentApplications] = useState<
     RecruiterApplication[]
@@ -362,7 +364,6 @@ export default function ApplicationsPage() {
     return "text-gray-600 bg-gray-50 border-gray-200";
   };
 
-  // Helper render status text
   const getStatusLabel = (status: ApplicationStatus) => {
     switch (status) {
       case ApplicationStatus.PENDING:
@@ -395,7 +396,6 @@ export default function ApplicationsPage() {
     }
   };
 
-  // Component hiển thị danh sách để tái sử dụng
   const ApplicationsList = () => (
     <div className="space-y-4">
       {displayApplications.map((app) => (
@@ -473,6 +473,24 @@ export default function ApplicationsPage() {
     </div>
   );
 
+  // --- LOGIC RENDER DANH SÁCH CHÍNH ---
+  // Nếu đang tab Matching VÀ không phải VIP => Hiện khóa cứng
+  const renderContent = () => {
+    if (activeTab === "matching" && !isVip) {
+      return (
+        <PremiumFeatureLock
+          title="Danh sách Top Ứng viên (AI)"
+          description="Nâng cấp tài khoản VIP để xem danh sách ứng viên được AI sàng lọc và sắp xếp theo độ phù hợp."
+        >
+           {/* Div rỗng để chiếm chỗ, không render list thật để bảo mật */}
+           <div className="h-64 w-full bg-gray-50/50 rounded-xl border border-dashed border-gray-200" />
+        </PremiumFeatureLock>
+      );
+    }
+    // Các trường hợp còn lại hiện list bình thường
+    return <ApplicationsList />;
+  };
+
   return (
     <div className="h-[calc(100vh-64px)] bg-gray-50 flex overflow-hidden">
       {viewCVApp && (
@@ -523,7 +541,6 @@ export default function ApplicationsPage() {
                 )}
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
-                {/* SỬA LỖI: Dùng Enum JobStatus thay vì chuỗi cứng */}
                 <span
                   className={`px-2 py-0.5 rounded text-[10px] ${job.status === JobStatus.PUBLISHED ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
                 >
@@ -599,16 +616,7 @@ export default function ApplicationsPage() {
           ) : (
             <>
               {/* LOGIC KHÓA TÍNH NĂNG Ở ĐÂY */}
-              {activeTab === "matching" ? (
-                <PremiumFeatureLock
-                  title="Danh sách Top Ứng viên (AI)"
-                  description="Nâng cấp tài khoản VIP để xem danh sách ứng viên được AI sàng lọc và sắp xếp theo độ phù hợp."
-                >
-                  <ApplicationsList />
-                </PremiumFeatureLock>
-              ) : (
-                <ApplicationsList />
-              )}
+              {renderContent()}
             </>
           )}
         </div>
