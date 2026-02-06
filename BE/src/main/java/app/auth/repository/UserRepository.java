@@ -61,6 +61,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
         // ===== SEARCH (dùng chung) =====
     Page<User> findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(String fullName,String email,Pageable pageable);
 
+    List<User> findByUserRole(UserRole role);
+
     // ===== ADMIN: search + exclude current admin id =====
     @Query("""
         SELECT u FROM User u

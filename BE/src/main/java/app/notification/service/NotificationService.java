@@ -20,6 +20,24 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
 
+
+    @Transactional
+    public void markAllAsRead(Long userId) {
+        notificationRepository.markAllAsRead(userId);
+    }
+
+    public void deleteNotification(Long notificationId, Long userId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+
+        // Kiểm tra xem thông báo này có phải của user đang đăng nhập không
+        if (!notification.getRecipient().getId().equals(userId)) {
+            throw new RuntimeException("Bạn không có quyền xóa thông báo này");
+        }
+
+        notificationRepository.delete(notification);
+    }
+
     // Nếu gửi thông báo lỗi, transaction cha (Apply) vẫn thành công
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendNotification(Long recipientId, String title, String message, String link) {

@@ -11,6 +11,7 @@ import app.review.repository.CompanyReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import app.notification.service.NotificationService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,6 +23,7 @@ public class ReviewService {
     private final CompanyReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public ReviewResponse addReview(Long userId, ReviewRequest request) {
@@ -45,6 +47,19 @@ public class ReviewService {
                 .build();
 
         CompanyReview savedReview = reviewRepository.save(review);
+
+        try {
+            User recruiter = company.getRecruiter();
+            if (recruiter != null) {
+                String title = "Đánh giá mới: " + request.getRating() + " sao ⭐";
+                String message = "Ứng viên " + user.getFullName() + " vừa đánh giá công ty " + company.getName();
+                String link = "/recruiter/company/reviews"; // Link FE
+
+                notificationService.sendNotification(recruiter.getId(), title, message, link);
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi gửi thông báo review: " + e.getMessage());
+        }
 
         return mapToResponse(savedReview);
     }

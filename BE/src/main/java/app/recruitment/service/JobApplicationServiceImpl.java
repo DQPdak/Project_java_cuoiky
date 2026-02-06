@@ -7,8 +7,6 @@ import app.auth.model.User;
 import app.auth.repository.UserRepository;
 import app.candidate.model.CandidateProfile;
 import app.candidate.repository.CandidateProfileRepository;
-// --- BỎ: import LeaderboardService ---
-// import app.gamification.service.LeaderboardService; 
 import app.recruitment.dto.request.JobApplicationRequest;
 import app.recruitment.dto.response.JobApplicationResponse;
 import app.recruitment.entity.CVAnalysisResult;
@@ -24,8 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import app.notification.service.NotificationService;
+import app.notification.service.NotificationService;
 
-// --- MỚI: Import Event Publisher & Enum ---
 import org.springframework.context.ApplicationEventPublisher;
 import app.gamification.event.PointEvent;
 import app.gamification.model.UserPointAction;
@@ -44,12 +42,11 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     private final CandidateProfileRepository profileRepository;
     private final CVAnalysisResultRepository analysisResultRepo;
     private final ObjectMapper objectMapper;
-    
-    // --- THAY ĐỔI: Dùng EventPublisher ---
     private final ApplicationEventPublisher eventPublisher;
     
     // Service tính toán nhanh
     private final JobFastMatchingService fastMatchingService;
+
     private final NotificationService notificationService;
 
     @Override
@@ -170,12 +167,12 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                     case REJECTED:
                         action = UserPointAction.REVIEW_CV;
                         break;
-                    
+
                     // Nhóm 2: Tuyển thành công -> HIRED
-                    case OFFERED: 
+                    case OFFERED:
                         action = UserPointAction.HIRED;
                         break;
-                        
+
                     default:
                         break;
                 }
@@ -184,9 +181,9 @@ public class JobApplicationServiceImpl implements JobApplicationService {
                     // Bắn event thay vì gọi service trực tiếp
                     eventPublisher.publishEvent(new PointEvent(
                         this,
-                        recruiterId, 
-                        "RECRUITER", 
-                        action, 
+                        recruiterId,
+                        "RECRUITER",
+                        action,
                         saved.getId()
                     ));
                 }
@@ -195,6 +192,36 @@ public class JobApplicationServiceImpl implements JobApplicationService {
             }
         }
         // ------------------------------------------------
+
+        try {
+            Long candidateId = application.getCandidate().getId();
+            String jobTitle = application.getJobPosting().getTitle();
+            String notifTitle = "Cập nhật trạng thái hồ sơ";
+            String notifMessage = "";
+            String notifLink = "/my-applications"; // Link FE dẫn tới trang lịch sử ứng tuyển
+
+            switch (newStatus) {
+                case SCREENING:
+                    notifMessage = "Hồ sơ ứng tuyển vị trí " + jobTitle + " của bạn đang được xem xét.";
+                    break;
+                case INTERVIEW:
+                    notifMessage = "Chúc mừng! Bạn đã được mời phỏng vấn cho vị trí " + jobTitle + ".";
+                    break;
+                case OFFERED:
+                    notifMessage = "Tin vui! Bạn đã nhận được lời mời làm việc cho vị trí " + jobTitle + ".";
+                    break;
+                case REJECTED:
+                    notifMessage = "Hồ sơ cho vị trí " + jobTitle + " của bạn chưa phù hợp lúc này.";
+                    break;
+                default:
+                    notifMessage = "Trạng thái hồ sơ vị trí " + jobTitle + " đã thay đổi thành " + newStatus.name();
+            }
+
+            notificationService.sendNotification(candidateId, notifTitle, notifMessage, notifLink);
+
+        } catch (Exception e) {
+            log.error("Lỗi gửi thông báo cập nhật trạng thái: {}", e.getMessage());
+        }
 
         return saved;
     }

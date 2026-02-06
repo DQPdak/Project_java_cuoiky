@@ -9,8 +9,10 @@ import app.admin.report.model.enums.ReportStatus;
 import app.admin.report.model.enums.ReportTargetType;
 import app.admin.report.repository.ViolationReportRepository;
 import app.auth.model.User;
+import app.auth.model.enums.UserRole;
 import app.auth.model.enums.UserStatus;
 import app.auth.repository.UserRepository;
+import app.notification.service.NotificationService;
 import app.recruitment.entity.JobApplication;
 import app.recruitment.entity.JobPosting;
 import app.recruitment.entity.enums.ApplicationStatus;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +36,7 @@ public class ViolationReportService {
     private final UserRepository userRepo;
     private final JobPostingRepository jobPostingRepo;
     private final JobApplicationRepository jobAppRepo;
+    private final NotificationService notificationService;
 
     @Transactional
     public ViolationReportResponse create(Long reporterId, CreateViolationReportRequest req) {
@@ -49,6 +53,19 @@ public class ViolationReportService {
         r.setDescription(req.description());
         r.setEvidenceUrl(req.evidenceUrl());
         r.setStatus(ReportStatus.PENDING);
+
+        try {
+            List<User> admins = userRepo.findByUserRole(UserRole.ADMIN);
+            String title = "⚠️ Báo cáo vi phạm mới: " + req.targetType();
+            String message = "User " + reporter.getFullName() + " vừa báo cáo một nội dung. Lý do: " + req.reason();
+            String link = "/admin/violation-reports"; // Link trang quản lý reports
+
+            for (User admin : admins) {
+                notificationService.sendNotification(admin.getId(), title, message, link);
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi gửi thông báo cho Admin: " + e.getMessage());
+        }
 
         return toResponse(reportRepo.save(r));
     }
