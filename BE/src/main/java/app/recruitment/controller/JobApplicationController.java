@@ -129,5 +129,10 @@ List<JobApplicationResponse> list = applicationService.getApplicationsByCandidat
             ));
         }
     }
-            
-}
+    @GetMapping("/{id}")
+    public ResponseEntity<JobApplicationResponse> getApplicationDetail(@PathVariable Long id) {
+        // Gọi thẳng hàm getDetail mà bạn đã viết trong Service
+        JobApplicationResponse response = applicationService.getDetail(id);
+        
+        return ResponseEntity.ok(response);
+    }}

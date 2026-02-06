@@ -123,6 +123,11 @@ export const recruitmentService = {
     return res.data.data || res.data;
   },
 
+  getApplicationDetail: async (id: number): Promise<any> => {
+    const res = await api.get(`/applications/${id}`);
+    return res.data; // Trả về JobApplicationResponse
+  },
+
   // ==========================================
   // 6. NHÓM UPLOAD (Thêm mới)
   // ==========================================
