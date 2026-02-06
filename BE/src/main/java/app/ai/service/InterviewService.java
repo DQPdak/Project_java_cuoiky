@@ -133,7 +133,6 @@ public class InterviewService {
 
         InterviewSession savedSession = sessionRepository.save(session);
         
-        // --- SỬA: Bắn Event INTERVIEW_PRACTICE ---
         try {
             eventPublisher.publishEvent(new PointEvent(
                 this,
@@ -145,7 +144,10 @@ public class InterviewService {
         } catch (Exception e) {
             log.error("Lỗi bắn event INTERVIEW_PRACTICE: {}", e.getMessage());
         }
-        // --------------------------------------------------------
+
+        if (savedSession.getJobPosting() != null && savedSession.getJobPosting().getCompany() != null) {
+            savedSession.getJobPosting().getCompany().getName(); 
+        }
 
         return savedSession;
     }
